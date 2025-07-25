@@ -9,18 +9,19 @@ import "react-datetime/css/react-datetime.css";
 import NavigationProvider from './contentApi/navigationProvider';
 import SideBarToggleProvider from './contentApi/sideBarToggleProvider';
 import ThemeCustomizer from './components/shared/ThemeCustomizer';
+import { CompanyProvider } from './contentApi/CompanyProvider';
 
 const App = () => {
   return (
-    <>
+    <CompanyProvider>
       <NavigationProvider>
         <SideBarToggleProvider>
           <RouterProvider router={router} />
+          <ThemeCustomizer />
         </SideBarToggleProvider>
       </NavigationProvider>
-      <ThemeCustomizer />
-    </>
-  )
-}
+    </CompanyProvider>
+  );
+};
 
-export default App
+export default App;

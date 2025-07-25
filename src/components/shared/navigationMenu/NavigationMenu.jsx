@@ -4,21 +4,56 @@ import { FiSunrise } from "react-icons/fi";
 import PerfectScrollbar from "react-perfect-scrollbar";
 import Menus from './Menus';
 import { NavigationContext } from '../../../contentApi/navigationProvider';
+import { CompanyContext } from '../../../contentApi/CompanyProvider';
 
 const NavigationManu = () => {
     const { navigationOpen, setNavigationOpen } = useContext(NavigationContext)
+    const { selectedCompany } = useContext(CompanyContext);
     const pathName = useLocation().pathname
     useEffect(() => {
         setNavigationOpen(false)
     }, [pathName])
+
+     // Define logo URLs based on company
+    const getLogo = () => {
+      switch(selectedCompany) {
+        case 'aahaas':
+          return {
+            lg: "https://s3-aahaas-prod-assets.s3.ap-southeast-1.amazonaws.com/images/aahaas.png",
+            sm: "/images/logo/aahaas_small.jpg"
+          };
+        case 'appleholidays':
+          return {
+            lg: "/images/logo/appleholidays_extend.png",
+            sm: "/images/logo/appleholidays_small.jpg"
+          };
+        case 'shirmila':
+          return {
+            lg: "/images/logo/shirmila_travels.jpg",
+            sm: "/images/logo/shirmila_travels.jpg"
+          };
+        default:
+          return {
+            lg: "https://s3-aahaas-prod-assets.s3.ap-southeast-1.amazonaws.com/images/aahaas.png",
+            sm: "/images/logo-abbr.png"
+          };
+      }
+    };
+    
+    const logos = getLogo();
+
     return (
         <nav className={`nxl-navigation ${navigationOpen ? "mob-navigation-active" : ""}`}>
             <div className="navbar-wrapper">
                 <div className="m-header">
                     <Link to="/" className="b-brand">
                         {/* <!-- ========   change your logo hear   ============ --> */}
-                        <img src="/images/logo-full.png" alt="logo" className="logo logo-lg" />
-                        <img src="/images/logo-abbr.png" alt="logo" className="logo logo-sm" />
+                        {/* <img src="/images/logo-full.png" alt="logo" className="logo logo-lg" />
+                        <img src="/images/logo-abbr.png" alt="logo" className="logo logo-sm" /> */}
+                        {/* <img src="https://s3-aahaas-prod-assets.s3.ap-southeast-1.amazonaws.com/images/aahaas.png" alt="logo" className="logo logo-lg" style={{ width: "150px" }} />
+                        <img src="/images/logo-abbr.png" alt="logo" className="logo logo-sm" /> */}
+                        <img src={logos.lg} alt="logo" className="logo logo-lg" style={{ width: "150px" }} />
+                        <img src={logos.sm} alt="logo" className="logo logo-sm" />
                     </Link>
                 </div>
 

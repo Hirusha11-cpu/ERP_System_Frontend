@@ -68,6 +68,7 @@ import WidgetsTables from "../pages/widgets-tables";
 import WidgetsCharts from "../pages/widgets-charts";
 import WidgetsStatistics from "../pages/widgets-statistics";
 import WidgetsMiscellaneous from "../pages/widgets-miscellaneous";
+import Invoice_preview from "@/components/main_components/invoice/invoice_preview";
 
 export const router = createBrowserRouter([
     {
@@ -79,15 +80,15 @@ export const router = createBrowserRouter([
                 element: <Home />
             },
             {
-                path: "/dashboards/analytics",
-                element: <Analytics />
+                path: "/invoice",
+                element: <Invoice_preview target="main_invoice_view"/>
             },
             {
-                path: "/reports/sales",
-                element: <ReportsSales />
+                path: "/invoice/create",
+                element: <Invoice_preview target="invoice_create" />
             },
             {
-                path: "/reports/leads",
+                path: "/invoice/edit",
                 element: <ReportsLeads />
             },
             {

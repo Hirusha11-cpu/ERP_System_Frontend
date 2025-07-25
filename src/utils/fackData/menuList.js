@@ -57,7 +57,7 @@ export const menuList = [
   },
   {
     id: 1,
-    name: "Invoice",
+    name: "invoice",
     path: "/payment/list",
     icon: "feather-delete",
     dropdownMenu: [
@@ -65,7 +65,7 @@ export const menuList = [
         id: 1,
         name: "Create Invoice",
         path: "/payment/list",
-        subdropdownMenu: false,
+        subdropdownMenu: true,
       },
       {
         id: 2,

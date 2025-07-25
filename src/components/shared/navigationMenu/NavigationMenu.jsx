@@ -29,7 +29,7 @@ const NavigationManu = () => {
           };
         case 'shirmila':
           return {
-            lg: "/images/logo/shirmila_travels.jpg",
+            lg: "https://jaffna.city/wp-content/uploads/2016/04/Sharmila-Travels.png",
             sm: "/images/logo/shirmila_travels.jpg"
           };
         default:

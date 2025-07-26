@@ -1,16 +1,81 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { Modal, Button, Form, Table, Card, Nav, Tab, Row, Col } from 'react-bootstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { FaSearch, FaPlus, FaTrash, FaEye, FaPrint, FaDownload, FaSyncAlt, FaCog } from 'react-icons/fa';
+import { CompanyContext } from '../../../../../contentApi/CompanyProvider';
+import axios from 'axios';
 
 const Invoice_shirmila = () => {
+  const { currentCompany } = useContext(CompanyContext);
+  const [customers, setCustomers] = useState([]);
+  const [taxRates, setTaxRates] = useState([]);
+
+  // Fetch customers and tax rates on component mount
+  useEffect(() => {
+    fetchCustomers();
+    fetchTaxRates();
+  }, []);
+
+  const fetchCustomers = async () => {
+    try {
+      const response = await axios.get('/api/customers');
+      setCustomers(response.data);
+    } catch (error) {
+      console.error('Error fetching customers:', error);
+    }
+  };
+
+  const fetchTaxRates = async () => {
+    try {
+      const response = await axios.get('/api/tax-rates');
+      setTaxRates(response.data);
+    } catch (error) {
+      console.error('Error fetching tax rates:', error);
+    }
+  };
+
+  const handleSubmit = async () => {
+    const dataToSend = {
+      ...formData,
+      company_id: currentCompany.id,
+      items: formData.serviceItems.map(item => ({
+        code: item.code,
+        type: item.type,
+        description: item.description,
+        checkin_time: item.checkin,
+        checkout_time: item.checkout,
+        quantity: item.qty,
+        price: item.price,
+        discount: item.discount
+      })),
+      additional_charges: formData.additionalCharges.map(charge => ({
+        description: charge.description,
+        amount: charge.amount,
+        taxable: charge.taxable
+      }))
+    };
+    
+    try {
+      const response = await axios.post('/api/invoices', dataToSend);
+      // Handle success
+      alert('Invoice created successfully!');
+      resetForm();
+    } catch (error) {
+      // Handle error
+      console.error('Error creating invoice:', error);
+      alert('Error creating invoice: ' + (error.response?.data?.message || error.message));
+    }
+  };
+
   // State for form data
   const [formData, setFormData] = useState({
     customer: {
+      id: null,
       name: '',
       address: '',
       mobile: '',
-      code: ''
+      code: '',
+      gstNo: ''
     },
     invoice: {
       country: 'IN',
@@ -27,38 +92,12 @@ const Invoice_shirmila = () => {
       rateSource: 'custom',
       customRate: 87.52,
       addOneToRate: true,
-      addTenToRate: false
+      addTenToRate: false,
+      taxTreatment: 'exclusive'
     },
-    serviceItems: [
-      {
-        id: 1,
-        code: 'CPPS',
-        type: 'hotel',
-        description: 'Cost Per Person Single',
-        checkin: '',
-        checkout: '',
-        qty: 8,
-        price: 84.39,
-        discount: 8,
-        total: 59082.24
-      },
-      {
-        id: 2,
-        code: 'HF',
-        type: 'handling',
-        description: 'Handling Fee',
-        checkin: '',
-        checkout: '',
-        qty: 1,
-        price: 5.02,
-        discount: 0,
-        total: 439.60
-      }
-    ],
+    serviceItems: [],
     additionalCharges: [],
-    taxRates: [
-      { name: 'GST', component: 'Goods and Services Tax', rate: 18 }
-    ],
+    taxRates: taxRates,
     accountDetails: {
       name: 'SHARMILA TOURS AND TRAVELS',
       number: '054205002744',
@@ -81,14 +120,14 @@ const Invoice_shirmila = () => {
       remarks: 'Payable in INR(Rate 87.52)'
     },
     totals: {
-      subTotal: 62599.04,
-      handlingFee: 439.60,
-      gst: 11347.00,
+      subTotal: 0,
+      handlingFee: 0,
+      gst: 0,
       additionalTax: 0,
       bankCharges: 0,
-      total: 74385.64,
+      total: 0,
       amountReceived: 0,
-      balance: 74385.64
+      balance: 0
     }
   });
 
@@ -98,6 +137,7 @@ const Invoice_shirmila = () => {
   const [showChargeModal, setShowChargeModal] = useState(false);
   const [showTaxModal, setShowTaxModal] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [newItem, setNewItem] = useState({
     code: '',
     type: 'hotel',
@@ -119,11 +159,14 @@ const Invoice_shirmila = () => {
     component: '',
     rate: 0
   });
+  const [newCustomer, setNewCustomer] = useState({
+    code: '',
+    name: '',
+    address: '',
+    mobile: '',
+    gstNo: ''
+  });
   const [customerSearch, setCustomerSearch] = useState('');
-  const [customers, setCustomers] = useState([
-    { id: 1, code: 'C001', name: 'PICK YOUR TRAVEL', address: 'Ravichander Balachander • 9', mobile: '9876543210' },
-    { id: 2, code: 'C002', name: 'ABC Tours', address: '123 Main St', mobile: '9876543211' }
-  ]);
   const [filteredCustomers, setFilteredCustomers] = useState([]);
   const [activeTab, setActiveTab] = useState('sell');
 
@@ -151,6 +194,14 @@ const Invoice_shirmila = () => {
     calculateTotals();
   }, [formData.serviceItems, formData.additionalCharges, formData.currencyDetails, formData.taxRates]);
 
+  // Update tax rates when they change
+  useEffect(() => {
+    setFormData(prev => ({
+      ...prev,
+      taxRates: taxRates
+    }));
+  }, [taxRates]);
+
   // Filter customers based on search
   useEffect(() => {
     if (customerSearch) {
@@ -163,21 +214,43 @@ const Invoice_shirmila = () => {
     } else {
       setFilteredCustomers([]);
     }
-  }, [customerSearch]);
+  }, [customerSearch, customers]);
 
   // Handle customer selection
   const handleCustomerSelect = (customer) => {
     setFormData({
       ...formData,
       customer: {
+        id: customer.id,
         name: customer.name,
         address: customer.address,
         mobile: customer.mobile,
-        code: customer.code
+        code: customer.code,
+        gstNo: customer.gstNo || ''
       }
     });
     setCustomerSearch('');
     setFilteredCustomers([]);
+  };
+
+  // Create new customer
+  const createNewCustomer = async () => {
+    try {
+      const response = await axios.post('/api/customers', newCustomer);
+      setCustomers([...customers, response.data]);
+      handleCustomerSelect(response.data);
+      setShowCustomerModal(false);
+      setNewCustomer({
+        code: '',
+        name: '',
+        address: '',
+        mobile: '',
+        gstNo: ''
+      });
+    } catch (error) {
+      console.error('Error creating customer:', error);
+      alert('Error creating customer: ' + (error.response?.data?.message || error.message));
+    }
   };
 
   // Handle input changes
@@ -243,7 +316,7 @@ const Invoice_shirmila = () => {
 
   // Calculate totals
   const calculateTotals = () => {
-    const { currency, exchangeRate } = formData.currencyDetails;
+    const { currency, exchangeRate, taxTreatment } = formData.currencyDetails;
     const { serviceItems, additionalCharges, taxRates } = formData;
     
     // Calculate subtotal from service items
@@ -258,8 +331,12 @@ const Invoice_shirmila = () => {
     });
     
     // Add additional charges
+    let taxableCharges = 0;
     additionalCharges.forEach(charge => {
       subTotal += charge.amount;
+      if (charge.taxable) {
+        taxableCharges += charge.amount;
+      }
     });
     
     // Calculate handling fee (only for INR)
@@ -271,9 +348,9 @@ const Invoice_shirmila = () => {
     
     // Calculate GST (only for INR)
     let gst = 0;
-    if (currency === 'INR') {
+    if (currency === 'INR' && taxTreatment === 'exclusive') {
       const gstRate = taxRates.find(tax => tax.name === 'GST')?.rate || 0;
-      gst = (subTotal + handlingFee) * (gstRate / 100);
+      gst = (subTotal + handlingFee + taxableCharges) * (gstRate / 100);
     }
     
     // Calculate total
@@ -348,22 +425,20 @@ const Invoice_shirmila = () => {
   };
 
   // Add new tax rate
-  const addNewTaxRate = () => {
-    setFormData({
-      ...formData,
-      taxRates: [
-        ...formData.taxRates,
-        newTaxRate
-      ]
-    });
-    
-    setNewTaxRate({
-      name: '',
-      component: '',
-      rate: 0
-    });
-    
-    setShowTaxModal(false);
+  const addNewTaxRate = async () => {
+    try {
+      const response = await axios.post('/api/tax-rates', newTaxRate);
+      setTaxRates([...taxRates, response.data]);
+      setNewTaxRate({
+        name: '',
+        component: '',
+        rate: 0
+      });
+      setShowTaxModal(false);
+    } catch (error) {
+      console.error('Error adding tax rate:', error);
+      alert('Error adding tax rate: ' + (error.response?.data?.message || error.message));
+    }
   };
 
   // Delete item from table
@@ -379,10 +454,18 @@ const Invoice_shirmila = () => {
         additionalCharges: formData.additionalCharges.filter(charge => charge.id !== id)
       });
     } else if (type === 'tax') {
-      setFormData({
-        ...formData,
-        taxRates: formData.taxRates.filter(tax => tax.name !== id)
-      });
+      // For tax rates, we'll need to make an API call to delete
+      const taxToDelete = taxRates.find(tax => tax.name === id);
+      if (taxToDelete) {
+        axios.delete(`/api/tax-rates/${taxToDelete.id}`)
+          .then(() => {
+            setTaxRates(taxRates.filter(tax => tax.name !== id));
+          })
+          .catch(error => {
+            console.error('Error deleting tax rate:', error);
+            alert('Error deleting tax rate: ' + (error.response?.data?.message || error.message));
+          });
+      }
     }
   };
 
@@ -440,10 +523,12 @@ const Invoice_shirmila = () => {
     if (window.confirm('Are you sure you want to reset the form? All data will be lost.')) {
       setFormData({
         customer: {
+          id: null,
           name: '',
           address: '',
           mobile: '',
-          code: ''
+          code: '',
+          gstNo: ''
         },
         invoice: {
           country: 'IN',
@@ -460,13 +545,12 @@ const Invoice_shirmila = () => {
           rateSource: 'custom',
           customRate: 87.52,
           addOneToRate: true,
-          addTenToRate: false
+          addTenToRate: false,
+          taxTreatment: 'exclusive'
         },
         serviceItems: [],
         additionalCharges: [],
-        taxRates: [
-          { name: 'GST', component: 'Goods and Services Tax', rate: 18 }
-        ],
+        taxRates: taxRates,
         accountDetails: {
           name: 'SHARMILA TOURS AND TRAVELS',
           number: '054205002744',
@@ -542,6 +626,9 @@ const Invoice_shirmila = () => {
                       <Button variant="primary">
                         <FaSearch /> Search
                       </Button>
+                      <Button variant="success" onClick={() => setShowCustomerModal(true)}>
+                        <FaPlus /> New
+                      </Button>
                     </div>
                     {filteredCustomers.length > 0 && (
                       <div className="mt-2 border rounded p-2" style={{ maxHeight: '200px', overflowY: 'auto' }}>
@@ -588,6 +675,16 @@ const Invoice_shirmila = () => {
                       placeholder="Customer Mobile" 
                       value={formData.customer.mobile}
                       onChange={(e) => handleInputChange('customer', 'mobile', e.target.value)}
+                    />
+                  </Form.Group>
+                  
+                  <Form.Group className="mb-3">
+                    <Form.Label>GST No:</Form.Label>
+                    <Form.Control 
+                      type="text" 
+                      placeholder="Customer GST Number" 
+                      value={formData.customer.gstNo}
+                      onChange={(e) => handleInputChange('customer', 'gstNo', e.target.value)}
                     />
                   </Form.Group>
                 </Card.Body>
@@ -737,7 +834,7 @@ const Invoice_shirmila = () => {
               <Form.Group>
                 <Form.Label>Tax Treatment:</Form.Label>
                 <Form.Select 
-                  value={formData.currencyDetails.taxTreatment || 'exclusive'}
+                  value={formData.currencyDetails.taxTreatment}
                   onChange={(e) => handleNestedInputChange('currencyDetails', 'taxTreatment', e.target.value)}
                 >
                   <option value="inclusive">Tax Inclusive</option>
@@ -1170,10 +1267,13 @@ const Invoice_shirmila = () => {
       {/* Action Buttons */}
       <div className="d-flex justify-content-center gap-3 mb-4">
         <Button variant="primary" size="lg" onClick={generatePreview}>
-          <FaEye /> Preview Invoice
+          <FaEye className='me-2' /> Preview Invoice
+        </Button>
+        <Button variant="success" size="lg" onClick={handleSubmit}>
+          <FaCog className='me-2' /> Create Invoice
         </Button>
         <Button variant="secondary" size="lg" onClick={resetForm}>
-          <FaSyncAlt /> Reset Form
+          <FaSyncAlt className='me-2' /> Reset Form
         </Button>
       </div>
 
@@ -1475,6 +1575,68 @@ const Invoice_shirmila = () => {
         </Modal.Footer>
       </Modal>
 
+      {/* Customer Modal */}
+      <Modal show={showCustomerModal} onHide={() => setShowCustomerModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Create New Customer</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form.Group className="mb-3">
+            <Form.Label>Customer Code:</Form.Label>
+            <Form.Control 
+              type="text" 
+              value={newCustomer.code}
+              onChange={(e) => setNewCustomer({...newCustomer, code: e.target.value})}
+            />
+          </Form.Group>
+          
+          <Form.Group className="mb-3">
+            <Form.Label>Customer Name:</Form.Label>
+            <Form.Control 
+              type="text" 
+              value={newCustomer.name}
+              onChange={(e) => setNewCustomer({...newCustomer, name: e.target.value})}
+            />
+          </Form.Group>
+          
+          <Form.Group className="mb-3">
+            <Form.Label>Address:</Form.Label>
+            <Form.Control 
+              as="textarea" 
+              rows={3}
+              value={newCustomer.address}
+              onChange={(e) => setNewCustomer({...newCustomer, address: e.target.value})}
+            />
+          </Form.Group>
+          
+          <Form.Group className="mb-3">
+            <Form.Label>Mobile:</Form.Label>
+            <Form.Control 
+              type="text" 
+              value={newCustomer.mobile}
+              onChange={(e) => setNewCustomer({...newCustomer, mobile: e.target.value})}
+            />
+          </Form.Group>
+          
+          <Form.Group className="mb-3">
+            <Form.Label>GST No:</Form.Label>
+            <Form.Control 
+              type="text" 
+              value={newCustomer.gstNo}
+              onChange={(e) => setNewCustomer({...newCustomer, gstNo: e.target.value})}
+            />
+          </Form.Group>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowCustomerModal(false)}>
+            Cancel
+          </Button>
+          <Button variant="primary" onClick={createNewCustomer}>
+            Create Customer
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
       {/* Preview Invoice Modal */}
       <Modal show={showPreviewModal} onHide={() => setShowPreviewModal(false)} size="lg" fullscreen="lg-down">
         <Modal.Header closeButton>
@@ -1504,6 +1666,7 @@ const Invoice_shirmila = () => {
               <div>
                 <div><strong>To:</strong> {formData.customer.name || 'PICK YOUR TRAIL'}</div>
                 <div>{formData.customer.address || 'Ravichander Balachander • 9'}</div>
+                <div>GST NO: {formData.customer.gstNo || 'OTHERS'}</div>
               </div>
               <div className="text-end">
                 <div><strong>No.</strong> {countryOptions.find(c => c.code === formData.invoice.country)?.prefix || 'IN'}{formData.invoice.number || 'IS44641'}</div>
@@ -1512,11 +1675,6 @@ const Invoice_shirmila = () => {
                 <div><strong>Sales ID</strong> {formData.invoice.salesId || 'ARAVIND'}</div>
                 <div><strong>Printed By</strong> {formData.invoice.printedBy || 'KAVIYA'}</div>
               </div>
-            </div>
-            
-            {/* GST Info */}
-            <div className="mb-3">
-              <strong>GST NO :</strong> {formData.customer.gstNo || 'OTHERS'}
             </div>
             
             {/* Items Table */}

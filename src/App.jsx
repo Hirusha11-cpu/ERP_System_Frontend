@@ -10,6 +10,7 @@ import NavigationProvider from './contentApi/navigationProvider';
 import SideBarToggleProvider from './contentApi/sideBarToggleProvider';
 import ThemeCustomizer from './components/shared/ThemeCustomizer';
 import { CompanyProvider, CompanyContext } from './contentApi/CompanyProvider';
+import axios from 'axios';
 
 const SetFavicon = () => {
   const { selectedCompany } = useContext(CompanyContext);
@@ -33,6 +34,7 @@ const SetFavicon = () => {
   return null;
 };
 
+axios.defaults.baseURL = 'http://localhost:8000';
 
 const App = () => {
   return (

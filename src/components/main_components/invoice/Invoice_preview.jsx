@@ -19,6 +19,7 @@ const Invoice_preview = ({ target }) => {
       case "shirmila":
         return <Invoice_List_shirmila />;
       case "aahaas":
+        return <Invoice_List_aahaas />;
       default:
         return <Invoice_List_aahaas />;
     }
@@ -31,6 +32,7 @@ const Invoice_preview = ({ target }) => {
       case "shirmila":
         return <Invoice_shirmila />;
       case "aahaas":
+        return <Invoice_aahaas />;
       default:
         return <Invoice_aahaas />;
     }

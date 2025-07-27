@@ -14,7 +14,7 @@ export const menuList = [
       {
         id: 2,
         name: "Invoice",
-        path: "/payment/list",
+        path: "/invoice",
         subdropdownMenu: false,
       },
       {

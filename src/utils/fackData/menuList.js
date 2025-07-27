@@ -73,33 +73,33 @@ export const menuList = [
         path: "/invoice/create",
         subdropdownMenu: true,
       },
+      // {
+      //   id: 3,
+      //   name: "Edit Invoice",
+      //   path: "/payment/view",
+      //   subdropdownMenu: false,
+      // },
+       
+      // {
+      //   id: 3,
+      //   name: "Cancelled Invoice",
+      //   path: "/payment/list",
+      //   subdropdownMenu: false,
+      // },
       {
         id: 3,
-        name: "Edit Invoice",
-        path: "/payment/view",
-        subdropdownMenu: false,
-      },
-       
-      {
-        id: 4,
-        name: "Cancelled Invoice",
-        path: "/payment/list",
-        subdropdownMenu: false,
-      },
-      {
-        id: 5,
         name: "Awaiting Payment Invoice",
         path: "/payment/create",
         subdropdownMenu: false,
       },
       {
-        id: 6,
+        id: 4,
         name: "P&L Reports",
         path: "/payment/view",
         subdropdownMenu: false,
       },
       {
-        id: 7,
+        id: 5,
         name: "Summary invoice",
         path: "/payment/list",
         subdropdownMenu: false,

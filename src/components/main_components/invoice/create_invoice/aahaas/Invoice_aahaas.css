@@ -1,0 +1,118 @@
+/* Receipt Modal Styles */
+.receipt-modal .modal-content {
+    border-radius: 0.5rem;
+  }
+  
+  .receipt-header {
+    background-color: #343a40;
+    color: white;
+    padding: 1.5rem;
+    border-radius: 0.3rem 0.3rem 0 0;
+  }
+  
+  .receipt-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+  }
+  
+  .receipt-body {
+    padding: 2rem;
+    background-color: white;
+  }
+  
+  .thank-you {
+    font-size: 1.2rem;
+    margin-bottom: 1.5rem;
+    color: #495057;
+  }
+  
+  .order-meta {
+    background-color: #f8f9fa;
+    padding: 1rem;
+    border-radius: 0.3rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .meta-item {
+    margin-bottom: 0.5rem;
+  }
+  
+  .meta-label {
+    font-weight: 600;
+    color: #495057;
+  }
+  
+  .meta-value {
+    color: #212529;
+  }
+  
+  .customer-table {
+    width: 100%;
+    margin-bottom: 1.5rem;
+  }
+  
+  .customer-table th {
+    background-color: #343a40;
+    color: white;
+    padding: 0.75rem;
+    text-align: left;
+  }
+  
+  .customer-table td {
+    padding: 0.75rem;
+    border-bottom: 1px solid #dee2e6;
+  }
+  
+  .items-table {
+    width: 100%;
+    margin-bottom: 1.5rem;
+    border-collapse: collapse;
+  }
+  
+  .items-table th {
+    background-color: #343a40;
+    color: white;
+    padding: 0.75rem;
+    text-align: left;
+  }
+  
+  .items-table td {
+    padding: 0.75rem;
+    border-bottom: 1px solid #dee2e6;
+  }
+  
+  .totals-table {
+    width: 100%;
+    max-width: 300px;
+    margin-left: auto;
+  }
+  
+  .totals-table td {
+    padding: 0.5rem;
+    border-bottom: 1px solid #dee2e6;
+  }
+  
+  .totals-table tr:last-child td {
+    border-bottom: none;
+    font-weight: 600;
+  }
+  
+  .contact-info {
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid #dee2e6;
+    color: #6c757d;
+  }
+  
+  .print-receipt {
+    background-color: #343a40;
+    color: white;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 0.3rem;
+    cursor: pointer;
+  }
+  
+  .print-receipt:hover {
+    background-color: #23272b;
+  }

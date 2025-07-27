@@ -23,6 +23,7 @@ import {
 } from "react-icons/fa";
 import { CompanyContext } from "../../../../../contentApi/CompanyProvider";
 import axios from "axios";
+import './Invoice_appleholidays.css'
 
 const Invoice_appleholidays = () => {
   const { selectedCompany } = useContext(CompanyContext);
@@ -2032,6 +2033,174 @@ const Invoice_appleholidays = () => {
 
       {/* Preview Invoice Modal */}
       <Modal
+  show={showPreviewModal}
+  onHide={() => setShowPreviewModal(false)}
+  size="xl"
+  fullscreen="lg-down"
+>
+  <Modal.Header closeButton>
+    <Modal.Title>Invoice Preview</Modal.Title>
+  </Modal.Header>
+  <Modal.Body className="p-0">
+    <div className="invoice-preview p-4">
+      {/* Company Header */}
+      <div className="company-header text-center mb-4">
+        <img
+          src="/images/logo/appleholidays_extend.png"
+          alt="Sharmila Tours & Travels"
+          className="img-fluid mb-3"
+          style={{ width: "400px" }}
+        />
+        <div>
+          One Galle Face Tower, 2208, 1A Centre Road, Colombo 002
+        </div>
+        <div>Tel: +91 0452 405 8375/403-4704 | Email: chennai@AppleHolidays.com</div>
+        <div>Service Tax (Registration No.): ADVT544290 | GSTIN: 33ADVT544290TZV</div>
+      </div>
+
+      {/* Invoice Title */}
+      <div className="text-center mb-3">
+        <h5 className="fw-bold">INVOICE</h5>
+      </div>
+
+      {/* Invoice Meta and Customer Info */}
+      <div className="d-flex justify-content-between mb-4">
+        <div>
+          <div><strong>To:</strong> {formData.customer.name || "PICK YOUR TRAVEL"}</div>
+          <div>{formData.customer.address || "Ravichander Balachander • 9"}</div>
+          <div>GST NO: {formData.customer.gstNo || "OTHERS"}</div>
+        </div>
+        <div className="text-end">
+          <div><strong>No.</strong> {formData.invoice.number || "IS44641"}</div>
+          <div><strong>Date</strong> {formatDate(formData.invoice.issueDate)}</div>
+          <div><strong>Your Ref.</strong> {formData.invoice.yourRef || "399648 CNTL"}</div>
+          <div><strong>Sales ID</strong> {formData.invoice.salesId || "ARAVEND"}</div>
+          <div><strong>Printed By</strong> {formData.invoice.printedBy || "KAVIYA"}</div>
+        </div>
+      </div>
+
+      {/* Items Table */}
+      <table className="invoice-table mb-3">
+        <thead>
+          <tr>
+            <th>TKT/VOUCH</th>
+            <th>UNIT FARE</th>
+            <th>DISC %</th>
+            <th>QTY.</th>
+            <th>AMOUNT</th>
+          </tr>
+        </thead>
+        <tbody>
+          {formData.serviceItems.map((item) => (
+            <tr key={item.id}>
+              <td>{item.description}</td>
+              <td className="text-end">
+                {formData.currencyDetails.currency === "INR" ? "₹" : "$"}
+                {item.price.toFixed(2)}
+              </td>
+              <td className="text-end">{item.discount}%</td>
+              <td className="text-end">{item.qty}</td>
+              <td className="text-end">
+                {formData.currencyDetails.currency === "INR" ? "₹" : "$"}
+                {item.total.toFixed(2)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      {/* Totals */}
+      <div className="row mb-4">
+        <div className="col-md-6">
+          <div className="mb-3">
+            <p className="mb-0">
+              <strong>Please settle the invoice on or before {formatDate(formData.invoice.dueDate)}</strong>
+            </p>
+          </div>
+          
+          <h6 className="fw-bold">ACCOUNT DETAILS</h6>
+          <div>
+            <strong>ACCOUNT NAME:</strong> {formData.accountDetails.name}
+          </div>
+          <div>
+            <strong>ACCOUNT NO:</strong> {formData.accountDetails.number}
+          </div>
+          <div>
+            <strong>BANK:</strong> {formData.accountDetails.bank}
+          </div>
+          <div>
+            <strong>BRANCH:</strong> {formData.accountDetails.branch}
+          </div>
+          <div>
+            <strong>IFSC CODE:</strong> {formData.accountDetails.ifsc}
+          </div>
+          <div>
+            <strong>Bank Address:</strong> {formData.accountDetails.address}
+          </div>
+        </div>
+        
+        <div className="col-md-6">
+          <table className="invoice-totals">
+            <tr>
+              <td style={{ textAlign: "right" }}><strong>SUB TOTAL:</strong></td>
+              <td style={{ textAlign: "right" }}>
+                {formData.currencyDetails.currency === "INR" ? "₹" : "$"}
+                {formData.totals.subTotal.toFixed(2)}
+              </td>
+            </tr>
+            <tr>
+              <td style={{ textAlign: "right" }}><strong>BANK CHARGES:</strong></td>
+              <td style={{ textAlign: "right" }}>
+                {formData.currencyDetails.currency === "INR" ? "₹" : "$"}
+                {formData.totals.bankCharges.toFixed(2)}
+              </td>
+            </tr>
+            <tr>
+              <td style={{ textAlign: "right" }}><strong>TOTAL:</strong></td>
+              <td style={{ textAlign: "right" }}>
+                {formData.currencyDetails.currency === "INR" ? "₹" : "$"}
+                {formData.totals.total.toFixed(2)}
+              </td>
+            </tr>
+            <tr>
+              <td style={{ textAlign: "right" }}><strong>AMOUNT RECEIVED:</strong></td>
+              <td style={{ textAlign: "right" }}>
+                {formData.currencyDetails.currency === "INR" ? "₹" : "$"}
+                {formData.totals.amountReceived.toFixed(2)}
+              </td>
+            </tr>
+            <tr>
+              <td style={{ textAlign: "right" }}><strong>BALANCE DUE:</strong></td>
+              <td style={{ textAlign: "right" }}>
+                {formData.currencyDetails.currency === "INR" ? "₹" : "$"}
+                {formData.totals.balance.toFixed(2)}
+              </td>
+            </tr>
+          </table>
+        </div>
+      </div>
+
+      <div className="row">
+        <div className="col-md-6">
+          <div><strong>Staff:</strong> {formData.payment.staff}</div>
+          <div><strong>Remark:</strong> {formData.payment.remarks}</div>
+        </div>
+      </div>
+    </div>
+  </Modal.Body>
+  <Modal.Footer>
+    <Button variant="secondary" onClick={() => setShowPreviewModal(false)}>
+      Close
+    </Button>
+    <Button variant="primary" onClick={printInvoice}>
+      <FaPrint /> Print Invoice
+    </Button>
+    <Button variant="success" >
+      <FaDownload /> Download PDF
+    </Button>
+  </Modal.Footer>
+</Modal>
+      {/* <Modal
         show={showPreviewModal}
         onHide={() => setShowPreviewModal(false)}
         size="lg"
@@ -2042,9 +2211,9 @@ const Invoice_appleholidays = () => {
         </Modal.Header>
         <Modal.Body className="p-0">
           <div id="invoice-preview-content" className="invoice-preview p-4">
-            {/* Company Header */}
             <div className="text-center mb-3">
-              <h4 className="mb-1 fw-bold">Sharmila Tours & Travels</h4>
+              <h4 className="mb-1 fw-bold">Appleholidays DS</h4>
+              
               <div className="mb-1">
                 Shop No:1st Floor,10,Venkatraman Road,Kamala Second street
               </div>
@@ -2068,8 +2237,6 @@ const Invoice_appleholidays = () => {
 
               <h5 className="fw-bold mb-3">INVOICE (Original)</h5>
             </div>
-
-            {/* Invoice Meta and Customer Info */}
             <div className="d-flex justify-content-between mb-4">
               <div>
                 <div>
@@ -2106,8 +2273,6 @@ const Invoice_appleholidays = () => {
                 </div>
               </div>
             </div>
-
-            {/* Items Table */}
             <table
               className="table table-bordered mb-3"
               style={{ width: "100%", borderCollapse: "collapse" }}
@@ -2178,7 +2343,6 @@ const Invoice_appleholidays = () => {
               </tbody>
             </table>
 
-            {/* Account Details */}
             <div className="mb-4">
               <h6 className="fw-bold">ACCOUNT DETAILS</h6>
               <div>
@@ -2201,10 +2365,8 @@ const Invoice_appleholidays = () => {
               </div>
             </div>
 
-            {/* Payment Instructions */}
             <div className="mb-3">{formData.payment.instructions}</div>
 
-            {/* Totals */}
             <div className="row mb-4">
               <div className="col-md-6 offset-md-6">
                 <table style={{ width: "100%" }}>
@@ -2270,7 +2432,6 @@ const Invoice_appleholidays = () => {
               </div>
             </div>
 
-            {/* Bottom left: Staff and Remark */}
             <div className="row">
               <div className="col-md-6">
                 <div>
@@ -2300,7 +2461,7 @@ const Invoice_appleholidays = () => {
             <FaDownload /> Download PDF
           </Button>
         </Modal.Footer>
-      </Modal>
+      </Modal> */}
     </div>
   );
 };

@@ -8,6 +8,7 @@ import ReportsSales from '../../../pages/reports-sales';
 import Invoice_List_appleholidays from './list_invoice/Invoice_List_appleholidays';
 import Invoice_List_shirmila from './list_invoice/Invoice_List_shirmila';
 import Invoice_List_aahaas from './list_invoice/Invoice_List_aahaas';
+import Bank_accounts from '../bank_accounts/Bank_accounts';
 
 const Invoice_preview = ({ target }) => {
     const { selectedCompany } = useContext(CompanyContext);
@@ -35,6 +36,19 @@ const Invoice_preview = ({ target }) => {
         return <Invoice_aahaas />;
       default:
         return <Invoice_aahaas />;
+    }
+  }
+
+  if (target === "invoice_bank_accounts") {
+   switch (selectedCompany) {
+      case "appleholidays":
+        return <Bank_accounts />;
+      case "shirmila":
+        return <Bank_accounts />;
+      case "aahaas":
+        return <Bank_accounts />;
+      default:
+        return <Bank_accounts />;
     }
   }
 

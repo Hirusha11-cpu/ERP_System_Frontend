@@ -23,19 +23,33 @@ import {
 } from "react-icons/fa";
 import { CompanyContext } from "../../../../../contentApi/CompanyProvider";
 import axios from "axios";
-import './Invoice_aahaas.css'
+import "./Invoice_aahaas.css";
+import { useNavigate } from "react-router-dom";
 
 const Invoice_aahaas = () => {
   const { selectedCompany } = useContext(CompanyContext);
+  const navigate = useNavigate();
 
   const [customers, setCustomers] = useState([]);
   const [taxRates, setTaxRates] = useState([]);
+  const [accounts, setAccounts] = useState([]);
 
   // Fetch customers and tax rates on component mount
   useEffect(() => {
     fetchCustomers();
     fetchTaxRates();
+    fetchAccounts();
   }, []);
+
+  const fetchAccounts = async () => {
+      try {
+        const response = await axios.get("/api/accounts");
+        console.log(response);
+        setAccounts(response.data);
+      } catch (error) {
+        console.error("Error fetching accounts:", error);
+      }
+    };
 
   const fetchCustomers = async () => {
     try {
@@ -121,9 +135,10 @@ const Invoice_aahaas = () => {
       dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
         .toISOString()
         .split("T")[0],
-      salesId: "ARAVEND",
-      printedBy: "KAVIYA",
-      yourRef: "399648 CNTL",
+      salesId: "",
+      printedBy: "",
+      yourRef: "",
+      bookingId: "",
     },
     currencyDetails: {
       currency: "USD",
@@ -581,6 +596,27 @@ const Invoice_aahaas = () => {
     setShowPreviewModal(true);
   };
 
+    const handleAccountSelect = (accountId) => {
+    const selected = accounts.find((acc) => acc.id === parseInt(accountId));
+    if (selected) {
+      setFormData((prev) => ({
+        ...prev,
+        accountDetails: {
+          name: selected.name,
+          number: selected.number,
+          bank: selected.bank,
+          branch: selected.branch,
+          ifsc: selected.ifsc,
+          address: selected.address,
+        },
+      }));
+    }
+  };
+
+  const handleAccount = () => {
+    navigate("/invoice/bank-accounts");
+  };
+
   // Print invoice
   const printInvoice = () => {
     const printContent = document.getElementById(
@@ -619,6 +655,7 @@ const Invoice_aahaas = () => {
           salesId: "ARAVEND",
           printedBy: "KAVIYA",
           yourRef: "399648 CNTL",
+          bookingId: "399648 CNTL",
         },
         currencyDetails: {
           currency: "USD",
@@ -675,10 +712,9 @@ const Invoice_aahaas = () => {
       <div className="header text-center bg-gradient-to-r from-indigo-900 via-purple-900 to-indigo-900 text-white py-5 mb-4 rounded shadow-lg">
         <div
           className="fs-1 fw-bold tracking-wide"
-          style={{ letterSpacing: "2px", color:'black' }}
+          style={{ letterSpacing: "2px", color: "black" }}
         >
-           Create Invoice –{" "}
-          <span className="text-warning">Aahaas</span>
+          Create Invoice – <span className="text-warning">Aahaas</span>
         </div>
         {/* <div className="fst-italic mt-2" style={{ fontSize: "1rem",color:'black' }}>
           Where your journey begins with seamless billing...
@@ -929,6 +965,22 @@ const Invoice_aahaas = () => {
                         />
                       </Form.Group>
                     </Col>
+                    <Col md={6} className="mb-3">
+                      <Form.Group>
+                        <Form.Label>Booking ID:</Form.Label>
+                        <Form.Control
+                          type="text"
+                          value={formData.invoice.bookingId}
+                          onChange={(e) =>
+                            handleInputChange(
+                              "invoice",
+                              "bookingId",
+                              e.target.value
+                            )
+                          }
+                        />
+                      </Form.Group>
+                    </Col>
                   </Row>
                 </Card.Body>
               </Card>
@@ -1022,7 +1074,7 @@ const Invoice_aahaas = () => {
 
           <div className="table-responsive">
             <Table bordered>
-              <thead className="table-dark">
+              <thead className="table-light">
                 <tr>
                   <th>Code</th>
                   <th>Type</th>
@@ -1086,7 +1138,7 @@ const Invoice_aahaas = () => {
 
           <div className="table-responsive">
             <Table bordered>
-              <thead className="table-dark">
+              <thead className="table-light">
                 <tr>
                   <th>Description</th>
                   <th>Amount</th>
@@ -1135,7 +1187,7 @@ const Invoice_aahaas = () => {
 
           <div className="table-responsive">
             <Table bordered>
-              <thead className="table-dark">
+              <thead className="table-light">
                 <tr>
                   <th>Display Name</th>
                   <th>Tax Component</th>
@@ -1165,9 +1217,31 @@ const Invoice_aahaas = () => {
       {/* Account Details */}
       <Card className="mb-4">
         <Card.Body>
-          <h5 className="section-title fw-semibold mb-3 pb-2 border-bottom">
+          {/* <h5 className="section-title fw-semibold mb-3 pb-2 border-bottom">
             Account Details
-          </h5>
+          </h5> */}
+          <div className="d-flex justify-content-between align-items-center mb-3">
+                      <h5 className="section-title fw-semibold mb-0">Account Details</h5>
+                      <Button variant="primary" onClick={() => handleAccount()}>
+                        <FaPlus /> Add Account
+                      </Button>
+                    </div>
+                    <Form.Group className="mb-3">
+                      <Form.Label>Select Account</Form.Label>
+                      <Form.Select
+                        onChange={(e) => handleAccountSelect(e.target.value)}
+                        defaultValue=""
+                      >
+                        <option value="" disabled>
+                          Select an account
+                        </option>
+                        {accounts.map((account) => (
+                          <option key={account.id} value={account.id}>
+                            {account.account_name} - {account.account_no}
+                          </option>
+                        ))}
+                      </Form.Select>
+                    </Form.Group>
 
           <Row>
             <Col md={4} className="mb-3">
@@ -2007,7 +2081,7 @@ const Invoice_aahaas = () => {
             />
           </Form.Group>
 
-          <Form.Group className="mb-3">
+          {/* <Form.Group className="mb-3">
             <Form.Label>GST No:</Form.Label>
             <Form.Control
               type="text"
@@ -2016,7 +2090,7 @@ const Invoice_aahaas = () => {
                 setNewCustomer({ ...newCustomer, gstNo: e.target.value })
               }
             />
-          </Form.Group>
+          </Form.Group> */}
         </Modal.Body>
         <Modal.Footer>
           <Button
@@ -2033,169 +2107,192 @@ const Invoice_aahaas = () => {
 
       {/* Preview Invoice Modal */}
       <Modal
-  show={showPreviewModal}
-  onHide={() => setShowPreviewModal(false)}
-  size="lg"
-  fullscreen="lg-down"
-  className="receipt-modal"
->
-  <div className="modal-content">
-    <div className="receipt-header">
-      <div className="receipt-title" style={{ textAlign: 'center' }}>
-        <img 
-          src="https://s3-aahaas-prod-assets.s3.ap-southeast-1.amazonaws.com/images/aahaas.png" 
-          alt="Aahaas Logo" 
-          className="receipt-logo" 
-          style={{ width: '200px' }} 
-        />
-      </div>
-      <div>{new Date().toLocaleDateString()}</div>
-    </div>
-    <Modal.Body className="receipt-body">
-      <div className="thank-you">Dear {formData.customer.name || 'Customer'}, Thank you for your order</div>
-      <p>Please find below the receipt for your order</p>
-      
-      {/* Order Meta Information */}
-      <div className="order-meta">
-        <div className="meta-item">
-          <span className="meta-label">Order No:</span>
-          <span className="meta-value">#{formData.invoice.number || 'IS44641'}</span>
-        </div>
-        <div className="meta-item">
-          <span className="meta-label">Order Date:</span>
-          <span className="meta-value">
-            {formatDate(formData.invoice.issueDate) || '14th Jan 2025'} | {new Date().toLocaleTimeString()}
-          </span>
-        </div>
-        <div className="meta-item">
-          <span className="meta-label">Payment Type:</span>
-          <span className="meta-value">
-            {formData.payment.type === 'credit' ? 'Credit' : 'Non-Credit'} | 
-            {formData.totals.balance <= 0 ? 'Full Payment' : 'Partial Payment'}
-          </span>
-        </div>
-      </div>
-      
-      {/* Customer Details */}
-      <h5>Customer Details</h5>
-      <table className="customer-table">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Address</th>
-            <th>Email</th>
-            <th>Contact</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>{formData.customer.name || 'PICK YOUR TRAIL'}</td>
-            <td>{formData.customer.address || '-'}</td>
-            <td>{formData.customer.email || '-'}</td>
-            <td>{formData.customer.phone || '-'}</td>
-          </tr>
-        </tbody>
-      </table>
-      
-      {/* Order Items */}
-      <h5>Services</h5>
-      <table className="items-table">
-        <thead>
-          <tr>
-            <th>Description</th>
-            <th>Unit Fare</th>
-            <th>Discount</th>
-            <th>Qty</th>
-            <th>Amount</th>
-          </tr>
-        </thead>
-        <tbody>
-          {formData.serviceItems.map((item, index) => (
-            <tr key={index}>
-              <td>{item.description}</td>
-              <td>
-                {formData.currencyDetails.currency === 'INR' ? '₹' : '$'}
-                {item.price.toFixed(2)}
-              </td>
-              <td>{item.discount}%</td>
-              <td>{item.qty}</td>
-              <td>
-                {formData.currencyDetails.currency === 'INR' ? '₹' : '$'}
-                {item.total.toFixed(2)}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      
-      {/* Order Totals */}
-      <table className="totals-table">
-        <tr>
-          <td>Sub Total:</td>
-          <td>
-            {formData.currencyDetails.currency === 'INR' ? '₹' : '$'}
-            {formData.totals.subTotal.toFixed(2)}
-          </td>
-        </tr>
-        {formData.currencyDetails.currency === 'INR' && (
-          <>
-            <tr>
-              <td>CGST of 9.00%:</td>
-              <td>₹{(formData.totals.gst / 2).toFixed(2)}</td>
-            </tr>
-            <tr>
-              <td>SGST of 9.00%:</td>
-              <td>₹{(formData.totals.gst / 2).toFixed(2)}</td>
-            </tr>
-          </>
-        )}
-        <tr>
-          <td>Total:</td>
-          <td>
-            {formData.currencyDetails.currency === 'INR' ? '₹' : '$'}
-            {formData.totals.total.toFixed(2)}
-          </td>
-        </tr>
-        <tr>
-          <td>Amount Received:</td>
-          <td>
-            {formData.currencyDetails.currency === 'INR' ? '₹' : '$'}
-            {formData.totals.amountReceived.toFixed(2)}
-          </td>
-        </tr>
-        <tr>
-          <td><strong>Balance:</strong></td>
-          <td>
-            <strong>
-              {formData.currencyDetails.currency === 'INR' ? '₹' : '$'}
-              {formData.totals.balance.toFixed(2)}
-            </strong>
-          </td>
-        </tr>
-      </table>
-      
-      {/* Contact Information */}
-      <div className="contact-info">
-        <p>Should you have any questions regarding your order, please send an email to <strong>info@aahaas.com</strong>.</p>
-        <p>Or contact us at <strong>+94 70 722 4227</strong></p>
-      </div>
-    </Modal.Body>
-    <Modal.Footer>
-      <Button variant="secondary" onClick={() => setShowPreviewModal(false)}>
-        Close
-      </Button>
-      <Button variant="primary" onClick={printInvoice} className="print-receipt">
-        <FaPrint /> Print Receipt
-      </Button>
-      <Button 
-        variant="success" 
-        onClick={() => alert("PDF download would be implemented here")}
+        show={showPreviewModal}
+        onHide={() => setShowPreviewModal(false)}
+        size="lg"
+        fullscreen="lg-down"
+        className="receipt-modal"
       >
-        <FaDownload /> Download PDF
-      </Button>
-    </Modal.Footer>
-  </div>
-</Modal>
+        <div className="modal-content">
+          <div className="receipt-header">
+            <div className="receipt-title" style={{ textAlign: "center" }}>
+              <img
+                src="https://s3-aahaas-prod-assets.s3.ap-southeast-1.amazonaws.com/images/aahaas.png"
+                alt="Aahaas Logo"
+                className="receipt-logo"
+                style={{ width: "200px" }}
+              />
+            </div>
+            <div>{new Date().toLocaleDateString()}</div>
+          </div>
+          <Modal.Body className="receipt-body">
+            <div className="thank-you">
+              Dear {formData.customer.name || "Customer"}, Thank you for your
+              order
+            </div>
+            <p>Please find below the receipt for your order</p>
+
+            {/* Order Meta Information */}
+            <div className="order-meta">
+              <div className="meta-item">
+                <span className="meta-label">Order No:</span>
+                <span className="meta-value">
+                  #{formData.invoice.number || "IS44641"}
+                </span>
+              </div>
+              <div className="meta-item">
+                <span className="meta-label">Order Date:</span>
+                <span className="meta-value">
+                  {formatDate(formData.invoice.issueDate) || "14th Jan 2025"} |{" "}
+                  {new Date().toLocaleTimeString()}
+                </span>
+              </div>
+              <div className="meta-item">
+                <span className="meta-label">Payment Type:</span>
+                <span className="meta-value">
+                  {formData.payment.type === "credit" ? "Credit" : "Non-Credit"}{" "}
+                  |
+                  {formData.totals.balance <= 0
+                    ? "Full Payment"
+                    : "Partial Payment"}
+                </span>
+              </div>
+            </div>
+
+            {/* Customer Details */}
+            <h5>Customer Details</h5>
+            <table className="customer-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Address</th>
+                  <th>Email</th>
+                  <th>Contact</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>{formData.customer.name || "PICK YOUR TRAIL"}</td>
+                  <td>{formData.customer.address || "-"}</td>
+                  <td>{formData.customer.email || "-"}</td>
+                  <td>{formData.customer.phone || "-"}</td>
+                </tr>
+              </tbody>
+            </table>
+
+            {/* Order Items */}
+            <h5>Services</h5>
+            <table className="items-table">
+              <thead>
+                <tr>
+                  <th>Description</th>
+                  <th>Unit Fare</th>
+                  <th>Discount</th>
+                  <th>Qty</th>
+                  <th>Amount</th>
+                </tr>
+              </thead>
+              <tbody>
+                {formData.serviceItems.map((item, index) => (
+                  <tr key={index}>
+                    <td>{item.description}</td>
+                    <td>
+                      {formData.currencyDetails.currency === "INR" ? "₹" : "$"}
+                      {item.price.toFixed(2)}
+                    </td>
+                    <td>{item.discount}%</td>
+                    <td>{item.qty}</td>
+                    <td>
+                      {formData.currencyDetails.currency === "INR" ? "₹" : "$"}
+                      {item.total.toFixed(2)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {/* Order Totals */}
+            <table className="totals-table">
+              <tr>
+                <td>Sub Total:</td>
+                <td>
+                  {formData.currencyDetails.currency === "INR" ? "₹" : "$"}
+                  {formData.totals.subTotal.toFixed(2)}
+                </td>
+              </tr>
+              {formData.currencyDetails.currency === "INR" && (
+                <>
+                  <tr>
+                    <td>CGST of 9.00%:</td>
+                    <td>₹{(formData.totals.gst / 2).toFixed(2)}</td>
+                  </tr>
+                  <tr>
+                    <td>SGST of 9.00%:</td>
+                    <td>₹{(formData.totals.gst / 2).toFixed(2)}</td>
+                  </tr>
+                </>
+              )}
+              <tr>
+                <td>Total:</td>
+                <td>
+                  {formData.currencyDetails.currency === "INR" ? "₹" : "$"}
+                  {formData.totals.total.toFixed(2)}
+                </td>
+              </tr>
+              <tr>
+                <td>Amount Received:</td>
+                <td>
+                  {formData.currencyDetails.currency === "INR" ? "₹" : "$"}
+                  {formData.totals.amountReceived.toFixed(2)}
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <strong>Balance:</strong>
+                </td>
+                <td>
+                  <strong>
+                    {formData.currencyDetails.currency === "INR" ? "₹" : "$"}
+                    {formData.totals.balance.toFixed(2)}
+                  </strong>
+                </td>
+              </tr>
+            </table>
+
+            {/* Contact Information */}
+            <div className="contact-info">
+              <p>
+                Should you have any questions regarding your order, please send
+                an email to <strong>info@aahaas.com</strong>.
+              </p>
+              <p>
+                Or contact us at <strong>+94 70 722 4227</strong>
+              </p>
+            </div>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button
+              variant="secondary"
+              onClick={() => setShowPreviewModal(false)}
+            >
+              Close
+            </Button>
+            <Button
+              variant="primary"
+              onClick={printInvoice}
+              className="print-receipt"
+            >
+              <FaPrint /> Print Receipt
+            </Button>
+            <Button
+              variant="success"
+              onClick={() => alert("PDF download would be implemented here")}
+            >
+              <FaDownload /> Download PDF
+            </Button>
+          </Modal.Footer>
+        </div>
+      </Modal>
       {/* <Modal
         show={showPreviewModal}
         onHide={() => setShowPreviewModal(false)}

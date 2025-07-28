@@ -23,18 +23,32 @@ import {
 } from "react-icons/fa";
 import { CompanyContext } from "../../../../../contentApi/CompanyProvider";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 const Invoice_shirmila = () => {
   const { selectedCompany } = useContext(CompanyContext);
+  const navigate = useNavigate();
 
   const [customers, setCustomers] = useState([]);
   const [taxRates, setTaxRates] = useState([]);
+  const [accounts, setAccounts] = useState([]);
 
   // Fetch customers and tax rates on component mount
   useEffect(() => {
     fetchCustomers();
     fetchTaxRates();
+    fetchAccounts();
   }, []);
+
+  const fetchAccounts = async () => {
+    try {
+      const response = await axios.get("/api/accounts");
+      console.log(response);
+      setAccounts(response.data);
+    } catch (error) {
+      console.error("Error fetching accounts:", error);
+    }
+  };
 
   const fetchCustomers = async () => {
     try {
@@ -120,9 +134,10 @@ const Invoice_shirmila = () => {
       dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
         .toISOString()
         .split("T")[0],
-      salesId: "ARAVEND",
-      printedBy: "KAVIYA",
-      yourRef: "399648 CNTL",
+      salesId: "",
+      printedBy: "",
+      yourRef: "",
+      bookingId: "",
     },
     currencyDetails: {
       currency: "USD",
@@ -580,6 +595,27 @@ const Invoice_shirmila = () => {
     setShowPreviewModal(true);
   };
 
+  const handleAccountSelect = (accountId) => {
+    const selected = accounts.find((acc) => acc.id === parseInt(accountId));
+    if (selected) {
+      setFormData((prev) => ({
+        ...prev,
+        accountDetails: {
+          name: selected.name,
+          number: selected.number,
+          bank: selected.bank,
+          branch: selected.branch,
+          ifsc: selected.ifsc,
+          address: selected.address,
+        },
+      }));
+    }
+  };
+
+  const handleAccount = () => {
+    navigate("/invoice/bank-accounts");
+  };
+
   // Print invoice
   const printInvoice = () => {
     const printContent = document.getElementById(
@@ -618,6 +654,7 @@ const Invoice_shirmila = () => {
           salesId: "ARAVEND",
           printedBy: "KAVIYA",
           yourRef: "399648 CNTL",
+          bookingId: "399648 CNTL",
         },
         currencyDetails: {
           currency: "USD",
@@ -674,9 +711,9 @@ const Invoice_shirmila = () => {
       <div className="header text-center bg-gradient-to-r from-indigo-900 via-purple-900 to-indigo-900 text-white py-5 mb-4 rounded shadow-lg">
         <div
           className="fs-1 fw-bold tracking-wide"
-          style={{ letterSpacing: "2px", color:'black' }}
+          style={{ letterSpacing: "2px", color: "black" }}
         >
-           Create Invoice –{" "}
+          Create Invoice –{" "}
           <span className="text-warning">Sharmila Tours & Travels</span>
         </div>
         {/* <div className="fst-italic mt-2" style={{ fontSize: "1rem",color:'black' }}>
@@ -928,6 +965,22 @@ const Invoice_shirmila = () => {
                         />
                       </Form.Group>
                     </Col>
+                    <Col md={6} className="mb-3">
+                      <Form.Group>
+                        <Form.Label>Booking ID:</Form.Label>
+                        <Form.Control
+                          type="text"
+                          value={formData.invoice.bookingId}
+                          onChange={(e) =>
+                            handleInputChange(
+                              "invoice",
+                              "bookingId",
+                              e.target.value
+                            )
+                          }
+                        />
+                      </Form.Group>
+                    </Col>
                   </Row>
                 </Card.Body>
               </Card>
@@ -1021,7 +1074,7 @@ const Invoice_shirmila = () => {
 
           <div className="table-responsive">
             <Table bordered>
-              <thead className="table-dark">
+              <thead className="table-light">
                 <tr>
                   <th>Code</th>
                   <th>Type</th>
@@ -1085,7 +1138,7 @@ const Invoice_shirmila = () => {
 
           <div className="table-responsive">
             <Table bordered>
-              <thead className="table-dark">
+              <thead className="table-light">
                 <tr>
                   <th>Description</th>
                   <th>Amount</th>
@@ -1134,7 +1187,7 @@ const Invoice_shirmila = () => {
 
           <div className="table-responsive">
             <Table bordered>
-              <thead className="table-dark">
+              <thead className="table-light">
                 <tr>
                   <th>Display Name</th>
                   <th>Tax Component</th>
@@ -1164,9 +1217,31 @@ const Invoice_shirmila = () => {
       {/* Account Details */}
       <Card className="mb-4">
         <Card.Body>
-          <h5 className="section-title fw-semibold mb-3 pb-2 border-bottom">
+          {/* <h5 className="section-title fw-semibold mb-3 pb-2 border-bottom">
             Account Details
-          </h5>
+          </h5> */}
+          <div className="d-flex justify-content-between align-items-center mb-3">
+            <h5 className="section-title fw-semibold mb-0">Account Details</h5>
+            <Button variant="primary" onClick={() => handleAccount()}>
+              <FaPlus /> Add Account
+            </Button>
+          </div>
+          <Form.Group className="mb-3">
+            <Form.Label>Select Account</Form.Label>
+            <Form.Select
+              onChange={(e) => handleAccountSelect(e.target.value)}
+              defaultValue=""
+            >
+              <option value="" disabled>
+                Select an account
+              </option>
+              {accounts.map((account) => (
+                <option key={account.id} value={account.id}>
+                  {account.account_name} - {account.account_no}
+                </option>
+              ))}
+            </Form.Select>
+          </Form.Group>
 
           <Row>
             <Col md={4} className="mb-3">
@@ -2006,7 +2081,7 @@ const Invoice_shirmila = () => {
             />
           </Form.Group>
 
-          <Form.Group className="mb-3">
+          {/* <Form.Group className="mb-3">
             <Form.Label>GST No:</Form.Label>
             <Form.Control
               type="text"
@@ -2015,7 +2090,7 @@ const Invoice_shirmila = () => {
                 setNewCustomer({ ...newCustomer, gstNo: e.target.value })
               }
             />
-          </Form.Group>
+          </Form.Group> */}
         </Modal.Body>
         <Modal.Footer>
           <Button
@@ -2044,7 +2119,9 @@ const Invoice_shirmila = () => {
           <div id="invoice-preview-content" className="invoice-preview p-4">
             {/* Company Header */}
             <div className="text-center mb-3">
-              <h4 className="mb-1 fw-bold">Sharmila Tours & Travels</h4>
+              <h4 className="mb-1 fw-bold" style={{ color: "red" }}>
+                Sharmila Tours & Travels
+              </h4>
               <div className="mb-1">
                 Shop No:1st Floor,10,Venkatraman Road,Kamala Second street
               </div>
@@ -2056,7 +2133,7 @@ const Invoice_shirmila = () => {
               </div>
               <div className="mb-3">GSTIN: 33ADVT544290TZV</div>
 
-              <div className="notice-box p-2 mb-3 text-start bg-warning bg-opacity-10 border-start border-warning border-4">
+              {/* <div className="notice-box p-2 mb-3 text-start bg-warning bg-opacity-10 border-start border-warning border-4">
                 <strong>STRICTLY TO BE NOTED:</strong> Finance bill 2017
                 proposes to insert Section 269ST in the Income tax Act that
                 restricts receiving an amount of Rs 2,00,000/- or more. Sharmila
@@ -2064,7 +2141,7 @@ const Invoice_shirmila = () => {
                 2017. If trade partners make cash deposit, then the amount will
                 be ignored and use other payment modes such as Cheque deposit,
                 RTGS & NEFT for all your future bookings with Sharmila Travels.
-              </div>
+              </div> */}
 
               <h5 className="fw-bold mb-3">INVOICE (Original)</h5>
             </div>
@@ -2103,6 +2180,10 @@ const Invoice_shirmila = () => {
                 <div>
                   <strong>Printed By</strong>{" "}
                   {formData.invoice.printedBy || "KAVIYA"}
+                </div>
+                <div>
+                  <strong>Booking ID</strong>{" "}
+                  {formData.invoice.bookingId || "399648 CNTL"}
                 </div>
               </div>
             </div>

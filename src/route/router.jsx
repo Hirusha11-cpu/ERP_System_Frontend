@@ -88,8 +88,8 @@ export const router = createBrowserRouter([
                 element: <Invoice_preview target="invoice_create" />
             },
             {
-                path: "/invoice/edit",
-                element: <ReportsLeads />
+                path: "/invoice/bank-accounts",
+                element: <Invoice_preview target="invoice_bank_accounts" />
             },
             {
                 path: "/reports/project",

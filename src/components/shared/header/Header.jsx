@@ -10,6 +10,7 @@ import {
   FiPlus,
   FiSun,
   FiChevronDown,
+  FiFilter,
 } from "react-icons/fi";
 import LanguagesModal from "./LanguagesModal";
 import NotificationsModal from "./NotificationsModal";
@@ -20,6 +21,7 @@ import HeaderDropDownModal from "./HeaderDropDownModal";
 import MegaMenu from "./megaManu/MegaMenu";
 import { NavigationContext } from "../../../contentApi/navigationProvider";
 import { CompanyContext } from "../../../contentApi/CompanyProvider";
+import { Dropdown } from "react-bootstrap";
 
 const Header = () => {
   const { navigationOpen, setNavigationOpen } = useContext(NavigationContext);
@@ -28,7 +30,6 @@ const Header = () => {
   const miniButtonRef = useRef(null);
   const expendButtonRef = useRef(null);
   const { selectedCompany, setSelectedCompany } = useContext(CompanyContext);
-
 
   const handleCompanyChange = (e) => {
     setSelectedCompany(e.target.value);
@@ -254,30 +255,154 @@ const Header = () => {
                             </div>
                         </div> */}
             <div className="nxl-h-item company-dropdown">
-  <div className="me-4">
-    <select
-      className="form-select"
-      value={selectedCompany}
-      onChange={handleCompanyChange}
+              <div style={{ marginRight: "1rem", position: "relative" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                    cursor: "pointer",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "32px",
+                      height: "32px",
+                      borderRadius: "50%",
+                      background:
+                        "linear-gradient(135deg, #3B82F6 0%, #8B5CF6 100%)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "white",
+                      fontWeight: "bold",
+                      fontSize: "14px",
+                    }}
+                  >
+                    {selectedCompany.charAt(0).toUpperCase()}
+                  </div>
+                  <div style={{ position: "relative" }}>
+                    <select
+                      style={{
+                        appearance: "none",
+                        background: "transparent",
+                        border: "none",
+                        color: "black",
+                        fontWeight: "600",
+                        paddingRight: "32px",
+                        cursor: "pointer",
+                        outline: "none",
+                        fontSize: "14px",
+                        transition: "color 0.2s ease",
+                      }}
+                      value={selectedCompany}
+                      onChange={handleCompanyChange}
+                    >
+                      <option value="aahaas">Aahaas</option>
+                      <option value="appleholidays">Apple Holidays</option>
+                      <option value="shirmila">Shirmila Travels</option>
+                    </select>
+                    <div
+                      style={{
+                        position: "absolute",
+                        right: "8px",
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        pointerEvents: "none",
+                        color: "black",
+                        transition: "color 0.2s ease",
+                      }}
+                    >
+                      <FiChevronDown size={16} />
+                    </div>
+                  </div>
+                </div>
+                <div
+                  style={{
+                    position: "absolute",
+                    left: "0",
+                    bottom: "-4px",
+                    height: "2px",
+                    background:
+                      "linear-gradient(90deg, rgba(59,130,246,1) 0%, rgba(139,92,246,1) 100%)",
+                    width: "0",
+                    transition: "width 0.3s ease",
+                  }}
+                ></div>
+              </div>
+            </div>
+
+            {/* <Dropdown style={{ position: "relative", marginRight: "1rem" }}>
+  <Dropdown.Toggle
+    variant="light"
+    style={{
+      display: "flex",
+      alignItems: "center",
+      gap: "0.5rem",
+      border: "none",
+      background: "transparent",
+      fontWeight: "600",
+      fontSize: "14px",
+      color: "#000",
+      paddingRight: "32px",
+      cursor: "pointer",
+      outline: "none",
+      boxShadow: "none",
+    }}
+  >
+    <FiFilter size={16} />
+    Filter Period
+    <FiChevronDown
+      size={16}
       style={{
-        border: "none",
-        background: "gray",
-        fontWeight: "bold",
-        paddingRight: "25px",
-        backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='white' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 10l5 5 5-5H7z'/%3E%3C/svg%3E")`,
-        backgroundRepeat: "no-repeat",
-        backgroundPosition: "right 0.5rem center",
-        backgroundSize: "1rem",
-        color: "white",
+        position: "absolute",
+        right: "8px",
+        top: "50%",
+        transform: "translateY(-50%)",
+        pointerEvents: "none",
       }}
-    >
-      <option value="aahaas">Aahaas</option>
-      <option value="appleholidays">Apple Holidays</option>
-      <option value="shirmila">Shirmila Travels</option>
-    </select>
-  </div>
-</div>
-{/* 
+    />
+  </Dropdown.Toggle>
+
+  <Dropdown.Menu
+    style={{
+      boxShadow: "0 4px 10px rgba(0, 0, 0, 0.1)",
+      borderRadius: "6px",
+      padding: "0.5rem 0",
+    }}
+  >
+    <Dropdown.Item>Today</Dropdown.Item>
+    <Dropdown.Item>This Week</Dropdown.Item>
+    <Dropdown.Item>This Month</Dropdown.Item>
+    <Dropdown.Item>This Quarter</Dropdown.Item>
+    <Dropdown.Item>Custom Range</Dropdown.Item>
+  </Dropdown.Menu>
+</Dropdown> */}
+            {/* <div className="nxl-h-item company-dropdown">
+              <div className="me-4">
+                <select
+                  className="form-select"
+                  value={selectedCompany}
+                  onChange={handleCompanyChange}
+                  style={{
+                    border: "none",
+                    background: "gray",
+                    fontWeight: "bold",
+                    paddingRight: "25px",
+                    backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' fill='white' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 10l5 5 5-5H7z'/%3E%3C/svg%3E")`,
+                    backgroundRepeat: "no-repeat",
+                    backgroundPosition: "right 0.5rem center",
+                    backgroundSize: "1rem",
+                    color: "white",
+                  }}
+                >
+                  <option value="aahaas">Aahaas</option>
+                  <option value="appleholidays">Apple Holidays</option>
+                  <option value="shirmila">Shirmila Travels</option>
+                </select>
+              </div>
+            </div> */}
+            {/* 
             <div className="nxl-h-item dark-light-theme">
               <div
                 className="nxl-head-link me-0 dark-button"

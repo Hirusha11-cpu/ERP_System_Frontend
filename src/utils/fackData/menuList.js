@@ -104,6 +104,12 @@ export const menuList = [
         path: "/payment/list",
         subdropdownMenu: false,
       },
+      {
+        id: 6,
+        name: "Bank Accounts",
+        path: "/invoice/bank-accounts",
+        subdropdownMenu: false,
+      },
     ],
   },
   {

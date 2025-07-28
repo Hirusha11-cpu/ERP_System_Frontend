@@ -148,9 +148,9 @@ const Invoice_List_shirmila = () => {
         payment_instructions: formData.payment_instructions,
         staff: formData.staff,
         remarks: formData.remarks,
-        payment_methods: formData.payment_methods
-          ? formData.payment_methods.split(",")
-          : currentInvoice.payment_methods,
+        // payment_methods: formData.payment_methods
+        //   ? formData.payment_methods.split(",")
+        //   : currentInvoice.payment_methods,
         items: items.filter((item) => item),
         additional_charges: additionalCharges.filter((charge) => charge),
         amount_received: parseFloat(formData.amount_received) || 0,
@@ -429,7 +429,7 @@ const Invoice_List_shirmila = () => {
                 </div>
                 <div className="mb-3">GSTIN: 33ADVT544290TZV</div>
 
-                <div className="notice-box p-2 mb-3 text-start bg-warning bg-opacity-10 border-start border-warning border-4">
+                {/* <div className="notice-box p-2 mb-3 text-start bg-warning bg-opacity-10 border-start border-warning border-4">
                   <strong>STRICTLY TO BE NOTED:</strong> Finance bill 2017
                   proposes to insert Section 269ST in the Income tax Act that
                   restricts receiving an amount of Rs 2,00,000/- or more.
@@ -438,7 +438,7 @@ const Invoice_List_shirmila = () => {
                   amount will be ignored and use other payment modes such as
                   Cheque deposit, RTGS & NEFT for all your future bookings with
                   Sharmila Travels.
-                </div>
+                </div> */}
 
                 <h5 className="fw-bold mb-3">INVOICE (Original)</h5>
               </div>
@@ -757,11 +757,11 @@ const Invoice_List_shirmila = () => {
                       </Col>
                       <Col md={6}>
                         <FloatingLabel label="Payment Methods (comma separated)" className="mb-3">
-                          <Form.Control
+                          {/* <Form.Control
                             type="text"
                             name="payment_methods"
                             defaultValue={currentInvoice.payment_methods?.join(",")}
-                          />
+                          /> */}
                         </FloatingLabel>
                       </Col>
                     </Row>

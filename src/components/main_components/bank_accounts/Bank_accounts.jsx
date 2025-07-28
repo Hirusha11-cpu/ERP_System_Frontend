@@ -20,7 +20,7 @@ const Bank_accounts = () => {
   // Fetch accounts (Mock or replace with API call)
   const fetchAccounts = () => {
     // Fetch from API
-    axios.get('/api/accounts').then(res => setAccounts(res.data));
+    axios.get("/api/accounts").then((res) => setAccounts(res.data));
     setAccounts([]); // Empty initially for demo
   };
 
@@ -48,17 +48,28 @@ const Bank_accounts = () => {
     setShowModal(false);
   };
 
-  const handleChange = (e) => {
-    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-  };
+//   const handleChange = (e) => {
+//     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+//   };
+
+const handleChange = (e) => {
+  const { name, value } = e.target;
+  setFormData((prev) => ({
+    ...prev,
+    [name]: name === "company_id" ? parseInt(value, 10) : value,
+  }));
+};
+
 
   const handleSubmit = () => {
     if (editingAccount) {
       // Update
-      axios.put(`/api/accounts/${editingAccount.id}`, formData).then(fetchAccounts);
+      axios
+        .put(`/api/accounts/${editingAccount.id}`, formData)
+        .then(fetchAccounts);
     } else {
       // Create
-      axios.post('/api/accounts', formData).then(fetchAccounts);
+      axios.post("/api/accounts", formData).then(fetchAccounts);
     }
     handleCloseModal();
   };
@@ -170,6 +181,20 @@ const Bank_accounts = () => {
                   />
                 </Form.Group>
               ))}
+              {/* Company Select Dropdown */}
+              <Form.Group className="mb-3">
+                <Form.Label>Company</Form.Label>
+                <Form.Select
+                  name="company_id"
+                  value={formData.company_id}
+                  onChange={handleChange}
+                >
+                  <option value="">Select Company</option>
+                  <option value="1">Shirmila Travels</option>
+                  <option value="2">Apple Holidays</option>
+                  <option value="3">Aahaas</option>
+                </Form.Select>
+              </Form.Group>
             </Form>
           </Modal.Body>
           <Modal.Footer>

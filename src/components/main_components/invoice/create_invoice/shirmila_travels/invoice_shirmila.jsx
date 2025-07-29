@@ -43,7 +43,7 @@ const Invoice_shirmila = () => {
 
   const fetchAccounts = async () => {
     try {
-      const response = await axios.get(`/api/accounts/${currency}/1`);
+      const response = await axios.get(`/api/accounts/by-currency/${currency}/1`);
       console.log(response);
       setAccounts(response.data);
     } catch (error) {
@@ -2043,14 +2043,14 @@ const Invoice_shirmila = () => {
           </Form.Group>
 
           <Form.Group className="mb-3">
-            <Form.Check
+            {/* <Form.Check
               type="checkbox"
               label="Taxable"
               checked={newCharge.taxable}
               onChange={(e) =>
                 setNewCharge({ ...newCharge, taxable: e.target.checked })
               }
-            />
+            /> */}
           </Form.Group>
         </Modal.Body>
         <Modal.Footer>

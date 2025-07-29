@@ -36,16 +36,20 @@ const Invoice_aahaas = () => {
   const [accounts, setAccounts] = useState([]);
   const [selectedAccount, setSelectedAccount] = useState(null);
 
+  const [currency, setCurrency] = useState("USD");
+
   // Fetch customers and tax rates on component mount
   useEffect(() => {
     fetchCustomers();
     fetchTaxRates();
-    fetchAccounts();
+    // fetchAccounts();
   }, []);
 
   const fetchAccounts = async () => {
     try {
-      const response = await axios.get("/api/accounts");
+      const response = await axios.get(
+        `/api/accounts/by-currency/${currency}/3`
+      );
       console.log(response);
       setAccounts(response.data);
     } catch (error) {
@@ -434,7 +438,7 @@ const Invoice_aahaas = () => {
       default:
         rate = 87.52;
     }
-
+    setCurrency(currency);
     setFormData({
       ...formData,
       currencyDetails: {
@@ -444,6 +448,7 @@ const Invoice_aahaas = () => {
         customRate: rate,
       },
     });
+    fetchAccounts();
   };
 
   // Calculate totals
@@ -874,7 +879,7 @@ const Invoice_aahaas = () => {
                     />
                   </Form.Group>
 
-                  <Form.Group className="mb-3">
+                  {/* <Form.Group className="mb-3">
                     <Form.Label>GST No:</Form.Label>
                     <Form.Control
                       type="text"
@@ -884,7 +889,7 @@ const Invoice_aahaas = () => {
                         handleInputChange("customer", "gstNo", e.target.value)
                       }
                     />
-                  </Form.Group>
+                  </Form.Group> */}
                 </Card.Body>
               </Card>
             </Col>
@@ -1837,7 +1842,7 @@ const Invoice_aahaas = () => {
                   </Form.Group>
                 </Col>
 
-                <Col md={12} className="mb-3">
+                {/* <Col md={12} className="mb-3">
                   <Form.Group>
                     <Form.Label>Description:</Form.Label>
                     <Form.Control
@@ -1848,13 +1853,57 @@ const Invoice_aahaas = () => {
                       }
                     />
                   </Form.Group>
-                </Col>
+                </Col> */}
+
+                  <Col md={12} className="mb-3">
+                                  <Form.Group>
+                                    <Form.Label>Description:</Form.Label>
+                                    <Form.Select
+                                      value={newItem.description}
+                                      onChange={(e) =>
+                                        setNewItem({
+                                          ...newItem,
+                                          description: e.target.value,
+                                        })
+                                      }
+                                    >
+                                      <option value="">Select Description</option>
+                                      <option value="Cost per Adult">Cost per Adult</option>
+                                      <option value="Cost per Child">Cost per Child</option>
+                                      {/* <option value="custom">Other (Type Manually)</option> */}
+                                    </Form.Select>
+                
+                                    {newItem.description === "custom" && (
+                                      <Form.Control
+                                        className="mt-2"
+                                        type="text"
+                                        placeholder="Enter custom description"
+                                        value={newItem.description || ""}
+                                        onChange={(e) =>
+                                          setNewItem({
+                                            ...newItem,
+                                            description: e.target.value,
+                                            customDescription: e.target.value,
+                                          })
+                                        }
+                                      />
+                                    )}
+                                    {/* <Form.Control
+                                                      type="text"
+                                                      value={newItem.description}
+                                                      onChange={(e) =>
+                                                        setNewItem({ ...newItem, description: e.target.value })
+                                                      }
+                                                    /> */}
+                                  </Form.Group>
+                                </Col>
+                
 
                 <Col md={6} className="mb-3">
                   <Form.Group>
-                    <Form.Label>Check-in Time:</Form.Label>
+                    <Form.Label>Check-in Date:</Form.Label>
                     <Form.Control
-                      type="time"
+                      type="date"
                       value={newItem.checkin}
                       onChange={(e) =>
                         setNewItem({ ...newItem, checkin: e.target.value })
@@ -1865,9 +1914,9 @@ const Invoice_aahaas = () => {
 
                 <Col md={6} className="mb-3">
                   <Form.Group>
-                    <Form.Label>Check-out Time:</Form.Label>
+                    <Form.Label>Check-out Date:</Form.Label>
                     <Form.Control
-                      type="time"
+                      type="date"
                       value={newItem.checkout}
                       onChange={(e) =>
                         setNewItem({ ...newItem, checkout: e.target.value })

@@ -40,13 +40,13 @@ const Invoice_appleholidays = () => {
   useEffect(() => {
     fetchCustomers();
     fetchTaxRates();
-    fetchAccounts();
+    // fetchAccounts();
   }, []);
 
   const fetchAccounts = async () => {
     try {
       const response = await axios.get(
-        `/api/accounts/by-currency/${currency}/1`
+        `/api/accounts/by-currency/${currency}/2`
       );
       console.log(response);
       setAccounts(response.data);

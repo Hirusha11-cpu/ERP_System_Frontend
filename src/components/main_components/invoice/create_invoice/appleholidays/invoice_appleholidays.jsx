@@ -71,28 +71,37 @@ const Invoice_appleholidays = () => {
   };
 
   const handleSubmit = async () => {
-    console.log(selectedCompany);
-    const prefix =
-      countryOptions.find((c) => c.code === formData.invoice.country)?.prefix ||
-      "IN";
+    const paymentMethodArray = Object.entries(formData.payment.methods)
+      .filter(([_, value]) => value)
+      .map(([key]) => key);
 
     const dataToSend = {
-      ...formData,
-      invoice: {
-        ...formData.invoice,
-        number: prefix + formData.invoice.number,
-      },
-      company_id: selectedCompany.id,
+      customer_id: formData.customer.id,
+      country_code: formData.invoice.country,
+      currency: formData.currencyDetails.currency,
+      exchange_rate: formData.currencyDetails.exchangeRate,
+      tax_treatment: formData.currencyDetails.taxTreatment,
+      payment_type: formData.payment.type,
+      collection_date: formData.payment.collectionDate,
+      payment_instructions: formData.payment.instructions,
+      staff: formData.payment.staff,
+      remarks: formData.payment.remarks,
+      payment_methods: paymentMethodArray,
+      company_id: 1,
+      account_id: formData.selectedAccountId || 1, // use your selected account logic
+      booking_no: formData.invoice.bookingId,
+
       items: formData.serviceItems.map((item) => ({
         code: item.code,
         type: item.type,
         description: item.description,
-        checkin_time: item.checkin,
-        checkout_time: item.checkout,
         quantity: item.qty,
         price: item.price,
         discount: item.discount,
+        checkin_time: item.checkin || null,
+        checkout_time: item.checkout || null,
       })),
+
       additional_charges: formData.additionalCharges.map((charge) => ({
         description: charge.description,
         amount: charge.amount,
@@ -100,15 +109,14 @@ const Invoice_appleholidays = () => {
       })),
     };
 
+    console.log("Formatted Data to Send =>", dataToSend);
+
     try {
       const response = await axios.post("/api/invoices", dataToSend);
-      console.log();
-
-      // Handle success
+      console.log(response.data);
       alert("Invoice created successfully!");
       resetForm();
     } catch (error) {
-      // Handle error
       console.error("Error creating invoice:", error);
       alert(
         "Error creating invoice: " +
@@ -116,6 +124,53 @@ const Invoice_appleholidays = () => {
       );
     }
   };
+
+  // const handleSubmit = async () => {
+  //   console.log(selectedCompany);
+  //   const prefix =
+  //     countryOptions.find((c) => c.code === formData.invoice.country)?.prefix ||
+  //     "IN";
+
+  //   const dataToSend = {
+  //     ...formData,
+  //     invoice: {
+  //       ...formData.invoice,
+  //       number: prefix + formData.invoice.number,
+  //     },
+  //     company_id: selectedCompany.id,
+  //     items: formData.serviceItems.map((item) => ({
+  //       code: item.code,
+  //       type: item.type,
+  //       description: item.description,
+  //       checkin_time: item.checkin,
+  //       checkout_time: item.checkout,
+  //       quantity: item.qty,
+  //       price: item.price,
+  //       discount: item.discount,
+  //     })),
+  //     additional_charges: formData.additionalCharges.map((charge) => ({
+  //       description: charge.description,
+  //       amount: charge.amount,
+  //       taxable: charge.taxable,
+  //     })),
+  //   };
+
+  //   try {
+  //     const response = await axios.post("/api/invoices", dataToSend);
+  //     console.log();
+
+  //     // Handle success
+  //     alert("Invoice created successfully!");
+  //     resetForm();
+  //   } catch (error) {
+  //     // Handle error
+  //     console.error("Error creating invoice:", error);
+  //     alert(
+  //       "Error creating invoice: " +
+  //         (error.response?.data?.message || error.message)
+  //     );
+  //   }
+  // };
 
   // State for form data
   const [formData, setFormData] = useState({
@@ -608,6 +663,7 @@ const Invoice_appleholidays = () => {
           ifsc: selected.ifsc,
           address: selected.address,
         },
+        selectedAccountId: selected.id, 
       }));
     }
   };

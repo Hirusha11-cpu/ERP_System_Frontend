@@ -32,17 +32,18 @@ const Invoice_shirmila = () => {
   const [customers, setCustomers] = useState([]);
   const [taxRates, setTaxRates] = useState([]);
   const [accounts, setAccounts] = useState([]);
+  
+  const [currency, setCurrency] = useState("USD");
 
   // Fetch customers and tax rates on component mount
   useEffect(() => {
     fetchCustomers();
     fetchTaxRates();
-    fetchAccounts();
   }, []);
 
   const fetchAccounts = async () => {
     try {
-      const response = await axios.get("/api/accounts");
+      const response = await axios.get(`/api/accounts/${currency}/1`);
       console.log(response);
       setAccounts(response.data);
     } catch (error) {
@@ -70,29 +71,50 @@ const Invoice_shirmila = () => {
     }
   };
 
+  const TAX_COMPONENTS = [
+    { name: "GST", rate: 18, type: "standard" },
+    { name: "CGST", rate: 9, type: "standard" },
+    { name: "SGST", rate: 9, type: "standard" },
+    { name: "Flight Tax", rate: 5, type: "flight" },
+    { name: "Hotel Tax", rate: 12, type: "hotel" },
+    { name: "Lifestyle Tax", rate: 18, type: "lifestyle" },
+    { name: "Essentials Tax", rate: 5, type: "essentials" },
+    { name: "Non-Essentials Tax", rate: 18, type: "non-essentials" },
+    { name: "Education Tax", rate: 0, type: "education" },
+  ];
+
   const handleSubmit = async () => {
-    console.log(selectedCompany);
-    const prefix =
-      countryOptions.find((c) => c.code === formData.invoice.country)?.prefix ||
-      "IN";
+    const paymentMethodArray = Object.entries(formData.payment.methods)
+      .filter(([_, value]) => value)
+      .map(([key]) => key);
 
     const dataToSend = {
-      ...formData,
-      invoice: {
-        ...formData.invoice,
-        number: prefix + formData.invoice.number,
-      },
-      company_id: selectedCompany.id,
+      customer_id: formData.customer.id,
+      country_code: formData.invoice.country,
+      currency: formData.currencyDetails.currency,
+      exchange_rate: formData.currencyDetails.exchangeRate,
+      tax_treatment: formData.currencyDetails.taxTreatment,
+      payment_type: formData.payment.type,
+      collection_date: formData.payment.collectionDate,
+      payment_instructions: formData.payment.instructions,
+      staff: formData.payment.staff,
+      remarks: formData.payment.remarks,
+      payment_methods: paymentMethodArray,
+      company_id: 1,
+      account_id: formData.selectedAccountId || 1, // use your selected account logic
+      booking_no: formData.invoice.bookingId,
+
       items: formData.serviceItems.map((item) => ({
         code: item.code,
         type: item.type,
         description: item.description,
-        checkin_time: item.checkin,
-        checkout_time: item.checkout,
         quantity: item.qty,
         price: item.price,
         discount: item.discount,
+        checkin_time: item.checkin_time || null,
+        checkout_time: item.checkout_time || null,
       })),
+
       additional_charges: formData.additionalCharges.map((charge) => ({
         description: charge.description,
         amount: charge.amount,
@@ -100,15 +122,14 @@ const Invoice_shirmila = () => {
       })),
     };
 
+    console.log("Formatted Data to Send =>", dataToSend);
+
     try {
       const response = await axios.post("/api/invoices", dataToSend);
-      console.log();
-
-      // Handle success
+      console.log(response.data);
       alert("Invoice created successfully!");
       resetForm();
     } catch (error) {
-      // Handle error
       console.error("Error creating invoice:", error);
       alert(
         "Error creating invoice: " +
@@ -116,6 +137,53 @@ const Invoice_shirmila = () => {
       );
     }
   };
+
+  // const handleSubmit = async () => {
+  //   console.log(selectedCompany);
+  //   const prefix =
+  //     countryOptions.find((c) => c.code === formData.invoice.country)?.prefix ||
+  //     "IN";
+
+  //   const dataToSend = {
+  //     ...formData,
+  //     invoice: {
+  //       ...formData.invoice,
+  //       number: prefix + formData.invoice.number,
+  //     },
+  //     company_id: selectedCompany.id,
+  //     items: formData.serviceItems.map((item) => ({
+  //       code: item.code,
+  //       type: item.type,
+  //       description: item.description,
+  //       checkin_time: item.checkin,
+  //       checkout_time: item.checkout,
+  //       quantity: item.qty,
+  //       price: item.price,
+  //       discount: item.discount,
+  //     })),
+  //     additional_charges: formData.additionalCharges.map((charge) => ({
+  //       description: charge.description,
+  //       amount: charge.amount,
+  //       taxable: charge.taxable,
+  //     })),
+  //   };
+
+  //   try {
+  //     const response = await axios.post("/api/invoices", dataToSend);
+  //     console.log();
+
+  //     // Handle success
+  //     alert("Invoice created successfully!");
+  //     resetForm();
+  //   } catch (error) {
+  //     // Handle error
+  //     console.error("Error creating invoice:", error);
+  //     alert(
+  //       "Error creating invoice: " +
+  //         (error.response?.data?.message || error.message)
+  //     );
+  //   }
+  // };
 
   // State for form data
   const [formData, setFormData] = useState({
@@ -197,8 +265,8 @@ const Invoice_shirmila = () => {
     code: "",
     type: "hotel",
     description: "",
-    checkin: "",
-    checkout: "",
+    checkin_time: "",
+    checkout_time: "",
     qty: 1,
     price: 0,
     discount: 0,
@@ -224,7 +292,6 @@ const Invoice_shirmila = () => {
   const [customerSearch, setCustomerSearch] = useState("");
   const [filteredCustomers, setFilteredCustomers] = useState([]);
   const [activeTab, setActiveTab] = useState("sell");
-
   // Country options
   const countryOptions = [
     { code: "IN", name: "India", prefix: "IN" },
@@ -375,7 +442,7 @@ const Invoice_shirmila = () => {
       default:
         rate = 87.52;
     }
-
+    setCurrency(currency);
     setFormData({
       ...formData,
       currencyDetails: {
@@ -385,6 +452,8 @@ const Invoice_shirmila = () => {
         customRate: rate,
       },
     });
+    
+    fetchAccounts();
   };
 
   // Calculate totals
@@ -469,8 +538,8 @@ const Invoice_shirmila = () => {
       code: "",
       type: "hotel",
       description: "",
-      checkin: "",
-      checkout: "",
+      checkin_time: "",
+      checkout_time: "",
       qty: 1,
       price: 0,
       discount: 0,
@@ -595,7 +664,7 @@ const Invoice_shirmila = () => {
     setShowPreviewModal(true);
   };
 
-  const handleAccountSelect = (accountId) => {
+  const handleAccountSelect = (accountId, currency) => {
     const selected = accounts.find((acc) => acc.id === parseInt(accountId));
     if (selected) {
       setFormData((prev) => ({
@@ -608,6 +677,7 @@ const Invoice_shirmila = () => {
           ifsc: selected.ifsc,
           address: selected.address,
         },
+        selectedAccountId: selected.id,
       }));
     }
   };
@@ -720,12 +790,10 @@ const Invoice_shirmila = () => {
           Where your journey begins with seamless billing...
         </div> */}
       </div>
-
       {/* Important Notice */}
       {/* <div className="notice-box bg-warning bg-opacity-10 border-start border-warning border-4 p-3 mb-4">
         <strong>STRICTLY TO BE NOTED:</strong> Finance Bill 2017 proposes to insert Section 269ST in the Income-tax Act that restricts receiving an amount of Rs 2,00,000/- or more. Sharmila Travels will not accept any cash deposit. If the total value of such cash deposit, then the amount will be ignored and penalties will be charged as per law. Please use other payment modes such as Cheque deposit, RTGS & NEFT for all your future bookings with Sharmila Travels.
       </div> */}
-
       {/* Customer and Invoice Information */}
       <Card className="mb-4">
         <Card.Body>
@@ -815,7 +883,7 @@ const Invoice_shirmila = () => {
                     />
                   </Form.Group>
 
-                  <Form.Group className="mb-3">
+                  {/* <Form.Group className="mb-3">
                     <Form.Label>GST No:</Form.Label>
                     <Form.Control
                       type="text"
@@ -825,7 +893,7 @@ const Invoice_shirmila = () => {
                         handleInputChange("customer", "gstNo", e.target.value)
                       }
                     />
-                  </Form.Group>
+                  </Form.Group> */}
                 </Card.Body>
               </Card>
             </Col>
@@ -988,7 +1056,6 @@ const Invoice_shirmila = () => {
           </Row>
         </Card.Body>
       </Card>
-
       {/* Currency Details */}
       <Card className="mb-4">
         <Card.Body>
@@ -1061,7 +1128,6 @@ const Invoice_shirmila = () => {
           </Row>
         </Card.Body>
       </Card>
-
       {/* Service Details */}
       <Card className="mb-4">
         <Card.Body>
@@ -1094,8 +1160,8 @@ const Invoice_shirmila = () => {
                     <td>{item.code}</td>
                     <td>{item.type}</td>
                     <td>{item.description}</td>
-                    <td>{item.checkin || "-"}</td>
-                    <td>{item.checkout || "-"}</td>
+                    <td>{item.checkin_time || "-"}</td>
+                    <td>{item.checkout_time || "-"}</td>
                     <td>{item.qty}</td>
                     <td>{item.price.toFixed(2)}</td>
                     <td>{item.discount}%</td>
@@ -1123,7 +1189,6 @@ const Invoice_shirmila = () => {
           )}
         </Card.Body>
       </Card>
-
       {/* Additional Charges */}
       <Card className="mb-4">
         <Card.Body>
@@ -1174,7 +1239,6 @@ const Invoice_shirmila = () => {
           </div>
         </Card.Body>
       </Card>
-
       {/* Tax Rates */}
       <Card className="mb-4">
         <Card.Body>
@@ -1213,7 +1277,6 @@ const Invoice_shirmila = () => {
           </div>
         </Card.Body>
       </Card>
-
       {/* Account Details */}
       <Card className="mb-4">
         <Card.Body>
@@ -1229,7 +1292,7 @@ const Invoice_shirmila = () => {
           <Form.Group className="mb-3">
             <Form.Label>Select Account</Form.Label>
             <Form.Select
-              onChange={(e) => handleAccountSelect(e.target.value)}
+              onChange={(e) => handleAccountSelect(e.target.value, currency)}
               defaultValue=""
             >
               <option value="" disabled>
@@ -1348,7 +1411,6 @@ const Invoice_shirmila = () => {
           </Row>
         </Card.Body>
       </Card>
-
       {/* Tax Calculation & Totals */}
       <Card className="mb-4">
         <Card.Body>
@@ -1619,7 +1681,6 @@ const Invoice_shirmila = () => {
           </div>
         </Card.Body>
       </Card>
-
       {/* Action Buttons */}
       <div className="d-flex justify-content-center gap-3 mb-4">
         <Button variant="primary" size="lg" onClick={generatePreview}>
@@ -1632,7 +1693,6 @@ const Invoice_shirmila = () => {
           <FaSyncAlt className="me-2" /> Reset Form
         </Button>
       </div>
-
       {/* Exchange Rate Modal */}
       <Modal
         show={showExchangeModal}
@@ -1719,7 +1779,6 @@ const Invoice_shirmila = () => {
           </Button>
         </Modal.Footer>
       </Modal>
-
       {/* Item Management Modal */}
       <Modal
         show={showItemModal}
@@ -1740,7 +1799,7 @@ const Invoice_shirmila = () => {
               <Nav.Link eventKey="sell">Sell Details</Nav.Link>
             </Nav.Item>
             <Nav.Item>
-              <Nav.Link eventKey="purchase">Purchase Details</Nav.Link>
+              {/* <Nav.Link eventKey="purchase">Purchase Details</Nav.Link> */}
             </Nav.Item>
           </Nav>
 
@@ -1781,24 +1840,54 @@ const Invoice_shirmila = () => {
                 <Col md={12} className="mb-3">
                   <Form.Group>
                     <Form.Label>Description:</Form.Label>
-                    <Form.Control
+                    <Form.Select
+                      value={newItem.description}
+                      onChange={(e) =>
+                        setNewItem({
+                          ...newItem,
+                          description: e.target.value,
+                        })
+                      }
+                    >
+                      <option value="">Select Description</option>
+                      <option value="Cost per Adult">Cost per Adult</option>
+                      <option value="Cost per Child">Cost per Child</option>
+                      {/* <option value="custom">Other (Type Manually)</option> */}
+                    </Form.Select>
+
+                    {newItem.description === "custom" && (
+                      <Form.Control
+                        className="mt-2"
+                        type="text"
+                        placeholder="Enter custom description"
+                        value={newItem.description || ""}
+                        onChange={(e) =>
+                          setNewItem({
+                            ...newItem,
+                            description: e.target.value,
+                            customDescription: e.target.value,
+                          })
+                        }
+                      />
+                    )}
+                    {/* <Form.Control
                       type="text"
                       value={newItem.description}
                       onChange={(e) =>
                         setNewItem({ ...newItem, description: e.target.value })
                       }
-                    />
+                    /> */}
                   </Form.Group>
                 </Col>
 
                 <Col md={6} className="mb-3">
                   <Form.Group>
-                    <Form.Label>Check-in Time:</Form.Label>
+                    <Form.Label>Check-in Date:</Form.Label>
                     <Form.Control
-                      type="time"
-                      value={newItem.checkin}
+                      type="date"
+                      value={newItem.checkin_time}
                       onChange={(e) =>
-                        setNewItem({ ...newItem, checkin: e.target.value })
+                        setNewItem({ ...newItem, checkin_time: e.target.value })
                       }
                     />
                   </Form.Group>
@@ -1806,12 +1895,15 @@ const Invoice_shirmila = () => {
 
                 <Col md={6} className="mb-3">
                   <Form.Group>
-                    <Form.Label>Check-out Time:</Form.Label>
+                    <Form.Label>Check-out Date:</Form.Label>
                     <Form.Control
-                      type="time"
-                      value={newItem.checkout}
+                      type="date"
+                      value={newItem.checkout_time}
                       onChange={(e) =>
-                        setNewItem({ ...newItem, checkout: e.target.value })
+                        setNewItem({
+                          ...newItem,
+                          checkout_time: e.target.value,
+                        })
                       }
                     />
                   </Form.Group>
@@ -1917,7 +2009,6 @@ const Invoice_shirmila = () => {
           </Button>
         </Modal.Footer>
       </Modal>
-
       {/* Charge Modal */}
       <Modal show={showChargeModal} onHide={() => setShowChargeModal(false)}>
         <Modal.Header closeButton>
@@ -1938,8 +2029,9 @@ const Invoice_shirmila = () => {
           <Form.Group className="mb-3">
             <Form.Label>Amount:</Form.Label>
             <Form.Control
-              type="number"
-              step="0.01"
+              type="text"
+              inputMode="decimal"
+              pattern="[0-9]*"
               value={newCharge.amount}
               onChange={(e) =>
                 setNewCharge({
@@ -1970,9 +2062,78 @@ const Invoice_shirmila = () => {
           </Button>
         </Modal.Footer>
       </Modal>
-
       {/* Tax Rate Modal */}
       <Modal show={showTaxModal} onHide={() => setShowTaxModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Add New Tax Rate</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form.Group className="mb-3">
+            <Form.Label>Tax Component:</Form.Label>
+            <Form.Select
+              value={newTaxRate.component}
+              onChange={(e) =>
+                setNewTaxRate({ ...newTaxRate, component: e.target.value })
+              }
+            >
+              <option value="">Select Component</option>
+              <option value="flight">Flight</option>
+              <option value="hotel">Hotel</option>
+              <option value="lifestyle">Lifestyle</option>
+              <option value="essentials">Essentials</option>
+              <option value="non-essentials">Non-Essentials</option>
+              <option value="education">Education</option>
+              <option value="standard">Standard</option>
+            </Form.Select>
+          </Form.Group>
+
+          <Form.Group className="mb-3">
+            <Form.Label>Display Name:</Form.Label>
+            <Form.Control
+              type="text"
+              value={newTaxRate.name || "-"}
+              onChange={(e) =>
+                setNewTaxRate({ ...newTaxRate, name: e.target.value })
+              }
+            />
+          </Form.Group>
+
+          <Form.Group className="mb-3">
+            <Form.Label>Rate (%):</Form.Label>
+            <Form.Control
+              // type="number"
+              // // step="0.01"
+              type="text"
+              inputMode="decimal"
+              pattern="[0-9]*"
+              value={newTaxRate.rate}
+              onChange={(e) =>
+                setNewTaxRate({
+                  ...newTaxRate,
+                  rate: parseFloat(e.target.value) || 0,
+                })
+              }
+            />
+          </Form.Group>
+
+          {newTaxRate.rate > 0 && (
+            <div className="alert alert-info">
+              <strong>Tax Calculation:</strong> For an item worth 100{" "}
+              {formData.currencyDetails.currency}, the tax would be{" "}
+              {newTaxRate.rate} {formData.currencyDetails.currency}
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowTaxModal(false)}>
+            Cancel
+          </Button>
+          <Button variant="primary" onClick={addNewTaxRate}>
+            Add Tax Rate
+          </Button>
+        </Modal.Footer>
+      </Modal>
+      {/* <Modal show={showTaxModal} onHide={() => setShowTaxModal(false)}>
         <Modal.Header closeButton>
           <Modal.Title>Add New Tax Rate</Modal.Title>
         </Modal.Header>
@@ -2025,8 +2186,7 @@ const Invoice_shirmila = () => {
             Add Tax Rate
           </Button>
         </Modal.Footer>
-      </Modal>
-
+      </Modal> */}
       {/* Customer Modal */}
       <Modal
         show={showCustomerModal}
@@ -2104,7 +2264,6 @@ const Invoice_shirmila = () => {
           </Button>
         </Modal.Footer>
       </Modal>
-
       {/* Preview Invoice Modal */}
       <Modal
         show={showPreviewModal}
@@ -2143,7 +2302,7 @@ const Invoice_shirmila = () => {
                 RTGS & NEFT for all your future bookings with Sharmila Travels.
               </div> */}
 
-              <h5 className="fw-bold mb-3">INVOICE (Original)</h5>
+              <h5 className="fw-bold mb-3">INVOICE</h5>
             </div>
 
             {/* Invoice Meta and Customer Info */}
@@ -2156,11 +2315,11 @@ const Invoice_shirmila = () => {
                 <div>
                   {formData.customer.address || "Ravichander Balachander • 9"}
                 </div>
-                <div>GST NO: {formData.customer.gstNo || "OTHERS"}</div>
+                {/* <div>GST NO: {formData.customer.gstNo || "OTHERS"}</div> */}
               </div>
               <div className="text-end">
                 <div>
-                  <strong>No.</strong>{" "}
+                  <strong>Invoice No.</strong>{" "}
                   {countryOptions.find(
                     (c) => c.code === formData.invoice.country
                   )?.prefix || "IN"}
@@ -2259,32 +2418,6 @@ const Invoice_shirmila = () => {
               </tbody>
             </table>
 
-            {/* Account Details */}
-            <div className="mb-4">
-              <h6 className="fw-bold">ACCOUNT DETAILS</h6>
-              <div>
-                <strong>ACCOUNT NAME:</strong> {formData.accountDetails.name}
-              </div>
-              <div>
-                <strong>ACCOUNT NO:</strong> {formData.accountDetails.number}
-              </div>
-              <div>
-                <strong>BANK:</strong> {formData.accountDetails.bank}
-              </div>
-              <div>
-                <strong>BRANCH:</strong> {formData.accountDetails.branch}
-              </div>
-              <div>
-                <strong>IFSC CODE:</strong> {formData.accountDetails.ifsc}
-              </div>
-              <div>
-                <strong>Bank Address:</strong> {formData.accountDetails.address}
-              </div>
-            </div>
-
-            {/* Payment Instructions */}
-            <div className="mb-3">{formData.payment.instructions}</div>
-
             {/* Totals */}
             <div className="row mb-4">
               <div className="col-md-6 offset-md-6">
@@ -2351,11 +2484,37 @@ const Invoice_shirmila = () => {
               </div>
             </div>
 
+            {/* Account Details */}
+            <div className="mb-4">
+              <h6 className="fw-bold">ACCOUNT DETAILS</h6>
+              <div>
+                <strong>ACCOUNT NAME:</strong> {formData.accountDetails.name}
+              </div>
+              <div>
+                <strong>ACCOUNT NO:</strong> {formData.accountDetails.number}
+              </div>
+              <div>
+                <strong>BANK:</strong> {formData.accountDetails.bank}
+              </div>
+              <div>
+                <strong>BRANCH:</strong> {formData.accountDetails.branch}
+              </div>
+              <div>
+                <strong>IFSC CODE:</strong> {formData.accountDetails.ifsc}
+              </div>
+              <div>
+                <strong>Bank Address:</strong> {formData.accountDetails.address}
+              </div>
+            </div>
+
+            {/* Payment Instructions */}
+            <div className="mb-3">{formData.payment.instructions}</div>
+
             {/* Bottom left: Staff and Remark */}
             <div className="row">
               <div className="col-md-6">
                 <div>
-                  <strong>Staff:</strong> {formData.payment.staff}
+                  {/* <strong>Staff:</strong> {formData.payment.staff} */}
                 </div>
                 <div>
                   <strong>Remark:</strong> {formData.payment.remarks}

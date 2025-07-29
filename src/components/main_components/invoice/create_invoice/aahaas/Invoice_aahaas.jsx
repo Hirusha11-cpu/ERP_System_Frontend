@@ -28,11 +28,13 @@ import { useNavigate } from "react-router-dom";
 
 const Invoice_aahaas = () => {
   const { selectedCompany } = useContext(CompanyContext);
+
   const navigate = useNavigate();
 
   const [customers, setCustomers] = useState([]);
   const [taxRates, setTaxRates] = useState([]);
   const [accounts, setAccounts] = useState([]);
+  const [selectedAccount, setSelectedAccount] = useState(null);
 
   // Fetch customers and tax rates on component mount
   useEffect(() => {
@@ -42,14 +44,14 @@ const Invoice_aahaas = () => {
   }, []);
 
   const fetchAccounts = async () => {
-      try {
-        const response = await axios.get("/api/accounts");
-        console.log(response);
-        setAccounts(response.data);
-      } catch (error) {
-        console.error("Error fetching accounts:", error);
-      }
-    };
+    try {
+      const response = await axios.get("/api/accounts");
+      console.log(response);
+      setAccounts(response.data);
+    } catch (error) {
+      console.error("Error fetching accounts:", error);
+    }
+  };
 
   const fetchCustomers = async () => {
     try {
@@ -72,28 +74,37 @@ const Invoice_aahaas = () => {
   };
 
   const handleSubmit = async () => {
-    console.log(selectedCompany);
-    const prefix =
-      countryOptions.find((c) => c.code === formData.invoice.country)?.prefix ||
-      "IN";
+    const paymentMethodArray = Object.entries(formData.payment.methods)
+      .filter(([_, value]) => value)
+      .map(([key]) => key);
 
     const dataToSend = {
-      ...formData,
-      invoice: {
-        ...formData.invoice,
-        number: prefix + formData.invoice.number,
-      },
-      company_id: selectedCompany.id,
+      customer_id: formData.customer.id,
+      country_code: formData.invoice.country,
+      currency: formData.currencyDetails.currency,
+      exchange_rate: formData.currencyDetails.exchangeRate,
+      tax_treatment: formData.currencyDetails.taxTreatment,
+      payment_type: formData.payment.type,
+      collection_date: formData.payment.collectionDate,
+      payment_instructions: formData.payment.instructions,
+      staff: formData.payment.staff,
+      remarks: formData.payment.remarks,
+      payment_methods: paymentMethodArray,
+      company_id: 1,
+      account_id: formData.selectedAccountId || 1, // use your selected account logic
+      booking_no: formData.invoice.bookingId,
+
       items: formData.serviceItems.map((item) => ({
         code: item.code,
         type: item.type,
         description: item.description,
-        checkin_time: item.checkin,
-        checkout_time: item.checkout,
         quantity: item.qty,
         price: item.price,
         discount: item.discount,
+        checkin_time: item.checkin || null,
+        checkout_time: item.checkout || null,
       })),
+
       additional_charges: formData.additionalCharges.map((charge) => ({
         description: charge.description,
         amount: charge.amount,
@@ -101,15 +112,14 @@ const Invoice_aahaas = () => {
       })),
     };
 
+    console.log("Formatted Data to Send =>", dataToSend);
+
     try {
       const response = await axios.post("/api/invoices", dataToSend);
-      console.log();
-
-      // Handle success
+      console.log(response.data);
       alert("Invoice created successfully!");
       resetForm();
     } catch (error) {
-      // Handle error
       console.error("Error creating invoice:", error);
       alert(
         "Error creating invoice: " +
@@ -117,6 +127,54 @@ const Invoice_aahaas = () => {
       );
     }
   };
+
+  // const handleSubmit = async () => {
+  //   console.log(selectedCompany);
+  //   const prefix =
+  //     countryOptions.find((c) => c.code === formData.invoice.country)?.prefix ||
+  //     "IN";
+
+  //   const dataToSend = {
+  //     ...formData,
+  //     invoice: {
+  //       ...formData.invoice,
+  //       number: prefix + formData.invoice.number,
+  //     },
+  //     company_id: selectedCompany.id,
+  //     items: formData.serviceItems.map((item) => ({
+  //       code: item.code,
+  //       type: item.type,
+  //       description: item.description,
+  //       checkin_time: item.checkin,
+  //       checkout_time: item.checkout,
+  //       quantity: item.qty,
+  //       price: item.price,
+  //       discount: item.discount,
+  //     })),
+  //     additional_charges: formData.additionalCharges.map((charge) => ({
+  //       description: charge.description,
+  //       amount: charge.amount,
+  //       taxable: charge.taxable,
+  //     })),
+  //   };
+  //   console.log(dataToSend);
+
+  //   try {
+  //     const response = await axios.post("/api/invoices", dataToSend);
+  //     console.log(response);
+
+  //     // Handle success
+  //     alert("Invoice created successfully!");
+  //     resetForm();
+  //   } catch (error) {
+  //     // Handle error
+  //     console.error("Error creating invoice:", error);
+  //     alert(
+  //       "Error creating invoice: " +
+  //         (error.response?.data?.message || error.message)
+  //     );
+  //   }
+  // };
 
   // State for form data
   const [formData, setFormData] = useState({
@@ -596,7 +654,7 @@ const Invoice_aahaas = () => {
     setShowPreviewModal(true);
   };
 
-    const handleAccountSelect = (accountId) => {
+  const handleAccountSelect = (accountId) => {
     const selected = accounts.find((acc) => acc.id === parseInt(accountId));
     if (selected) {
       setFormData((prev) => ({
@@ -609,6 +667,7 @@ const Invoice_aahaas = () => {
           ifsc: selected.ifsc,
           address: selected.address,
         },
+        selectedAccountId: selected.id,
       }));
     }
   };
@@ -1221,27 +1280,27 @@ const Invoice_aahaas = () => {
             Account Details
           </h5> */}
           <div className="d-flex justify-content-between align-items-center mb-3">
-                      <h5 className="section-title fw-semibold mb-0">Account Details</h5>
-                      <Button variant="primary" onClick={() => handleAccount()}>
-                        <FaPlus /> Add Account
-                      </Button>
-                    </div>
-                    <Form.Group className="mb-3">
-                      <Form.Label>Select Account</Form.Label>
-                      <Form.Select
-                        onChange={(e) => handleAccountSelect(e.target.value)}
-                        defaultValue=""
-                      >
-                        <option value="" disabled>
-                          Select an account
-                        </option>
-                        {accounts.map((account) => (
-                          <option key={account.id} value={account.id}>
-                            {account.account_name} - {account.account_no}
-                          </option>
-                        ))}
-                      </Form.Select>
-                    </Form.Group>
+            <h5 className="section-title fw-semibold mb-0">Account Details</h5>
+            <Button variant="primary" onClick={() => handleAccount()}>
+              <FaPlus /> Add Account
+            </Button>
+          </div>
+          <Form.Group className="mb-3">
+            <Form.Label>Select Account</Form.Label>
+            <Form.Select
+              onChange={(e) => handleAccountSelect(e.target.value)}
+              defaultValue=""
+            >
+              <option value="" disabled>
+                Select an account
+              </option>
+              {accounts.map((account) => (
+                <option key={account.id} value={account.id}>
+                  {account.account_name} - {account.account_no}
+                </option>
+              ))}
+            </Form.Select>
+          </Form.Group>
 
           <Row>
             <Col md={4} className="mb-3">

@@ -2282,15 +2282,15 @@ const Invoice_shirmila = () => {
                 Sharmila Tours & Travels
               </h4>
               <div className="mb-1">
-                Shop No:1st Floor,10,Venkatraman Road,Kamala Second street
+                No: 148, Aluthmawatha Road, Colombo - 15, Sri Lanka
               </div>
-              <div className="mb-1">Chinna Chokkikulam, Madurai - 625002</div>
-              <div className="mb-1">Tel:+91 0452 405 8375/403-4704</div>
-              <div className="mb-1">E-mail: chennai@Sharmilatravels.com</div>
-              <div className="mb-1">
+              {/* <div className="mb-1">Chinna Chokkikulam, Madurai - 625002</div> */}
+              <div className="mb-1">Tel:011 23 52 400 | 011 23 45 800</div>
+              {/* <div className="mb-1">E-mail: chennai@Sharmilatravels.com</div> */}
+              {/* <div className="mb-1">
                 Service Tax Registration No.: ADVT544290
               </div>
-              <div className="mb-3">GSTIN: 33ADVT544290TZV</div>
+              <div className="mb-3">GSTIN: 33ADVT544290TZV</div> */}
 
               {/* <div className="notice-box p-2 mb-3 text-start bg-warning bg-opacity-10 border-start border-warning border-4">
                 <strong>STRICTLY TO BE NOTED:</strong> Finance bill 2017
@@ -2302,7 +2302,7 @@ const Invoice_shirmila = () => {
                 RTGS & NEFT for all your future bookings with Sharmila Travels.
               </div> */}
 
-              <h5 className="fw-bold mb-3">INVOICE</h5>
+              <h5 className="fw-bold mb-3 mt-4">INVOICE</h5>
             </div>
 
             {/* Invoice Meta and Customer Info */}

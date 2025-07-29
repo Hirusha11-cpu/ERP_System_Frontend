@@ -34,6 +34,8 @@ const Invoice_appleholidays = () => {
   const [taxRates, setTaxRates] = useState([]);
   const [accounts, setAccounts] = useState([]);
 
+  const [currency, setCurrency] = useState("USD");
+
   // Fetch customers and tax rates on component mount
   useEffect(() => {
     fetchCustomers();
@@ -43,7 +45,9 @@ const Invoice_appleholidays = () => {
 
   const fetchAccounts = async () => {
     try {
-      const response = await axios.get("/api/accounts");
+      const response = await axios.get(
+        `/api/accounts/by-currency/${currency}/1`
+      );
       console.log(response);
       setAccounts(response.data);
     } catch (error) {
@@ -430,7 +434,7 @@ const Invoice_appleholidays = () => {
       default:
         rate = 87.52;
     }
-
+    setCurrency(currency);
     setFormData({
       ...formData,
       currencyDetails: {
@@ -440,6 +444,8 @@ const Invoice_appleholidays = () => {
         customRate: rate,
       },
     });
+
+    fetchAccounts();
   };
 
   // Calculate totals
@@ -663,7 +669,7 @@ const Invoice_appleholidays = () => {
           ifsc: selected.ifsc,
           address: selected.address,
         },
-        selectedAccountId: selected.id, 
+        selectedAccountId: selected.id,
       }));
     }
   };
@@ -1796,7 +1802,7 @@ const Invoice_appleholidays = () => {
               <Nav.Link eventKey="sell">Sell Details</Nav.Link>
             </Nav.Item>
             <Nav.Item>
-              <Nav.Link eventKey="purchase">Purchase Details</Nav.Link>
+              {/* <Nav.Link eventKey="purchase">Purchase Details</Nav.Link> */}
             </Nav.Item>
           </Nav>
 
@@ -1834,7 +1840,7 @@ const Invoice_appleholidays = () => {
                   </Form.Group>
                 </Col>
 
-                <Col md={12} className="mb-3">
+                {/* <Col md={12} className="mb-3">
                   <Form.Group>
                     <Form.Label>Description:</Form.Label>
                     <Form.Control
@@ -1845,13 +1851,55 @@ const Invoice_appleholidays = () => {
                       }
                     />
                   </Form.Group>
+                </Col> */}
+                <Col md={12} className="mb-3">
+                  <Form.Group>
+                    <Form.Label>Description:</Form.Label>
+                    <Form.Select
+                      value={newItem.description}
+                      onChange={(e) =>
+                        setNewItem({
+                          ...newItem,
+                          description: e.target.value,
+                        })
+                      }
+                    >
+                      <option value="">Select Description</option>
+                      <option value="Cost per Adult">Cost per Adult</option>
+                      <option value="Cost per Child">Cost per Child</option>
+                      {/* <option value="custom">Other (Type Manually)</option> */}
+                    </Form.Select>
+
+                    {newItem.description === "custom" && (
+                      <Form.Control
+                        className="mt-2"
+                        type="text"
+                        placeholder="Enter custom description"
+                        value={newItem.description || ""}
+                        onChange={(e) =>
+                          setNewItem({
+                            ...newItem,
+                            description: e.target.value,
+                            customDescription: e.target.value,
+                          })
+                        }
+                      />
+                    )}
+                    {/* <Form.Control
+                                      type="text"
+                                      value={newItem.description}
+                                      onChange={(e) =>
+                                        setNewItem({ ...newItem, description: e.target.value })
+                                      }
+                                    /> */}
+                  </Form.Group>
                 </Col>
 
                 <Col md={6} className="mb-3">
                   <Form.Group>
-                    <Form.Label>Check-in Time:</Form.Label>
+                    <Form.Label>Check-in Date:</Form.Label>
                     <Form.Control
-                      type="time"
+                      type="date"
                       value={newItem.checkin}
                       onChange={(e) =>
                         setNewItem({ ...newItem, checkin: e.target.value })
@@ -1862,9 +1910,9 @@ const Invoice_appleholidays = () => {
 
                 <Col md={6} className="mb-3">
                   <Form.Group>
-                    <Form.Label>Check-out Time:</Form.Label>
+                    <Form.Label>Check-out Date:</Form.Label>
                     <Form.Control
-                      type="time"
+                      type="date"
                       value={newItem.checkout}
                       onChange={(e) =>
                         setNewItem({ ...newItem, checkout: e.target.value })
@@ -2007,14 +2055,14 @@ const Invoice_appleholidays = () => {
           </Form.Group>
 
           <Form.Group className="mb-3">
-            <Form.Check
+            {/* <Form.Check
               type="checkbox"
               label="Taxable"
               checked={newCharge.taxable}
               onChange={(e) =>
                 setNewCharge({ ...newCharge, taxable: e.target.checked })
               }
-            />
+            /> */}
           </Form.Group>
         </Modal.Body>
         <Modal.Footer>
@@ -2029,6 +2077,76 @@ const Invoice_appleholidays = () => {
 
       {/* Tax Rate Modal */}
       <Modal show={showTaxModal} onHide={() => setShowTaxModal(false)}>
+              <Modal.Header closeButton>
+                <Modal.Title>Add New Tax Rate</Modal.Title>
+              </Modal.Header>
+              <Modal.Body>
+                <Form.Group className="mb-3">
+                  <Form.Label>Tax Component:</Form.Label>
+                  <Form.Select
+                    value={newTaxRate.component}
+                    onChange={(e) =>
+                      setNewTaxRate({ ...newTaxRate, component: e.target.value })
+                    }
+                  >
+                    <option value="">Select Component</option>
+                    <option value="flight">Flight</option>
+                    <option value="hotel">Hotel</option>
+                    <option value="lifestyle">Lifestyle</option>
+                    <option value="essentials">Essentials</option>
+                    <option value="non-essentials">Non-Essentials</option>
+                    <option value="education">Education</option>
+                    <option value="standard">Standard</option>
+                  </Form.Select>
+                </Form.Group>
+      
+                <Form.Group className="mb-3">
+                  <Form.Label>Display Name:</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={newTaxRate.name || "-"}
+                    onChange={(e) =>
+                      setNewTaxRate({ ...newTaxRate, name: e.target.value })
+                    }
+                  />
+                </Form.Group>
+      
+                <Form.Group className="mb-3">
+                  <Form.Label>Rate (%):</Form.Label>
+                  <Form.Control
+                    // type="number"
+                    // // step="0.01"
+                    type="text"
+                    inputMode="decimal"
+                    pattern="[0-9]*"
+                    value={newTaxRate.rate}
+                    onChange={(e) =>
+                      setNewTaxRate({
+                        ...newTaxRate,
+                        rate: parseFloat(e.target.value) || 0,
+                      })
+                    }
+                  />
+                </Form.Group>
+      
+                {newTaxRate.rate > 0 && (
+                  <div className="alert alert-info">
+                    <strong>Tax Calculation:</strong> For an item worth 100{" "}
+                    {formData.currencyDetails.currency}, the tax would be{" "}
+                    {newTaxRate.rate} {formData.currencyDetails.currency}
+                  </div>
+                )}
+              </Modal.Body>
+              <Modal.Footer>
+                <Button variant="secondary" onClick={() => setShowTaxModal(false)}>
+                  Cancel
+                </Button>
+                <Button variant="primary" onClick={addNewTaxRate}>
+                  Add Tax Rate
+                </Button>
+              </Modal.Footer>
+            </Modal>
+      {/* <Modal show={showTaxModal} onHide={() => setShowTaxModal(false)}>
         <Modal.Header closeButton>
           <Modal.Title>Add New Tax Rate</Modal.Title>
         </Modal.Header>
@@ -2081,7 +2199,7 @@ const Invoice_appleholidays = () => {
             Add Tax Rate
           </Button>
         </Modal.Footer>
-      </Modal>
+      </Modal> */}
 
       {/* Customer Modal */}
       <Modal
@@ -2136,7 +2254,7 @@ const Invoice_appleholidays = () => {
               }
             />
           </Form.Group>
-
+{/* 
           <Form.Group className="mb-3">
             <Form.Label>GST No:</Form.Label>
             <Form.Control
@@ -2146,7 +2264,7 @@ const Invoice_appleholidays = () => {
                 setNewCustomer({ ...newCustomer, gstNo: e.target.value })
               }
             />
-          </Form.Group>
+          </Form.Group> */}
         </Modal.Body>
         <Modal.Footer>
           <Button
@@ -2182,14 +2300,11 @@ const Invoice_appleholidays = () => {
                 style={{ width: "400px" }}
               />
               <div>One Galle Face Tower, 2208, 1A Centre Road, Colombo 002</div>
-              <div>
-                Tel: +91 0452 405 8375/403-4704 | Email:
-                chennai@AppleHolidays.com
-              </div>
-              <div>
+              <div>Tel: 011 2352 400 | Web: www.appleholidaysds.com</div>
+              {/* <div>
                 Service Tax (Registration No.): ADVT544290 | GSTIN:
                 33ADVT544290TZV
-              </div>
+              </div> */}
             </div>
 
             {/* Invoice Title */}
@@ -2207,7 +2322,7 @@ const Invoice_appleholidays = () => {
                 <div>
                   {formData.customer.address || "Ravichander Balachander • 9"}
                 </div>
-                <div>GST NO: {formData.customer.gstNo || "OTHERS"}</div>
+                {/* <div>GST NO: {formData.customer.gstNo || "OTHERS"}</div> */}
               </div>
               <div className="text-end">
                 <div>
@@ -2349,7 +2464,7 @@ const Invoice_appleholidays = () => {
             <div className="row">
               <div className="col-md-6">
                 <div>
-                  <strong>Staff:</strong> {formData.payment.staff}
+                  {/* <strong>Staff:</strong> {formData.payment.staff} */}
                 </div>
                 <div>
                   <strong>Remark:</strong> {formData.payment.remarks}

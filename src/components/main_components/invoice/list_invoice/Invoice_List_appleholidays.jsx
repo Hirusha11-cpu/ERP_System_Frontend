@@ -440,7 +440,7 @@ const Invoice_List_appleholidays = () => {
                   Sharmila Travels.
                 </div>
 
-                <h5 className="fw-bold mb-3">INVOICE (Original)</h5>
+                <h5 className="fw-bold mb-3">INVOICE </h5>
               </div>
 
               {/* Invoice Meta and Customer Info */}
@@ -451,7 +451,7 @@ const Invoice_List_appleholidays = () => {
                     {currentInvoice.customer?.name || "N/A"}
                   </div>
                   <div>{currentInvoice.customer?.address || "N/A"}</div>
-                  <div>GST NO: {currentInvoice.customer?.gst_no || "N/A"}</div>
+                  {/* <div>GST NO: {currentInvoice.customer?.gst_no || "N/A"}</div> */}
                 </div>
                 <div className="text-end">
                   <div>
@@ -555,7 +555,7 @@ const Invoice_List_appleholidays = () => {
               <div className="row">
                 <div className="col-md-6">
                   <div>
-                    <strong>Staff:</strong> {currentInvoice.staff}
+                    {/* <strong>Staff:</strong> {currentInvoice.staff} */}
                   </div>
                   <div>
                     <strong>Remark:</strong> {currentInvoice.remarks}

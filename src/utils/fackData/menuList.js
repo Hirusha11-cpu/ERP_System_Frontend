@@ -95,13 +95,13 @@ export const menuList = [
       {
         id: 4,
         name: "P&L Reports",
-        path: "/payment/view",
+        path: "/invoice/pnl",
         subdropdownMenu: false,
       },
       {
         id: 5,
         name: "Summary invoice",
-        path: "/payment/list",
+        path: "/invoice/summary",
         subdropdownMenu: false,
       },
       {

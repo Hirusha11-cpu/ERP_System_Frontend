@@ -429,7 +429,7 @@ const Invoice_List_aahaas = () => {
                 </div>
                 <div className="mb-3">GSTIN: 33ADVT544290TZV</div>
 
-                <div className="notice-box p-2 mb-3 text-start bg-warning bg-opacity-10 border-start border-warning border-4">
+                {/* <div className="notice-box p-2 mb-3 text-start bg-warning bg-opacity-10 border-start border-warning border-4">
                   <strong>STRICTLY TO BE NOTED:</strong> Finance bill 2017
                   proposes to insert Section 269ST in the Income tax Act that
                   restricts receiving an amount of Rs 2,00,000/- or more.
@@ -438,7 +438,7 @@ const Invoice_List_aahaas = () => {
                   amount will be ignored and use other payment modes such as
                   Cheque deposit, RTGS & NEFT for all your future bookings with
                   Sharmila Travels.
-                </div>
+                </div> */}
 
                 <h5 className="fw-bold mb-3">INVOICE </h5>
               </div>
@@ -491,7 +491,7 @@ const Invoice_List_aahaas = () => {
                     <tr key={index}>
                       <td>{item.description}</td>
                       <td style={{ textAlign: "right" }}>
-                        {currentInvoice.currency} {item.price.toFixed(2)}
+                        {currentInvoice.currency} {item.price}
                       </td>
                       <td style={{ textAlign: "right" }}>{item.discount}%</td>
                       <td style={{ textAlign: "right" }}>{item.quantity}</td>

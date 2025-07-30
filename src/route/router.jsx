@@ -89,15 +89,15 @@ export const router = createBrowserRouter([
             },
             {
                 path: "/invoice/bank-accounts",
-                element: <Invoice_preview target="invoice_bank_accounts" />
+                element: <Invoice_preview target="invoice_bank_accounts"/>
             },
             {
-                path: "/reports/project",
-                element: <ReportsProject />
+                path: "/invoice/pnl",
+                element: <Invoice_preview target="invoice_pnl"/>
             },
             {
-                path: "/reports/timesheets",
-                element: <ReportsTimesheets />
+                path: "/invoice/summary",
+                element: <Invoice_preview target="invoice_summary"/>
             },
             {
                 path: "/proposal/list",

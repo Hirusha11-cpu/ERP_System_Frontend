@@ -15,6 +15,7 @@ const Bank_accounts = () => {
     branch: "",
     ifsc_code: "",
     bank_address: "",
+    currency:""
   });
 
   // Fetch accounts (Mock or replace with API call)
@@ -38,6 +39,7 @@ const Bank_accounts = () => {
         branch: "",
         ifsc_code: "",
         bank_address: "",
+        currency: ""
       }
     );
     setShowModal(true);
@@ -107,6 +109,7 @@ const handleChange = (e) => {
                 <th>Branch</th>
                 <th>IFSC Code</th>
                 <th>Bank Address</th>
+                <th>Currency</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -121,6 +124,7 @@ const handleChange = (e) => {
                     <td>{acc.branch}</td>
                     <td>{acc.ifsc_code}</td>
                     <td>{acc.bank_address}</td>
+                    <td>{acc.currency}</td>
                     <td>
                       <Button
                         variant="outline-primary"
@@ -166,6 +170,7 @@ const handleChange = (e) => {
                 "branch",
                 "ifsc_code",
                 "bank_address",
+                "currency"
               ].map((field) => (
                 <Form.Group key={field} className="mb-3">
                   <Form.Label>

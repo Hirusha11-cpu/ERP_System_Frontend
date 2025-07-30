@@ -32,7 +32,7 @@ const Invoice_shirmila = () => {
   const [customers, setCustomers] = useState([]);
   const [taxRates, setTaxRates] = useState([]);
   const [accounts, setAccounts] = useState([]);
-  
+
   const [currency, setCurrency] = useState("USD");
 
   // Fetch customers and tax rates on component mount
@@ -41,9 +41,13 @@ const Invoice_shirmila = () => {
     fetchTaxRates();
   }, []);
 
-  const fetchAccounts = async () => {
+  const fetchAccounts = async (currencyInfo = "USD") => {
     try {
-      const response = await axios.get(`/api/accounts/by-currency/${currency}/1`);
+      console.log(`Fetching accounts for currency: ${currencyInfo}`);
+
+      const response = await axios.get(
+        `/api/accounts/by-currency/${currencyInfo}/1`
+      );
       console.log(response);
       setAccounts(response.data);
     } catch (error) {
@@ -305,6 +309,14 @@ const Invoice_shirmila = () => {
     { code: "OB", name: "Other Countries", prefix: "OB" },
   ];
 
+  const currencySymbols = {
+    INR: "₹",
+    USD: "$",
+    SGD: "S$",
+    MYR: "RM",
+    LKR: "Rs",
+  };
+
   // Currency options
   const currencyOptions = ["INR", "USD", "SGD", "MYR", "LKR"];
 
@@ -425,6 +437,8 @@ const Invoice_shirmila = () => {
 
   // Handle currency change
   const handleCurrencyChange = (currency) => {
+    console.log("Selected currency:", currency);
+
     let rate = 87.52;
     switch (currency) {
       case "SGD":
@@ -452,8 +466,8 @@ const Invoice_shirmila = () => {
         customRate: rate,
       },
     });
-    
-    fetchAccounts();
+
+    fetchAccounts(currency);
   };
 
   // Calculate totals
@@ -490,9 +504,9 @@ const Invoice_shirmila = () => {
 
     // Calculate GST (only for INR)
     let gst = 0;
-    if (currency === "INR" && taxTreatment === "exclusive") {
-      const gstRate = taxRates.find((tax) => tax.name === "GST")?.rate || 0;
-      gst = (subTotal + handlingFee + taxableCharges) * (gstRate / 100);
+    if (currency === "INR") {
+      // const gstRate = taxRates.find((tax) => tax.name === "GST")?.rate || 0;
+      gst = handlingFee * (18 / 100);
     }
 
     // Calculate total
@@ -662,20 +676,25 @@ const Invoice_shirmila = () => {
   // Generate invoice preview
   const generatePreview = () => {
     setShowPreviewModal(true);
+    console.log(formData);
   };
 
   const handleAccountSelect = (accountId, currency) => {
+    console.log("Selected account ID:", accountId);
+
     const selected = accounts.find((acc) => acc.id === parseInt(accountId));
+    console.log("Selected account:", selected);
+
     if (selected) {
       setFormData((prev) => ({
         ...prev,
         accountDetails: {
-          name: selected.name,
-          number: selected.number,
+          name: selected.account_name,
+          number: selected.account_no,
           bank: selected.bank,
           branch: selected.branch,
-          ifsc: selected.ifsc,
-          address: selected.address,
+          ifsc: selected.ifsc_code,
+          address: selected.bank_address,
         },
         selectedAccountId: selected.id,
       }));
@@ -1601,12 +1620,15 @@ const Invoice_shirmila = () => {
 
                       <div className="d-flex justify-content-between mb-2 pb-2 border-bottom bg-light">
                         <span>
-                          GST @{" "}
-                          {formData.taxRates.find((tax) => tax.name === "GST")
-                            ?.rate || 0}
-                          %:
+                          GST{" "}
+                          {/* {formData.taxRates.find((tax) => tax.name === "GST")
+                            ?.rate || 0} */}
+                          18%:
                         </span>
-                        <span>{formData.totals.gst.toFixed(2)}</span>
+                        {/* <span>{formData.totals.gst.toFixed(2)}</span> */}
+                        <span>
+                          {(formData.totals.handlingFee * 0.18).toFixed(2)}
+                        </span>
                       </div>
                     </>
                   )}
@@ -1671,6 +1693,73 @@ const Invoice_shirmila = () => {
                     <span>Balance:</span>
                     <span>{formData.totals.balance.toFixed(2)}</span>
                   </div>
+                </Card.Body>
+              </Card>
+            </Col>
+            <Col md={4}>
+              <Card>
+                <Card.Body>
+                  <h5 className="mb-3 border-bottom pb-2">Profit Calculator</h5>
+                  {(() => {
+                    const totalRevenue =
+                      parseFloat(formData.totals.total || 0) +
+                      parseFloat(formData.totals.gst || 0);
+
+                    const transportCost = formData.serviceItems.reduce(
+                      (acc, item) => {
+                        const qty = item.qty || 0;
+                        const price = item.price || 0;
+                        const discount = item.discount || 0;
+                        return acc + qty * price * (1 - discount / 100);
+                      },
+                      0
+                    );
+
+                    const additionalChargeCost =
+                      formData.additionalCharges.reduce(
+                        (acc, item) => acc + parseFloat(item.amount || 0),
+                        0
+                      );
+
+                    const gstCost = parseFloat(formData.totals.gst || 0);
+                    const totalCost =
+                      transportCost + additionalChargeCost + gstCost;
+
+                    const profit = totalRevenue - totalCost;
+                    const profitMargin =
+                      totalRevenue > 0
+                        ? ((profit / totalRevenue) * 100).toFixed(2)
+                        : 0;
+                    const profitMarkup =
+                      totalCost > 0
+                        ? ((profit / totalCost) * 100).toFixed(2)
+                        : 0;
+
+                    return (
+                      <>
+                        <div className="d-flex justify-content-between mb-2">
+                          <span>Total Revenue:</span>
+                          <strong>{totalRevenue.toFixed(2)}</strong>
+                        </div>
+                        <div className="d-flex justify-content-between mb-2">
+                          <span>Total Cost:</span>
+                          <strong>{totalCost.toFixed(2)}</strong>
+                        </div>
+                        <div className="d-flex justify-content-between mb-2">
+                          <span>Profit:</span>
+                          <strong>{profit.toFixed(2)}</strong>
+                        </div>
+                        <div className="d-flex justify-content-between mb-2">
+                          <span>Profit Margin:</span>
+                          <strong>{profitMargin}%</strong>
+                        </div>
+                        <div className="d-flex justify-content-between">
+                          <span>Profit Markup:</span>
+                          <strong>{profitMarkup}%</strong>
+                        </div>
+                      </>
+                    );
+                  })()}
                 </Card.Body>
               </Card>
             </Col>
@@ -2286,7 +2375,7 @@ const Invoice_shirmila = () => {
               </div>
               {/* <div className="mb-1">Chinna Chokkikulam, Madurai - 625002</div> */}
               <div className="mb-1">Tel:011 23 52 400 | 011 23 45 800</div>
-              {/* <div className="mb-1">E-mail: chennai@Sharmilatravels.com</div> */}
+              <div className="mb-1">E-mail: fares@sharmilatravels.com </div>
               {/* <div className="mb-1">
                 Service Tax Registration No.: ADVT544290
               </div>
@@ -2318,6 +2407,9 @@ const Invoice_shirmila = () => {
                 {/* <div>GST NO: {formData.customer.gstNo || "OTHERS"}</div> */}
               </div>
               <div className="text-end">
+                <div>
+                  <strong> No.</strong> {"S00001"}
+                </div>
                 <div>
                   <strong>Invoice No.</strong>{" "}
                   {countryOptions.find(
@@ -2427,7 +2519,8 @@ const Invoice_shirmila = () => {
                       <strong>Sub Total:</strong>
                     </td>
                     <td style={{ padding: "4px", textAlign: "right" }}>
-                      {formData.currencyDetails.currency === "INR" ? "₹" : "$"}
+                      {/* {formData.currencyDetails.currency === "INR" ? "₹" : "$"} */}
+                      {currencySymbols[formData.currencyDetails.currency] || ""}
                       {formData.totals.subTotal.toFixed(2)}
                     </td>
                   </tr>
@@ -2458,6 +2551,34 @@ const Invoice_shirmila = () => {
                       <strong>Total:</strong>
                     </td>
                     <td style={{ padding: "4px", textAlign: "right" }}>
+                      {currencySymbols[formData.currencyDetails.currency] || ""}
+                      {formData.totals.total.toFixed(2)}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style={{ padding: "4px", textAlign: "right" }}>
+                      <strong>Amount Received:</strong>
+                    </td>
+                    <td style={{ padding: "4px", textAlign: "right" }}>
+                      {currencySymbols[formData.currencyDetails.currency] || ""}
+                      {formData.totals.amountReceived.toFixed(2)}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style={{ padding: "4px", textAlign: "right" }}>
+                      <strong>Balance:</strong>
+                    </td>
+                    <td style={{ padding: "4px", textAlign: "right" }}>
+                      {currencySymbols[formData.currencyDetails.currency] || ""}
+                      {formData.totals.balance.toFixed(2)}
+                    </td>
+                  </tr>
+
+                  {/* <tr>
+                    <td style={{ padding: "4px", textAlign: "right" }}>
+                      <strong>Total:</strong>
+                    </td>
+                    <td style={{ padding: "4px", textAlign: "right" }}>
                       {formData.currencyDetails.currency === "INR" ? "₹" : "$"}
                       {formData.totals.total.toFixed(2)}
                     </td>
@@ -2479,7 +2600,7 @@ const Invoice_shirmila = () => {
                       {formData.currencyDetails.currency === "INR" ? "₹" : "$"}
                       {formData.totals.balance.toFixed(2)}
                     </td>
-                  </tr>
+                  </tr> */}
                 </table>
               </div>
             </div>

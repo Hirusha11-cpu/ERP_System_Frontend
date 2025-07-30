@@ -43,10 +43,10 @@ const Invoice_appleholidays = () => {
     // fetchAccounts();
   }, []);
 
-  const fetchAccounts = async () => {
+  const fetchAccounts = async (currencyInfo='USD') => {
     try {
       const response = await axios.get(
-        `/api/accounts/by-currency/${currency}/2`
+        `/api/accounts/by-currency/${currencyInfo}/2`
       );
       console.log(response);
       setAccounts(response.data);
@@ -297,6 +297,14 @@ const Invoice_appleholidays = () => {
     { code: "OB", name: "Other Countries", prefix: "OB" },
   ];
 
+  const currencySymbols = {
+    INR: "₹",
+    USD: "$",
+    SGD: "S$",
+    MYR: "RM",
+    LKR: "Rs",
+  };
+
   // Currency options
   const currencyOptions = ["INR", "USD", "SGD", "MYR", "LKR"];
 
@@ -445,7 +453,7 @@ const Invoice_appleholidays = () => {
       },
     });
 
-    fetchAccounts();
+    fetchAccounts(currency);
   };
 
   // Calculate totals
@@ -662,12 +670,12 @@ const Invoice_appleholidays = () => {
       setFormData((prev) => ({
         ...prev,
         accountDetails: {
-          name: selected.name,
-          number: selected.number,
+          name: selected.account_name,
+          number: selected.account_no,
           bank: selected.bank,
           branch: selected.branch,
-          ifsc: selected.ifsc,
-          address: selected.address,
+          ifsc: selected.ifsc_code,
+          address: selected.bank_address,
         },
         selectedAccountId: selected.id,
       }));
@@ -2417,7 +2425,7 @@ const Invoice_appleholidays = () => {
                       <strong>SUB TOTAL:</strong>
                     </td>
                     <td style={{ textAlign: "right" }}>
-                      {formData.currencyDetails.currency === "INR" ? "₹" : "$"}
+                      {currencySymbols[formData.currencyDetails.currency] || ""}
                       {formData.totals.subTotal.toFixed(2)}
                     </td>
                   </tr>
@@ -2426,7 +2434,7 @@ const Invoice_appleholidays = () => {
                       <strong>BANK CHARGES:</strong>
                     </td>
                     <td style={{ textAlign: "right" }}>
-                      {formData.currencyDetails.currency === "INR" ? "₹" : "$"}
+                      {currencySymbols[formData.currencyDetails.currency] || ""}
                       {formData.totals.bankCharges.toFixed(2)}
                     </td>
                   </tr>
@@ -2435,7 +2443,7 @@ const Invoice_appleholidays = () => {
                       <strong>TOTAL:</strong>
                     </td>
                     <td style={{ textAlign: "right" }}>
-                      {formData.currencyDetails.currency === "INR" ? "₹" : "$"}
+                      {currencySymbols[formData.currencyDetails.currency] || ""}
                       {formData.totals.total.toFixed(2)}
                     </td>
                   </tr>
@@ -2444,7 +2452,7 @@ const Invoice_appleholidays = () => {
                       <strong>AMOUNT RECEIVED:</strong>
                     </td>
                     <td style={{ textAlign: "right" }}>
-                      {formData.currencyDetails.currency === "INR" ? "₹" : "$"}
+                       {currencySymbols[formData.currencyDetails.currency] || ""}
                       {formData.totals.amountReceived.toFixed(2)}
                     </td>
                   </tr>
@@ -2453,7 +2461,7 @@ const Invoice_appleholidays = () => {
                       <strong>BALANCE DUE:</strong>
                     </td>
                     <td style={{ textAlign: "right" }}>
-                      {formData.currencyDetails.currency === "INR" ? "₹" : "$"}
+                       {currencySymbols[formData.currencyDetails.currency] || ""}
                       {formData.totals.balance.toFixed(2)}
                     </td>
                   </tr>

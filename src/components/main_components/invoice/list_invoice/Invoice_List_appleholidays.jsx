@@ -491,7 +491,7 @@ const Invoice_List_appleholidays = () => {
                     <tr key={index}>
                       <td>{item.description}</td>
                       <td style={{ textAlign: "right" }}>
-                        {currentInvoice.currency} {item.price.toFixed(2)}
+                        {currentInvoice.currency} {item.price}
                       </td>
                       <td style={{ textAlign: "right" }}>{item.discount}%</td>
                       <td style={{ textAlign: "right" }}>{item.quantity}</td>

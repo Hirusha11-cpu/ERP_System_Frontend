@@ -45,10 +45,10 @@ const Invoice_aahaas = () => {
     // fetchAccounts();
   }, []);
 
-  const fetchAccounts = async () => {
+  const fetchAccounts = async (currencyInfo='USD') => {
     try {
       const response = await axios.get(
-        `/api/accounts/by-currency/${currency}/3`
+        `/api/accounts/by-currency/${currencyInfo}/3`
       );
       console.log(response);
       setAccounts(response.data);
@@ -301,6 +301,14 @@ const Invoice_aahaas = () => {
     { code: "OB", name: "Other Countries", prefix: "OB" },
   ];
 
+  const currencySymbols = {
+    INR: "₹",
+    USD: "$",
+    SGD: "S$",
+    MYR: "RM",
+    LKR: "Rs",
+  };
+
   // Currency options
   const currencyOptions = ["INR", "USD", "SGD", "MYR", "LKR"];
 
@@ -448,7 +456,7 @@ const Invoice_aahaas = () => {
         customRate: rate,
       },
     });
-    fetchAccounts();
+    fetchAccounts(currency);
   };
 
   // Calculate totals
@@ -665,12 +673,12 @@ const Invoice_aahaas = () => {
       setFormData((prev) => ({
         ...prev,
         accountDetails: {
-          name: selected.name,
-          number: selected.number,
+          name: selected.account_name,
+          number: selected.account_no,
           bank: selected.bank,
           branch: selected.branch,
-          ifsc: selected.ifsc,
-          address: selected.address,
+          ifsc: selected.ifsc_code,
+          address: selected.bank_address,
         },
         selectedAccountId: selected.id,
       }));
@@ -2324,7 +2332,8 @@ const Invoice_aahaas = () => {
               <tr>
                 <td>Sub Total:</td>
                 <td>
-                  {formData.currencyDetails.currency === "INR" ? "₹" : "$"}
+                  {/* {formData.currencyDetails.currency === "INR" ? "₹" : "$"} */}
+                  {currencySymbols[formData.currencyDetails.currency] || ""}
                   {formData.totals.subTotal.toFixed(2)}
                 </td>
               </tr>
@@ -2340,7 +2349,34 @@ const Invoice_aahaas = () => {
                   </tr>
                 </>
               )}
-              <tr>
+                  <tr>
+                    <td style={{ padding: "4px", textAlign: "right" }}>
+                      <strong>Total:</strong>
+                    </td>
+                    <td style={{ padding: "4px", textAlign: "right" }}>
+                      {currencySymbols[formData.currencyDetails.currency] || ""}
+                      {formData.totals.total.toFixed(2)}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style={{ padding: "4px", textAlign: "right" }}>
+                      <strong>Amount Received:</strong>
+                    </td>
+                    <td style={{ padding: "4px", textAlign: "right" }}>
+                      {currencySymbols[formData.currencyDetails.currency] || ""}
+                      {formData.totals.amountReceived.toFixed(2)}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style={{ padding: "4px", textAlign: "right" }}>
+                      <strong>Balance:</strong>
+                    </td>
+                    <td style={{ padding: "4px", textAlign: "right" }}>
+                      {currencySymbols[formData.currencyDetails.currency] || ""}
+                      {formData.totals.balance.toFixed(2)}
+                    </td>
+                  </tr>
+              {/* <tr>
                 <td>Total:</td>
                 <td>
                   {formData.currencyDetails.currency === "INR" ? "₹" : "$"}
@@ -2364,7 +2400,7 @@ const Invoice_aahaas = () => {
                     {formData.totals.balance.toFixed(2)}
                   </strong>
                 </td>
-              </tr>
+              </tr> */}
             </table>
 
             {/* Contact Information */}

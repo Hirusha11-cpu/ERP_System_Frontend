@@ -11,6 +11,7 @@ import Invoice_List_aahaas from './list_invoice/Invoice_List_aahaas';
 import Bank_accounts from '../bank_accounts/Bank_accounts';
 import Invoice_pnl from './pnl/invoice_pnl';
 import Invoice_summary from './summary_invoice/invoice_summary';
+import Invoice_refund from './refund_invoice/invoice_refund';
 
 const Invoice_preview = ({ target }) => {
     const { selectedCompany } = useContext(CompanyContext);
@@ -77,6 +78,18 @@ const Invoice_preview = ({ target }) => {
         return <Invoice_summary company={'aahaas'}/>;
       default:
         return <Invoice_summary company={'aahaas'}/>;
+    }
+  }
+  if (target === "invoice_refund") {
+   switch (selectedCompany) {
+      case "appleholidays":
+        return <Invoice_refund company={'appleholidays'}/>;
+      case "shirmila":
+        return <Invoice_refund company={'shirmila'} />;
+      case "aahaas":
+        return <Invoice_refund company={'aahaas'}/>;
+      default:
+        return <Invoice_refund company={'aahaas'}/>;
     }
   }
 

@@ -88,8 +88,8 @@ export const menuList = [
       // },
       {
         id: 3,
-        name: "Awaiting Payment Invoice",
-        path: "/payment/create",
+        name: "Refunding Payments",
+        path: "/invoice/refund",
         subdropdownMenu: false,
       },
       {

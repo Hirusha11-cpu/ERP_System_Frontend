@@ -478,14 +478,22 @@ const Invoice_shirmila = () => {
     // Calculate subtotal from service items
     let subTotal = 0;
     let totalPax = 0;
-
+    let totalAmount = 0;
+    console.log(serviceItems);
+    
     serviceItems.forEach((item) => {
       if (item.type === "hotel" || item.type === "restaurant") {
+        console.log(item.total);
+        
         totalPax += item.qty;
+        totalAmount += item.total
       }
-      subTotal += item.total;
+      // subTotal += item.total;
     });
+    console.log(totalAmount);
 
+    
+    
     // Add additional charges
     let taxableCharges = 0;
     additionalCharges.forEach((charge) => {
@@ -494,13 +502,22 @@ const Invoice_shirmila = () => {
         taxableCharges += charge.amount;
       }
     });
-
+    console.log(exchangeRate);
+    console.log(totalPax);
+    
     // Calculate handling fee (only for INR)
     let handlingFee = 0;
     if (currency === "INR" && totalPax > 0) {
       const perPersonRate = subTotal / totalPax - 5;
-      handlingFee = 5 * exchangeRate * totalPax;
+      handlingFee = 5 * 88.66 * totalPax;
+      console.log(handlingFee);
+      totalAmount = totalAmount - handlingFee
+      console.log(totalAmount);
+      subTotal = totalAmount
+      
     }
+
+
 
     // Calculate GST (only for INR)
     let gst = 0;
@@ -1184,7 +1201,8 @@ const Invoice_shirmila = () => {
                     <td>{item.qty}</td>
                     <td>{item.price.toFixed(2)}</td>
                     <td>{item.discount}%</td>
-                    <td>{item.total.toFixed(2)}</td>
+                    {/* <td>{item.total.toFixed(2)}</td> */}
+                    <td>{(item.qty * item.price).toFixed(2)}</td>
                     <td>
                       <Button
                         variant="danger"
@@ -2018,8 +2036,8 @@ const Invoice_shirmila = () => {
                   <Form.Group>
                     <Form.Label>Price:</Form.Label>
                     <Form.Control
-                      type="number"
-                      step="0.01"
+                      inputMode="decimal"
+              pattern="[0-9]*"
                       value={newItem.price}
                       onChange={(e) =>
                         setNewItem({

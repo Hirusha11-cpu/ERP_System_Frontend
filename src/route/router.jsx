@@ -100,8 +100,8 @@ export const router = createBrowserRouter([
                 element: <Invoice_preview target="invoice_summary"/>
             },
             {
-                path: "/proposal/list",
-                element: <Proposalist />
+                path: "/invoice/refund",
+                element: <Invoice_preview target="invoice_refund" />
             },
             {
                 path: "/proposal/view",

@@ -560,7 +560,8 @@ const Invoice_shirmila = () => {
         {
           ...newItem,
           id: Date.now(),
-          total: currency === "INR" ? total : total * exchangeRate,
+          // total: currency === "INR" ? total : total * exchangeRate,
+          total: currency === "INR" ? total : total,
         },
       ],
     });

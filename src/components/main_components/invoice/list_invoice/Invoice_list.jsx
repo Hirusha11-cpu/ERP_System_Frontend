@@ -1,21 +1,45 @@
 import React, { useState, useEffect, useContext } from "react";
-import { 
-  Table, Button, Card, Badge, Modal, 
-  Row, Col, Form, FloatingLabel, 
-  Accordion, OverlayTrigger, Tooltip 
+import {
+  Table,
+  Button,
+  Card,
+  Badge,
+  Modal,
+  Row,
+  Col,
+  Form,
+  FloatingLabel,
+  Accordion,
+  OverlayTrigger,
+  Tooltip,
 } from "react-bootstrap";
-import { 
-  FaEye, FaTrash, FaPrint, FaDownload, 
-  FaEdit, FaPlus, FaMinus, FaFileInvoiceDollar,
-  FaUser, FaCalendarAlt, FaMoneyBillWave,
-  FaReceipt, FaInfoCircle, FaChevronDown,
-  FaChevronUp, FaSearch, FaFilter
+import {
+  FaEye,
+  FaTrash,
+  FaPrint,
+  FaDownload,
+  FaEdit,
+  FaPlus,
+  FaMinus,
+  FaFileInvoiceDollar,
+  FaUser,
+  FaCalendarAlt,
+  FaMoneyBillWave,
+  FaReceipt,
+  FaInfoCircle,
+  FaChevronDown,
+  FaChevronUp,
+  FaSearch,
+  FaFilter,
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { CompanyContext } from "../../../../contentApi/CompanyProvider";
+import Invoice_sharmila_modal from "./models/Invoice_sharmila_modal";
+import Invoice_appleholidays_modal from "./models/Invoice_appleholidays_modal";
+import Invoice_aahaas_modal from "./models/Invoice_aahaas_modal";
 
-const Invoice_List_aahaas = () => {
+const Invoice_list = () => {
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -26,18 +50,30 @@ const Invoice_List_aahaas = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const { selectedCompany } = useContext(CompanyContext);
+  const [companyNo, setCompanyNo] = useState(null);
+
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchInvoices();
   }, []);
 
+  useEffect(() => {
+    const companyMap = {
+      appleholidays: 2,
+      aahaas: 3,
+      shirmila: 1,
+    };
+
+    setCompanyNo(companyMap[selectedCompany?.toLowerCase()] || null);
+  }, [selectedCompany]);
+
   const fetchInvoices = async () => {
     try {
       setLoading(true);
       const response = await axios.get("/api/invoices", {
         params: {
-          company_id: 3,
+          company_id: companyNo,
         },
       });
       setInvoices(response.data.data || []);
@@ -48,12 +84,16 @@ const Invoice_List_aahaas = () => {
     }
   };
 
-  const filteredInvoices = invoices.filter(invoice => {
-    const matchesSearch = invoice.invoice_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (invoice.customer?.name || "").toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = filterStatus === "all" || invoice.status === filterStatus;
-    
+  const filteredInvoices = invoices.filter((invoice) => {
+    const matchesSearch =
+      invoice.invoice_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (invoice.customer?.name || "")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
+
+    const matchesStatus =
+      filterStatus === "all" || invoice.status === filterStatus;
+
     return matchesSearch && matchesStatus;
   });
 
@@ -63,6 +103,8 @@ const Invoice_List_aahaas = () => {
   };
 
   const handleEditInvoice = (invoice) => {
+    console.log("Editing invoice:", invoice);
+
     setCurrentInvoice(invoice);
     setShowEditModal(true);
   };
@@ -98,9 +140,79 @@ const Invoice_List_aahaas = () => {
     }
   };
 
+  // const handleUpdateInvoice = async (formData) => {
+  //   try {
+  //     // Convert items from form data to array format
+  //     const items = [];
+  //     for (let key in formData) {
+  //       if (key.startsWith("items[")) {
+  //         const matches = key.match(/items\[(\d+)\]\[(\w+)\]/);
+  //         if (matches) {
+  //           const index = matches[1];
+  //           const field = matches[2];
+  //           if (!items[index])
+  //             items[index] = { id: currentInvoice.items?.[index]?.id };
+  //           items[index][field] =
+  //             field === "quantity" || field === "price" || field === "discount"
+  //               ? parseFloat(formData[key])
+  //               : formData[key];
+  //         }
+  //       }
+  //     }
+
+  //     // Convert additional charges if present
+  //     const additionalCharges = [];
+  //     for (let key in formData) {
+  //       if (key.startsWith("additional_charges[")) {
+  //         const matches = key.match(/additional_charges\[(\d+)\]\[(\w+)\]/);
+  //         if (matches) {
+  //           const index = matches[1];
+  //           const field = matches[2];
+  //           if (!additionalCharges[index])
+  //             additionalCharges[index] = {
+  //               id: currentInvoice.additional_charges?.[index]?.id,
+  //             };
+  //           additionalCharges[index][field] =
+  //             field === "amount" ? parseFloat(formData[key]) : formData[key];
+  //         }
+  //       }
+  //     }
+
+  //     // Prepare the data for API
+  //     const updatedData = {
+  //       customer_id: currentInvoice.customer?.id,
+  //       country_code: formData.country_code || currentInvoice.country_code,
+  //       currency: formData.currency,
+  //       exchange_rate: parseFloat(formData.exchange_rate) || 1.0,
+  //       tax_treatment: formData.tax_treatment || "inclusive",
+  //       payment_type: formData.payment_type,
+  //       collection_date: formData.collection_date || null,
+  //       payment_instructions: formData.payment_instructions,
+  //       staff: formData.staff,
+  //       remarks: formData.remarks,
+  //       // payment_methods: formData.payment_methods
+  //       //   ? formData.payment_methods.split(",")
+  //       //   : currentInvoice.payment_methods,
+  //       items: items.filter((item) => item),
+  //       additional_charges: additionalCharges.filter((charge) => charge),
+  //       amount_received: parseFloat(formData.amount_received) || 0,
+  //     };
+
+  //     await axios.put(
+  //       `/api/invoices/by-number/${currentInvoice.invoice_number}`,
+  //       updatedData
+  //     );
+  //     fetchInvoices();
+  //     setShowEditModal(false);
+  //   } catch (error) {
+  //     console.error("Error updating invoice:", error);
+  //   }
+  // };
+
+  // In your handleUpdateInvoice function, modify to:
   const handleUpdateInvoice = async (formData) => {
     try {
-      // Convert items from form data to array format
+      // Prepare items array
       const items = [];
       for (let key in formData) {
         if (key.startsWith("items[")) {
@@ -108,8 +220,17 @@ const Invoice_List_aahaas = () => {
           if (matches) {
             const index = matches[1];
             const field = matches[2];
-            if (!items[index])
-              items[index] = { id: currentInvoice.items?.[index]?.id };
+            if (!items[index]) {
+              items[index] = {
+                id: currentInvoice.items?.[index]?.id || null,
+                code: "",
+                type: "",
+                description: "",
+                quantity: 0,
+                price: 0,
+                discount: 0,
+              };
+            }
             items[index][field] =
               field === "quantity" || field === "price" || field === "discount"
                 ? parseFloat(formData[key])
@@ -118,7 +239,7 @@ const Invoice_List_aahaas = () => {
         }
       }
 
-      // Convert additional charges if present
+      // Prepare additional charges array
       const additionalCharges = [];
       for (let key in formData) {
         if (key.startsWith("additional_charges[")) {
@@ -126,17 +247,25 @@ const Invoice_List_aahaas = () => {
           if (matches) {
             const index = matches[1];
             const field = matches[2];
-            if (!additionalCharges[index])
+            if (!additionalCharges[index]) {
               additionalCharges[index] = {
-                id: currentInvoice.additional_charges?.[index]?.id,
+                id: currentInvoice.additional_charges?.[index]?.id || null,
+                description: "",
+                amount: 0,
+                taxable: false,
               };
+            }
             additionalCharges[index][field] =
-              field === "amount" ? parseFloat(formData[key]) : formData[key];
+              field === "amount"
+                ? parseFloat(formData[key])
+                : field === "taxable"
+                ? formData[key] === "1"
+                : formData[key];
           }
         }
       }
 
-      // Prepare the data for API
+      // Prepare the complete data for API
       const updatedData = {
         customer_id: currentInvoice.customer?.id,
         country_code: formData.country_code || currentInvoice.country_code,
@@ -144,33 +273,96 @@ const Invoice_List_aahaas = () => {
         exchange_rate: parseFloat(formData.exchange_rate) || 1.0,
         tax_treatment: formData.tax_treatment || "inclusive",
         payment_type: formData.payment_type,
+        issue_date: formData.issue_date,
+        due_date: formData.due_date,
         collection_date: formData.collection_date || null,
         payment_instructions: formData.payment_instructions,
         staff: formData.staff,
         remarks: formData.remarks,
-        payment_methods: formData.payment_methods
-          ? formData.payment_methods.split(",")
-          : currentInvoice.payment_methods,
+        payment_methods: currentInvoice.payment_methods, // or handle from form if needed
         items: items.filter((item) => item),
         additional_charges: additionalCharges.filter((charge) => charge),
         amount_received: parseFloat(formData.amount_received) || 0,
+        account_id: currentInvoice.account_id,
+        booking_no: currentInvoice.booking_no,
       };
 
-      await axios.put(
+      const response = await axios.put(
         `/api/invoices/by-number/${currentInvoice.invoice_number}`,
-        updatedData
+        updatedData,
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
       );
+
       fetchInvoices();
       setShowEditModal(false);
     } catch (error) {
       console.error("Error updating invoice:", error);
+      // Add error handling UI here
     }
+  };
+
+  // Add these helper functions for dynamic fields
+  const handleAddItem = () => {
+    setCurrentInvoice((prev) => ({
+      ...prev,
+      items: [
+        ...(prev.items || []),
+        {
+          id: null,
+          code: "",
+          type: "",
+          description: "",
+          quantity: 1,
+          price: 0,
+          discount: 0,
+        },
+      ],
+    }));
+  };
+
+  const handleRemoveItem = (index) => {
+    setCurrentInvoice((prev) => {
+      const newItems = [...prev.items];
+      newItems.splice(index, 1);
+      return { ...prev, items: newItems };
+    });
+  };
+
+  const handleAddCharge = () => {
+    setCurrentInvoice((prev) => ({
+      ...prev,
+      additional_charges: [
+        ...(prev.additional_charges || []),
+        {
+          id: null,
+          description: "",
+          amount: 0,
+          taxable: false,
+        },
+      ],
+    }));
+  };
+
+  const handleRemoveCharge = (index) => {
+    setCurrentInvoice((prev) => {
+      const newCharges = [...prev.additional_charges];
+      newCharges.splice(index, 1);
+      return { ...prev, additional_charges: newCharges };
+    });
   };
 
   const getStatusBadge = (status) => {
     switch (status) {
       case "paid":
-        return <Badge bg="success" className="d-flex align-items-center"><FaMoneyBillWave className="me-1" /> Paid</Badge>;
+        return (
+          <Badge bg="success" className="d-flex align-items-center">
+            <FaMoneyBillWave className="me-1" /> Paid
+          </Badge>
+        );
       case "pending":
         return (
           <Badge bg="warning" text="dark" className="d-flex align-items-center">
@@ -178,9 +370,17 @@ const Invoice_List_aahaas = () => {
           </Badge>
         );
       case "cancelled":
-        return <Badge bg="danger" className="d-flex align-items-center"><FaMinus className="me-1" /> Cancelled</Badge>;
+        return (
+          <Badge bg="danger" className="d-flex align-items-center">
+            <FaMinus className="me-1" /> Cancelled
+          </Badge>
+        );
       default:
-        return <Badge bg="secondary" className="d-flex align-items-center"><FaInfoCircle className="me-1" /> Unknown</Badge>;
+        return (
+          <Badge bg="secondary" className="d-flex align-items-center">
+            <FaInfoCircle className="me-1" /> Unknown
+          </Badge>
+        );
     }
   };
 
@@ -194,11 +394,14 @@ const Invoice_List_aahaas = () => {
     return item.price * (1 - item.discount / 100) * item.quantity;
   };
 
-  const ActionButton = ({ icon, label, variant = "primary", onClick, disabled = false }) => (
-    <OverlayTrigger
-      placement="top"
-      overlay={<Tooltip>{label}</Tooltip>}
-    >
+  const ActionButton = ({
+    icon,
+    label,
+    variant = "primary",
+    onClick,
+    disabled = false,
+  }) => (
+    <OverlayTrigger placement="top" overlay={<Tooltip>{label}</Tooltip>}>
       <Button
         variant={variant}
         size="sm"
@@ -219,15 +422,15 @@ const Invoice_List_aahaas = () => {
             <FaFileInvoiceDollar className="me-2" />
             Invoice Management
           </h5>
-          <Button 
-            variant="light" 
+          <Button
+            variant="light"
             onClick={() => navigate("/invoice/create")}
             className="d-flex align-items-center"
           >
             <FaPlus className="me-1" /> New Invoice
           </Button>
         </Card.Header>
-        
+
         <Card.Body>
           {/* Search and Filter Bar */}
           <div className="d-flex mb-4">
@@ -242,12 +445,12 @@ const Invoice_List_aahaas = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            
+
             <div className="d-flex align-items-center me-3">
               <span className="me-2">
                 <FaFilter />
               </span>
-              <Form.Select 
+              <Form.Select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
                 style={{ width: "150px" }}
@@ -258,16 +461,16 @@ const Invoice_List_aahaas = () => {
                 <option value="cancelled">Cancelled</option>
               </Form.Select>
             </div>
-            
-            <Button 
-              variant="outline-secondary" 
+
+            <Button
+              variant="outline-secondary"
               onClick={fetchInvoices}
               className="d-flex align-items-center"
             >
               Refresh
             </Button>
           </div>
-          
+
           {loading ? (
             <div className="text-center py-5">
               <div className="spinner-border text-primary" role="status">
@@ -294,9 +497,13 @@ const Invoice_List_aahaas = () => {
                       <tr
                         key={invoice.id}
                         className={
-                          invoice.status === "cancelled" ? "table-danger" : 
-                          invoice.status === "paid" ? "table-success" : 
-                          invoice.status === "pending" ? "table-warning" : ""
+                          invoice.status === "cancelled"
+                            ? "table-danger"
+                            : invoice.status === "paid"
+                            ? "table-success"
+                            : invoice.status === "pending"
+                            ? "table-warning"
+                            : ""
                         }
                       >
                         <td>
@@ -304,12 +511,17 @@ const Invoice_List_aahaas = () => {
                         </td>
                         <td>
                           <div className="d-flex align-items-center">
-                            <div className="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style={{ width: "32px", height: "32px" }}>
+                            <div
+                              className="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2"
+                              style={{ width: "32px", height: "32px" }}
+                            >
                               <FaUser />
                             </div>
                             <div>
                               <div>{invoice.customer?.name || "N/A"}</div>
-                              <small className="text-muted">{invoice.customer?.email || ""}</small>
+                              <small className="text-muted">
+                                {invoice.customer?.email || ""}
+                              </small>
                             </div>
                           </div>
                         </td>
@@ -318,7 +530,9 @@ const Invoice_List_aahaas = () => {
                             <FaCalendarAlt className="me-2 text-muted" />
                             {formatDate(invoice.issue_date)}
                           </div>
-                          <small className="text-muted">Due: {formatDate(invoice.due_date)}</small>
+                          <small className="text-muted">
+                            Due: {formatDate(invoice.due_date)}
+                          </small>
                         </td>
                         <td>
                           <div className="d-flex align-items-center">
@@ -329,30 +543,30 @@ const Invoice_List_aahaas = () => {
                         <td>{getStatusBadge(invoice.status)}</td>
                         <td className="text-end">
                           <div className="d-flex justify-content-end">
-                            <ActionButton 
-                              icon={<FaEye />} 
-                              label="View" 
-                              variant="info" 
-                              onClick={() => handleViewInvoice(invoice)} 
+                            <ActionButton
+                              icon={<FaEye />}
+                              label="View"
+                              variant="info"
+                              onClick={() => handleViewInvoice(invoice)}
                             />
-                            <ActionButton 
-                              icon={<FaEdit />} 
-                              label="Edit" 
-                              variant="primary" 
-                              onClick={() => handleEditInvoice(invoice)} 
+                            <ActionButton
+                              icon={<FaEdit />}
+                              label="Edit"
+                              variant="primary"
+                              onClick={() => handleEditInvoice(invoice)}
                             />
-                            <ActionButton 
-                              icon={<FaPrint />} 
-                              label="Print" 
-                              variant="secondary" 
-                              onClick={() => handlePrintInvoice(invoice.id)} 
+                            <ActionButton
+                              icon={<FaPrint />}
+                              label="Print"
+                              variant="secondary"
+                              onClick={() => handlePrintInvoice(invoice.id)}
                             />
-                            <ActionButton 
-                              icon={<FaTrash />} 
-                              label="Cancel" 
-                              variant="danger" 
+                            <ActionButton
+                              icon={<FaTrash />}
+                              label="Cancel"
+                              variant="danger"
                               onClick={() => confirmDelete(invoice)}
-                              disabled={invoice.status === "cancelled"} 
+                              disabled={invoice.status === "cancelled"}
                             />
                           </div>
                         </td>
@@ -362,11 +576,16 @@ const Invoice_List_aahaas = () => {
                     <tr>
                       <td colSpan="6" className="text-center py-4">
                         <div className="d-flex flex-column align-items-center">
-                          <FaFileInvoiceDollar size={48} className="text-muted mb-3" />
+                          <FaFileInvoiceDollar
+                            size={48}
+                            className="text-muted mb-3"
+                          />
                           <h5>No invoices found</h5>
-                          <p className="text-muted">Try adjusting your search or create a new invoice</p>
-                          <Button 
-                            variant="primary" 
+                          <p className="text-muted">
+                            Try adjusting your search or create a new invoice
+                          </p>
+                          <Button
+                            variant="primary"
                             onClick={() => navigate("/invoice/create")}
                             className="mt-2"
                           >
@@ -381,11 +600,12 @@ const Invoice_List_aahaas = () => {
             </div>
           )}
         </Card.Body>
-        
+
         {filteredInvoices.length > 0 && (
           <Card.Footer className="d-flex justify-content-between align-items-center">
             <div>
-              Showing <strong>{filteredInvoices.length}</strong> of <strong>{invoices.length}</strong> invoices
+              Showing <strong>{filteredInvoices.length}</strong> of{" "}
+              <strong>{invoices.length}</strong> invoices
             </div>
             <div className="d-flex">
               <Button variant="outline-primary" size="sm" className="me-2">
@@ -400,7 +620,38 @@ const Invoice_List_aahaas = () => {
       </Card>
 
       {/* Invoice Preview Modal */}
-      <Modal
+
+      {companyNo === 1 && (
+        <Invoice_sharmila_modal
+          show={showPreviewModal}
+          onHide={() => setShowPreviewModal(false)}
+          invoice={currentInvoice}
+          formatDate={formatDate}
+          calculateItemTotal={calculateItemTotal}
+          handlePrintInvoice={handlePrintInvoice}
+        />
+      )}
+      {companyNo === 2 && (
+        <Invoice_appleholidays_modal
+              show={showPreviewModal}
+          onHide={() => setShowPreviewModal(false)}
+          invoice={currentInvoice}
+          formatDate={formatDate}
+          calculateItemTotal={calculateItemTotal}
+          handlePrintInvoice={handlePrintInvoice}
+        />
+      )}
+      {companyNo === 3 && (
+        <Invoice_aahaas_modal
+          show={showPreviewModal}
+          onHide={() => setShowPreviewModal(false)}
+          invoice={currentInvoice}
+          formatDate={formatDate}
+          calculateItemTotal={calculateItemTotal}
+          handlePrintInvoice={handlePrintInvoice}
+        />
+      )}
+      {/* <Modal
         show={showPreviewModal}
         onHide={() => setShowPreviewModal(false)}
         size="lg"
@@ -415,34 +666,16 @@ const Invoice_List_aahaas = () => {
         <Modal.Body className="p-0">
           {currentInvoice && (
             <div className="invoice-preview p-4">
-              {/* Company Header */}
               <div className="text-center mb-3">
-                 <div className="company-header text-center mb-4">
-            <img
-              src="https://s3-aahaas-prod-assets.s3.ap-southeast-1.amazonaws.com/images/aahaas.png"
-              alt="Aahaas Logo"
-              className="receipt-logo"
-              style={{ width: "200px" }}
-            />
-            <div>One Galle Face Tower, 2208, 1A Centre Road, Colombo 002</div>
-            <div>Tel: 011 2352 400 | Web: www.appleholidaysds.com</div>
-          </div>
-
-                {/* <div className="notice-box p-2 mb-3 text-start bg-warning bg-opacity-10 border-start border-warning border-4">
-                  <strong>STRICTLY TO BE NOTED:</strong> Finance bill 2017
-                  proposes to insert Section 269ST in the Income tax Act that
-                  restricts receiving an amount of Rs 2,00,000/- or more.
-                  Sharmila Travels will not accept any cash deposit effective
-                  1st April 2017. If trade partners make cash deposit, then the
-                  amount will be ignored and use other payment modes such as
-                  Cheque deposit, RTGS & NEFT for all your future bookings with
-                  Sharmila Travels.
-                </div> */}
-
+                <h4 className="mb-1 fw-bold">Sharmila Tours & Travels</h4>
+                <div className="mb-1">
+                  No: 148, Aluthmawatha Road, Colombo - 15, Sri Lanka
+                </div>
+                <div className="mb-1">Tel:011 23 52 400 | 011 23 45 800</div>
+            
                 <h5 className="fw-bold mb-3">INVOICE </h5>
               </div>
 
-              {/* Invoice Meta and Customer Info */}
               <div className="d-flex justify-content-between mb-4">
                 <div>
                   <div>
@@ -450,7 +683,6 @@ const Invoice_List_aahaas = () => {
                     {currentInvoice.customer?.name || "N/A"}
                   </div>
                   <div>{currentInvoice.customer?.address || "N/A"}</div>
-                  {/* <div>GST NO: {currentInvoice.customer?.gst_no || "N/A"}</div> */}
                 </div>
                 <div className="text-end">
                   <div>
@@ -474,7 +706,6 @@ const Invoice_List_aahaas = () => {
                 </div>
               </div>
 
-              {/* Items Table */}
               <table className="table table-bordered mb-3">
                 <thead>
                   <tr style={{ backgroundColor: "#343a40", color: "white" }}>
@@ -503,10 +734,9 @@ const Invoice_List_aahaas = () => {
                 </tbody>
               </table>
 
-              {/* Payment Instructions */}
               <div className="mb-3">{currentInvoice.payment_instructions}</div>
 
-              {/* Totals */}
+          
               <div className="row mb-4">
                 <div className="col-md-6 offset-md-6">
                   <table style={{ width: "100%" }}>
@@ -550,11 +780,9 @@ const Invoice_List_aahaas = () => {
                 </div>
               </div>
 
-              {/* Bottom left: Staff and Remark */}
               <div className="row">
                 <div className="col-md-6">
                   <div>
-                    {/* <strong>Staff:</strong> {currentInvoice.staff} */}
                   </div>
                   <div>
                     <strong>Remark:</strong> {currentInvoice.remarks}
@@ -586,7 +814,7 @@ const Invoice_List_aahaas = () => {
             <FaDownload className="me-1" /> Download PDF
           </Button>
         </Modal.Footer>
-      </Modal>
+      </Modal> */}
 
       {/* Edit Invoice Modal */}
       <Modal
@@ -610,7 +838,10 @@ const Invoice_List_aahaas = () => {
                 handleUpdateInvoice(formValues);
               }}
             >
-              <Accordion defaultActiveKey={['customer', 'invoice', 'items']} alwaysOpen>
+              <Accordion
+                defaultActiveKey={["customer", "invoice", "items"]}
+                alwaysOpen
+              >
                 {/* Customer Information */}
                 <Accordion.Item eventKey="customer">
                   <Accordion.Header>
@@ -715,7 +946,9 @@ const Invoice_List_aahaas = () => {
                           <Form.Control
                             type="date"
                             name="issue_date"
-                            defaultValue={currentInvoice.issue_date?.split("T")[0]}
+                            defaultValue={
+                              currentInvoice.issue_date?.split("T")[0]
+                            }
                             required
                           />
                         </FloatingLabel>
@@ -725,7 +958,9 @@ const Invoice_List_aahaas = () => {
                           <Form.Control
                             type="date"
                             name="due_date"
-                            defaultValue={currentInvoice.due_date?.split("T")[0]}
+                            defaultValue={
+                              currentInvoice.due_date?.split("T")[0]
+                            }
                             required
                           />
                         </FloatingLabel>
@@ -735,7 +970,9 @@ const Invoice_List_aahaas = () => {
                           <Form.Control
                             type="date"
                             name="collection_date"
-                            defaultValue={currentInvoice.collection_date?.split("T")[0]}
+                            defaultValue={
+                              currentInvoice.collection_date?.split("T")[0]
+                            }
                           />
                         </FloatingLabel>
                       </Col>
@@ -744,23 +981,29 @@ const Invoice_List_aahaas = () => {
                     {/* Payment Information */}
                     <Row className="mb-3">
                       <Col md={6}>
-                        <FloatingLabel label="Payment Instructions" className="mb-3">
+                        <FloatingLabel
+                          label="Payment Instructions"
+                          className="mb-3"
+                        >
                           <Form.Control
                             as="textarea"
                             name="payment_instructions"
-                            style={{ height: '100px' }}
+                            style={{ height: "100px" }}
                             defaultValue={currentInvoice.payment_instructions}
                             required
                           />
                         </FloatingLabel>
                       </Col>
                       <Col md={6}>
-                        <FloatingLabel label="Payment Methods (comma separated)" className="mb-3">
-                          <Form.Control
+                        <FloatingLabel
+                          label="Payment Methods (comma separated)"
+                          className="mb-3"
+                        >
+                          {/* <Form.Control
                             type="text"
                             name="payment_methods"
                             defaultValue={currentInvoice.payment_methods?.join(",")}
-                          />
+                          /> */}
                         </FloatingLabel>
                       </Col>
                     </Row>
@@ -793,14 +1036,14 @@ const Invoice_List_aahaas = () => {
                       <Form.Control
                         as="textarea"
                         name="remarks"
-                        style={{ height: '100px' }}
+                        style={{ height: "100px" }}
                         defaultValue={currentInvoice.remarks}
                       />
                     </FloatingLabel>
                   </Accordion.Body>
                 </Accordion.Item>
 
-                {/* Invoice Items */}
+                {/* Invoice Items Section */}
                 <Accordion.Item eventKey="items">
                   <Accordion.Header>
                     <div className="d-flex align-items-center">
@@ -822,6 +1065,7 @@ const Invoice_List_aahaas = () => {
                           <th>Discount %</th>
                           <th>Quantity</th>
                           <th>Total</th>
+                          <th></th>
                         </tr>
                       </thead>
                       <tbody>
@@ -887,22 +1131,36 @@ const Invoice_List_aahaas = () => {
                               />
                             </td>
                             <td className="text-end">
-                              {currentInvoice.currency} {calculateItemTotal(item).toFixed(2)}
+                              {currentInvoice.currency}{" "}
+                              {calculateItemTotal(item).toFixed(2)}
+                            </td>
+                            <td>
+                              <Button
+                                variant="outline-danger"
+                                size="sm"
+                                onClick={() => handleRemoveItem(index)}
+                              >
+                                <FaTrash />
+                              </Button>
                             </td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
-                    
-                    <div className="d-flex justify-content-end mt-2">
-                      <Button variant="outline-primary" size="sm">
+
+                    <div className="d-flex justify-content-between mt-2">
+                      <Button
+                        variant="outline-primary"
+                        size="sm"
+                        onClick={handleAddItem}
+                      >
                         <FaPlus className="me-1" /> Add Item
                       </Button>
                     </div>
                   </Accordion.Body>
                 </Accordion.Item>
 
-                {/* Additional Charges */}
+                {/* Additional Charges Section */}
                 <Accordion.Item eventKey="charges">
                   <Accordion.Header>
                     <div className="d-flex align-items-center">
@@ -924,48 +1182,58 @@ const Invoice_List_aahaas = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {currentInvoice.additional_charges?.map((charge, index) => (
-                          <tr key={index}>
-                            <td>
-                              <Form.Control
-                                type="text"
-                                name={`additional_charges[${index}][description]`}
-                                size="sm"
-                                defaultValue={charge.description}
-                              />
-                            </td>
-                            <td>
-                              <Form.Control
-                                type="number"
-                                name={`additional_charges[${index}][amount]`}
-                                size="sm"
-                                step="0.01"
-                                min="0"
-                                defaultValue={charge.amount}
-                              />
-                            </td>
-                            <td>
-                              <Form.Select
-                                name={`additional_charges[${index}][taxable]`}
-                                size="sm"
-                                defaultValue={charge.taxable ? "1" : "0"}
-                              >
-                                <option value="1">Yes</option>
-                                <option value="0">No</option>
-                              </Form.Select>
-                            </td>
-                            <td className="text-end">
-                              <Button variant="outline-danger" size="sm">
-                                <FaTrash />
-                              </Button>
-                            </td>
-                          </tr>
-                        ))}
+                        {currentInvoice.additional_charges?.map(
+                          (charge, index) => (
+                            <tr key={index}>
+                              <td>
+                                <Form.Control
+                                  type="text"
+                                  name={`additional_charges[${index}][description]`}
+                                  size="sm"
+                                  defaultValue={charge.description}
+                                />
+                              </td>
+                              <td>
+                                <Form.Control
+                                  type="number"
+                                  name={`additional_charges[${index}][amount]`}
+                                  size="sm"
+                                  step="0.01"
+                                  min="0"
+                                  defaultValue={charge.amount}
+                                />
+                              </td>
+                              <td>
+                                <Form.Select
+                                  name={`additional_charges[${index}][taxable]`}
+                                  size="sm"
+                                  defaultValue={charge.taxable ? "1" : "0"}
+                                >
+                                  <option value="1">Yes</option>
+                                  <option value="0">No</option>
+                                </Form.Select>
+                              </td>
+                              <td>
+                                <Button
+                                  variant="outline-danger"
+                                  size="sm"
+                                  onClick={() => handleRemoveCharge(index)}
+                                >
+                                  <FaTrash />
+                                </Button>
+                              </td>
+                            </tr>
+                          )
+                        )}
                       </tbody>
                     </table>
-                    
+
                     <div className="d-flex justify-content-end mt-2">
-                      <Button variant="outline-primary" size="sm">
+                      <Button
+                        variant="outline-primary"
+                        size="sm"
+                        onClick={handleAddCharge}
+                      >
                         <FaPlus className="me-1" /> Add Charge
                       </Button>
                     </div>
@@ -991,7 +1259,11 @@ const Invoice_List_aahaas = () => {
       </Modal>
 
       {/* Delete Confirmation Modal */}
-      <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)} centered>
+      <Modal
+        show={showDeleteModal}
+        onHide={() => setShowDeleteModal(false)}
+        centered
+      >
         <Modal.Header closeButton>
           <Modal.Title className="d-flex align-items-center">
             <FaTrash className="me-2 text-danger" />
@@ -1020,4 +1292,4 @@ const Invoice_List_aahaas = () => {
   );
 };
 
-export default Invoice_List_aahaas;
+export default Invoice_list;

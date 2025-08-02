@@ -1,15 +1,36 @@
 import React, { useState, useEffect, useContext } from "react";
-import { 
-  Table, Button, Card, Badge, Modal, 
-  Row, Col, Form, FloatingLabel, 
-  Accordion, OverlayTrigger, Tooltip 
+import {
+  Table,
+  Button,
+  Card,
+  Badge,
+  Modal,
+  Row,
+  Col,
+  Form,
+  FloatingLabel,
+  Accordion,
+  OverlayTrigger,
+  Tooltip,
 } from "react-bootstrap";
-import { 
-  FaEye, FaTrash, FaPrint, FaDownload, 
-  FaEdit, FaPlus, FaMinus, FaFileInvoiceDollar,
-  FaUser, FaCalendarAlt, FaMoneyBillWave,
-  FaReceipt, FaInfoCircle, FaChevronDown,
-  FaChevronUp, FaSearch, FaFilter
+import {
+  FaEye,
+  FaTrash,
+  FaPrint,
+  FaDownload,
+  FaEdit,
+  FaPlus,
+  FaMinus,
+  FaFileInvoiceDollar,
+  FaUser,
+  FaCalendarAlt,
+  FaMoneyBillWave,
+  FaReceipt,
+  FaInfoCircle,
+  FaChevronDown,
+  FaChevronUp,
+  FaSearch,
+  FaFilter,
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -37,7 +58,7 @@ const Invoice_List_appleholidays = () => {
       setLoading(true);
       const response = await axios.get("/api/invoices", {
         params: {
-          company_id: 3,
+          company_id: 2,
         },
       });
       setInvoices(response.data.data || []);
@@ -48,12 +69,16 @@ const Invoice_List_appleholidays = () => {
     }
   };
 
-  const filteredInvoices = invoices.filter(invoice => {
-    const matchesSearch = invoice.invoice_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (invoice.customer?.name || "").toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = filterStatus === "all" || invoice.status === filterStatus;
-    
+  const filteredInvoices = invoices.filter((invoice) => {
+    const matchesSearch =
+      invoice.invoice_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (invoice.customer?.name || "")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
+
+    const matchesStatus =
+      filterStatus === "all" || invoice.status === filterStatus;
+
     return matchesSearch && matchesStatus;
   });
 
@@ -170,7 +195,11 @@ const Invoice_List_appleholidays = () => {
   const getStatusBadge = (status) => {
     switch (status) {
       case "paid":
-        return <Badge bg="success" className="d-flex align-items-center"><FaMoneyBillWave className="me-1" /> Paid</Badge>;
+        return (
+          <Badge bg="success" className="d-flex align-items-center">
+            <FaMoneyBillWave className="me-1" /> Paid
+          </Badge>
+        );
       case "pending":
         return (
           <Badge bg="warning" text="dark" className="d-flex align-items-center">
@@ -178,9 +207,17 @@ const Invoice_List_appleholidays = () => {
           </Badge>
         );
       case "cancelled":
-        return <Badge bg="danger" className="d-flex align-items-center"><FaMinus className="me-1" /> Cancelled</Badge>;
+        return (
+          <Badge bg="danger" className="d-flex align-items-center">
+            <FaMinus className="me-1" /> Cancelled
+          </Badge>
+        );
       default:
-        return <Badge bg="secondary" className="d-flex align-items-center"><FaInfoCircle className="me-1" /> Unknown</Badge>;
+        return (
+          <Badge bg="secondary" className="d-flex align-items-center">
+            <FaInfoCircle className="me-1" /> Unknown
+          </Badge>
+        );
     }
   };
 
@@ -194,11 +231,14 @@ const Invoice_List_appleholidays = () => {
     return item.price * (1 - item.discount / 100) * item.quantity;
   };
 
-  const ActionButton = ({ icon, label, variant = "primary", onClick, disabled = false }) => (
-    <OverlayTrigger
-      placement="top"
-      overlay={<Tooltip>{label}</Tooltip>}
-    >
+  const ActionButton = ({
+    icon,
+    label,
+    variant = "primary",
+    onClick,
+    disabled = false,
+  }) => (
+    <OverlayTrigger placement="top" overlay={<Tooltip>{label}</Tooltip>}>
       <Button
         variant={variant}
         size="sm"
@@ -219,15 +259,15 @@ const Invoice_List_appleholidays = () => {
             <FaFileInvoiceDollar className="me-2" />
             Invoice Management
           </h5>
-          <Button 
-            variant="light" 
+          <Button
+            variant="light"
             onClick={() => navigate("/invoice/create")}
             className="d-flex align-items-center"
           >
             <FaPlus className="me-1" /> New Invoice
           </Button>
         </Card.Header>
-        
+
         <Card.Body>
           {/* Search and Filter Bar */}
           <div className="d-flex mb-4">
@@ -242,12 +282,12 @@ const Invoice_List_appleholidays = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            
+
             <div className="d-flex align-items-center me-3">
               <span className="me-2">
                 <FaFilter />
               </span>
-              <Form.Select 
+              <Form.Select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
                 style={{ width: "150px" }}
@@ -258,16 +298,16 @@ const Invoice_List_appleholidays = () => {
                 <option value="cancelled">Cancelled</option>
               </Form.Select>
             </div>
-            
-            <Button 
-              variant="outline-secondary" 
+
+            <Button
+              variant="outline-secondary"
               onClick={fetchInvoices}
               className="d-flex align-items-center"
             >
               Refresh
             </Button>
           </div>
-          
+
           {loading ? (
             <div className="text-center py-5">
               <div className="spinner-border text-primary" role="status">
@@ -294,9 +334,13 @@ const Invoice_List_appleholidays = () => {
                       <tr
                         key={invoice.id}
                         className={
-                          invoice.status === "cancelled" ? "table-danger" : 
-                          invoice.status === "paid" ? "table-success" : 
-                          invoice.status === "pending" ? "table-warning" : ""
+                          invoice.status === "cancelled"
+                            ? "table-danger"
+                            : invoice.status === "paid"
+                            ? "table-success"
+                            : invoice.status === "pending"
+                            ? "table-warning"
+                            : ""
                         }
                       >
                         <td>
@@ -304,12 +348,17 @@ const Invoice_List_appleholidays = () => {
                         </td>
                         <td>
                           <div className="d-flex align-items-center">
-                            <div className="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style={{ width: "32px", height: "32px" }}>
+                            <div
+                              className="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2"
+                              style={{ width: "32px", height: "32px" }}
+                            >
                               <FaUser />
                             </div>
                             <div>
                               <div>{invoice.customer?.name || "N/A"}</div>
-                              <small className="text-muted">{invoice.customer?.email || ""}</small>
+                              <small className="text-muted">
+                                {invoice.customer?.email || ""}
+                              </small>
                             </div>
                           </div>
                         </td>
@@ -318,7 +367,9 @@ const Invoice_List_appleholidays = () => {
                             <FaCalendarAlt className="me-2 text-muted" />
                             {formatDate(invoice.issue_date)}
                           </div>
-                          <small className="text-muted">Due: {formatDate(invoice.due_date)}</small>
+                          <small className="text-muted">
+                            Due: {formatDate(invoice.due_date)}
+                          </small>
                         </td>
                         <td>
                           <div className="d-flex align-items-center">
@@ -329,30 +380,30 @@ const Invoice_List_appleholidays = () => {
                         <td>{getStatusBadge(invoice.status)}</td>
                         <td className="text-end">
                           <div className="d-flex justify-content-end">
-                            <ActionButton 
-                              icon={<FaEye />} 
-                              label="View" 
-                              variant="info" 
-                              onClick={() => handleViewInvoice(invoice)} 
+                            <ActionButton
+                              icon={<FaEye />}
+                              label="View"
+                              variant="info"
+                              onClick={() => handleViewInvoice(invoice)}
                             />
-                            <ActionButton 
-                              icon={<FaEdit />} 
-                              label="Edit" 
-                              variant="primary" 
-                              onClick={() => handleEditInvoice(invoice)} 
+                            <ActionButton
+                              icon={<FaEdit />}
+                              label="Edit"
+                              variant="primary"
+                              onClick={() => handleEditInvoice(invoice)}
                             />
-                            <ActionButton 
-                              icon={<FaPrint />} 
-                              label="Print" 
-                              variant="secondary" 
-                              onClick={() => handlePrintInvoice(invoice.id)} 
+                            <ActionButton
+                              icon={<FaPrint />}
+                              label="Print"
+                              variant="secondary"
+                              onClick={() => handlePrintInvoice(invoice.id)}
                             />
-                            <ActionButton 
-                              icon={<FaTrash />} 
-                              label="Cancel" 
-                              variant="danger" 
+                            <ActionButton
+                              icon={<FaTrash />}
+                              label="Cancel"
+                              variant="danger"
                               onClick={() => confirmDelete(invoice)}
-                              disabled={invoice.status === "cancelled"} 
+                              disabled={invoice.status === "cancelled"}
                             />
                           </div>
                         </td>
@@ -362,11 +413,16 @@ const Invoice_List_appleholidays = () => {
                     <tr>
                       <td colSpan="6" className="text-center py-4">
                         <div className="d-flex flex-column align-items-center">
-                          <FaFileInvoiceDollar size={48} className="text-muted mb-3" />
+                          <FaFileInvoiceDollar
+                            size={48}
+                            className="text-muted mb-3"
+                          />
                           <h5>No invoices found</h5>
-                          <p className="text-muted">Try adjusting your search or create a new invoice</p>
-                          <Button 
-                            variant="primary" 
+                          <p className="text-muted">
+                            Try adjusting your search or create a new invoice
+                          </p>
+                          <Button
+                            variant="primary"
                             onClick={() => navigate("/invoice/create")}
                             className="mt-2"
                           >
@@ -381,11 +437,12 @@ const Invoice_List_appleholidays = () => {
             </div>
           )}
         </Card.Body>
-        
+
         {filteredInvoices.length > 0 && (
           <Card.Footer className="d-flex justify-content-between align-items-center">
             <div>
-              Showing <strong>{filteredInvoices.length}</strong> of <strong>{invoices.length}</strong> invoices
+              Showing <strong>{filteredInvoices.length}</strong> of{" "}
+              <strong>{invoices.length}</strong> invoices
             </div>
             <div className="d-flex">
               <Button variant="outline-primary" size="sm" className="me-2">
@@ -417,30 +474,18 @@ const Invoice_List_appleholidays = () => {
             <div className="invoice-preview p-4">
               {/* Company Header */}
               <div className="text-center mb-3">
-                <h4 className="mb-1 fw-bold">Sharmila Tours & Travels</h4>
-                <div className="mb-1">
-                  Shop No:1st Floor,10,Venkatraman Road,Kamala Second street
+                <img
+                  src="/images/logo/appleholidays_extend.png"
+                  alt="Apple Holidays Destination Services"
+                  className="img-fluid mb-3"
+                  style={{ width: "400px" }}
+                />
+                <div>
+                  One Galle Face Tower, 2208, 1A Centre Road, Colombo 002
                 </div>
-                <div className="mb-1">Chinna Chokkikulam, Madurai - 625002</div>
-                <div className="mb-1">Tel:+91 0452 405 8375/403-4704</div>
-                <div className="mb-1">E-mail: chennai@Sharmilatravels.com</div>
-                <div className="mb-1">
-                  Service Tax Registration No.: ADVT544290
-                </div>
-                <div className="mb-3">GSTIN: 33ADVT544290TZV</div>
+                <div>Tel: 011 2352 400 | Web: www.appleholidaysds.com</div>
 
-                <div className="notice-box p-2 mb-3 text-start bg-warning bg-opacity-10 border-start border-warning border-4">
-                  <strong>STRICTLY TO BE NOTED:</strong> Finance bill 2017
-                  proposes to insert Section 269ST in the Income tax Act that
-                  restricts receiving an amount of Rs 2,00,000/- or more.
-                  Sharmila Travels will not accept any cash deposit effective
-                  1st April 2017. If trade partners make cash deposit, then the
-                  amount will be ignored and use other payment modes such as
-                  Cheque deposit, RTGS & NEFT for all your future bookings with
-                  Sharmila Travels.
-                </div>
-
-                <h5 className="fw-bold mb-3">INVOICE </h5>
+                <h5 className="fw-bold mb-3 mt-3">INVOICE </h5>
               </div>
 
               {/* Invoice Meta and Customer Info */}
@@ -611,7 +656,10 @@ const Invoice_List_appleholidays = () => {
                 handleUpdateInvoice(formValues);
               }}
             >
-              <Accordion defaultActiveKey={['customer', 'invoice', 'items']} alwaysOpen>
+              <Accordion
+                defaultActiveKey={["customer", "invoice", "items"]}
+                alwaysOpen
+              >
                 {/* Customer Information */}
                 <Accordion.Item eventKey="customer">
                   <Accordion.Header>
@@ -716,7 +764,9 @@ const Invoice_List_appleholidays = () => {
                           <Form.Control
                             type="date"
                             name="issue_date"
-                            defaultValue={currentInvoice.issue_date?.split("T")[0]}
+                            defaultValue={
+                              currentInvoice.issue_date?.split("T")[0]
+                            }
                             required
                           />
                         </FloatingLabel>
@@ -726,7 +776,9 @@ const Invoice_List_appleholidays = () => {
                           <Form.Control
                             type="date"
                             name="due_date"
-                            defaultValue={currentInvoice.due_date?.split("T")[0]}
+                            defaultValue={
+                              currentInvoice.due_date?.split("T")[0]
+                            }
                             required
                           />
                         </FloatingLabel>
@@ -736,7 +788,9 @@ const Invoice_List_appleholidays = () => {
                           <Form.Control
                             type="date"
                             name="collection_date"
-                            defaultValue={currentInvoice.collection_date?.split("T")[0]}
+                            defaultValue={
+                              currentInvoice.collection_date?.split("T")[0]
+                            }
                           />
                         </FloatingLabel>
                       </Col>
@@ -745,22 +799,30 @@ const Invoice_List_appleholidays = () => {
                     {/* Payment Information */}
                     <Row className="mb-3">
                       <Col md={6}>
-                        <FloatingLabel label="Payment Instructions" className="mb-3">
+                        <FloatingLabel
+                          label="Payment Instructions"
+                          className="mb-3"
+                        >
                           <Form.Control
                             as="textarea"
                             name="payment_instructions"
-                            style={{ height: '100px' }}
+                            style={{ height: "100px" }}
                             defaultValue={currentInvoice.payment_instructions}
                             required
                           />
                         </FloatingLabel>
                       </Col>
                       <Col md={6}>
-                        <FloatingLabel label="Payment Methods (comma separated)" className="mb-3">
+                        <FloatingLabel
+                          label="Payment Methods (comma separated)"
+                          className="mb-3"
+                        >
                           <Form.Control
                             type="text"
                             name="payment_methods"
-                            defaultValue={currentInvoice.payment_methods?.join(",")}
+                            defaultValue={currentInvoice.payment_methods?.join(
+                              ","
+                            )}
                           />
                         </FloatingLabel>
                       </Col>
@@ -794,7 +856,7 @@ const Invoice_List_appleholidays = () => {
                       <Form.Control
                         as="textarea"
                         name="remarks"
-                        style={{ height: '100px' }}
+                        style={{ height: "100px" }}
                         defaultValue={currentInvoice.remarks}
                       />
                     </FloatingLabel>
@@ -888,13 +950,14 @@ const Invoice_List_appleholidays = () => {
                               />
                             </td>
                             <td className="text-end">
-                              {currentInvoice.currency} {calculateItemTotal(item).toFixed(2)}
+                              {currentInvoice.currency}{" "}
+                              {calculateItemTotal(item).toFixed(2)}
                             </td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
-                    
+
                     <div className="d-flex justify-content-end mt-2">
                       <Button variant="outline-primary" size="sm">
                         <FaPlus className="me-1" /> Add Item
@@ -925,46 +988,48 @@ const Invoice_List_appleholidays = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {currentInvoice.additional_charges?.map((charge, index) => (
-                          <tr key={index}>
-                            <td>
-                              <Form.Control
-                                type="text"
-                                name={`additional_charges[${index}][description]`}
-                                size="sm"
-                                defaultValue={charge.description}
-                              />
-                            </td>
-                            <td>
-                              <Form.Control
-                                type="number"
-                                name={`additional_charges[${index}][amount]`}
-                                size="sm"
-                                step="0.01"
-                                min="0"
-                                defaultValue={charge.amount}
-                              />
-                            </td>
-                            <td>
-                              <Form.Select
-                                name={`additional_charges[${index}][taxable]`}
-                                size="sm"
-                                defaultValue={charge.taxable ? "1" : "0"}
-                              >
-                                <option value="1">Yes</option>
-                                <option value="0">No</option>
-                              </Form.Select>
-                            </td>
-                            <td className="text-end">
-                              <Button variant="outline-danger" size="sm">
-                                <FaTrash />
-                              </Button>
-                            </td>
-                          </tr>
-                        ))}
+                        {currentInvoice.additional_charges?.map(
+                          (charge, index) => (
+                            <tr key={index}>
+                              <td>
+                                <Form.Control
+                                  type="text"
+                                  name={`additional_charges[${index}][description]`}
+                                  size="sm"
+                                  defaultValue={charge.description}
+                                />
+                              </td>
+                              <td>
+                                <Form.Control
+                                  type="number"
+                                  name={`additional_charges[${index}][amount]`}
+                                  size="sm"
+                                  step="0.01"
+                                  min="0"
+                                  defaultValue={charge.amount}
+                                />
+                              </td>
+                              <td>
+                                <Form.Select
+                                  name={`additional_charges[${index}][taxable]`}
+                                  size="sm"
+                                  defaultValue={charge.taxable ? "1" : "0"}
+                                >
+                                  <option value="1">Yes</option>
+                                  <option value="0">No</option>
+                                </Form.Select>
+                              </td>
+                              <td className="text-end">
+                                <Button variant="outline-danger" size="sm">
+                                  <FaTrash />
+                                </Button>
+                              </td>
+                            </tr>
+                          )
+                        )}
                       </tbody>
                     </table>
-                    
+
                     <div className="d-flex justify-content-end mt-2">
                       <Button variant="outline-primary" size="sm">
                         <FaPlus className="me-1" /> Add Charge
@@ -992,7 +1057,11 @@ const Invoice_List_appleholidays = () => {
       </Modal>
 
       {/* Delete Confirmation Modal */}
-      <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)} centered>
+      <Modal
+        show={showDeleteModal}
+        onHide={() => setShowDeleteModal(false)}
+        centered
+      >
         <Modal.Header closeButton>
           <Modal.Title className="d-flex align-items-center">
             <FaTrash className="me-2 text-danger" />

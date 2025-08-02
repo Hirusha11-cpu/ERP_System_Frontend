@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext , useRef} from "react";
 import {
   Table,
   Card,
@@ -30,6 +30,8 @@ import {
   FaUser,
 } from "react-icons/fa";
 import { Bar, Pie, Line } from "react-chartjs-2";
+import Chart from 'chart.js/auto';
+
 import axios from "axios";
 import { CompanyContext } from "../../../../contentApi/CompanyProvider";
 import DatePicker from "react-datepicker";
@@ -112,6 +114,137 @@ const Invoice_summary = () => {
     }
     // Date filter
   }, [invoices, searchTerm, startDate, endDate]);
+
+    const BarChart = ({ data }) => {
+    const chartRef = useRef(null);
+    const chartInstance = useRef(null);
+
+    useEffect(() => {
+      if (chartRef.current && data) {
+        if (chartInstance.current) {
+          chartInstance.current.destroy();
+        }
+
+        const ctx = chartRef.current.getContext('2d');
+        chartInstance.current = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: data.labels,
+            datasets: data.datasets
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: {
+                position: 'top',
+              },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    return `${context.dataset.label}: ${context.raw} ${selectedCompany?.currency || "USD"}`;
+                  }
+                }
+              }
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  callback: function(value) {
+                    return `${value} ${selectedCompany?.currency || "USD"}`;
+                  }
+                }
+              }
+            }
+          }
+        });
+      }
+
+      return () => {
+        if (chartInstance.current) {
+          chartInstance.current.destroy();
+        }
+      };
+    }, [data, selectedCompany]);
+
+    return <canvas ref={chartRef} />;
+  };
+
+  const PieChart = ({ data }) => {
+    const chartRef = useRef(null);
+    const chartInstance = useRef(null);
+
+    useEffect(() => {
+      if (chartRef.current && data) {
+        if (chartInstance.current) {
+          chartInstance.current.destroy();
+        }
+
+        const ctx = chartRef.current.getContext('2d');
+        chartInstance.current = new Chart(ctx, {
+          type: 'pie',
+          data: {
+            labels: data.labels,
+            datasets: data.datasets
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: {
+                position: 'right',
+              }
+            }
+          }
+        });
+      }
+
+      return () => {
+        if (chartInstance.current) {
+          chartInstance.current.destroy();
+        }
+      };
+    }, [data]);
+
+    return <canvas ref={chartRef} />;
+  };
+
+  const DoughnutChart = ({ data }) => {
+    const chartRef = useRef(null);
+    const chartInstance = useRef(null);
+
+    useEffect(() => {
+      if (chartRef.current && data) {
+        if (chartInstance.current) {
+          chartInstance.current.destroy();
+        }
+
+        const ctx = chartRef.current.getContext('2d');
+        chartInstance.current = new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+            labels: data.labels,
+            datasets: data.datasets
+          },
+          options: {
+            responsive: true,
+            plugins: {
+              legend: {
+                position: 'right',
+              }
+            }
+          }
+        });
+      }
+
+      return () => {
+        if (chartInstance.current) {
+          chartInstance.current.destroy();
+        }
+      };
+    }, [data]);
+
+    return <canvas ref={chartRef} />;
+  };
 
   // Chart data for profit analysis with null checks
   const profitChartData = {
@@ -363,6 +496,7 @@ const Invoice_summary = () => {
                   Monthly Profit Analysis
                 </Card.Header>
                 <Card.Body>
+                  <BarChart data={profitChartData} />
                   {/* <Bar
                     data={profitChartData}
                     options={{
@@ -416,6 +550,7 @@ const Invoice_summary = () => {
                       },
                     }}
                   /> */}
+                   <PieChart data={countryChartData} />
                 </Card.Body>
               </Card>
             </Col>
@@ -439,6 +574,9 @@ const Invoice_summary = () => {
                       },
                     }}
                   /> */}
+                  {/* <DoughnutChart data={refundChartData} /> */}
+                  {/* <Pie data={refundChartData} /> */}
+                  <PieChart data={refundChartData} />
                 </Card.Body>
               </Card>
             </Col>

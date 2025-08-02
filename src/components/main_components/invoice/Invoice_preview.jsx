@@ -12,10 +12,24 @@ import Bank_accounts from '../bank_accounts/Bank_accounts';
 import Invoice_pnl from './pnl/invoice_pnl';
 import Invoice_summary from './summary_invoice/invoice_summary';
 import Invoice_refund from './refund_invoice/invoice_refund';
+import Invoice_create from './create_invoice/Invoice_create';
+import Invoice_list from './list_invoice/Invoice_list';
 
 const Invoice_preview = ({ target }) => {
     const { selectedCompany } = useContext(CompanyContext);
 
+  // if (target === "main_invoice_view") {
+  //   switch (selectedCompany) {
+  //     case "appleholidays":
+  //       return <Invoice_list />;
+  //     case "shirmila":
+  //       return <Invoice_list />;
+  //     case "aahaas":
+  //       return <Invoice_list />;
+  //     default:
+  //       return <Invoice_list />;
+  //   }
+  // }
   if (target === "main_invoice_view") {
     switch (selectedCompany) {
       case "appleholidays":
@@ -32,15 +46,27 @@ const Invoice_preview = ({ target }) => {
   if (target === "invoice_create") {
    switch (selectedCompany) {
       case "appleholidays":
-        return <Invoice_appleholidays />;
+        return <Invoice_create />;
       case "shirmila":
-        return <Invoice_shirmila />;
+        return <Invoice_create />;
       case "aahaas":
-        return <Invoice_aahaas />;
+        return <Invoice_create />;
       default:
-        return <Invoice_aahaas />;
+        return <Invoice_create />;
     }
   }
+  // if (target === "invoice_create") {
+  //  switch (selectedCompany) {
+  //     case "appleholidays":
+  //       return <Invoice_appleholidays />;
+  //     case "shirmila":
+  //       return <Invoice_shirmila />;
+  //     case "aahaas":
+  //       return <Invoice_aahaas />;
+  //     default:
+  //       return <Invoice_aahaas />;
+  //   }
+  // }
 
   if (target === "invoice_bank_accounts") {
    switch (selectedCompany) {
@@ -78,6 +104,18 @@ const Invoice_preview = ({ target }) => {
         return <Invoice_summary company={'aahaas'}/>;
       default:
         return <Invoice_summary company={'aahaas'}/>;
+    }
+  }
+  if (target === "invoice_refund") {
+   switch (selectedCompany) {
+      case "appleholidays":
+        return <Invoice_refund company={'appleholidays'}/>;
+      case "shirmila":
+        return <Invoice_refund company={'shirmila'} />;
+      case "aahaas":
+        return <Invoice_refund company={'aahaas'}/>;
+      default:
+        return <Invoice_refund company={'aahaas'}/>;
     }
   }
   if (target === "invoice_refund") {

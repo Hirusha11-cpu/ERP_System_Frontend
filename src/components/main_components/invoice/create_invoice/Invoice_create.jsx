@@ -39,11 +39,12 @@ const Invoice_create = () => {
   const [currency, setCurrency] = useState("USD");
   const [attachments, setAttachments] = useState([]);
   const [companyNo, setCompanyNo] = useState(null);
+  const [component, setComponent] = useState(null);
 
   // Fetch customers and tax rates on component mount
   useEffect(() => {
     fetchCustomers();
-    fetchTaxRates();
+    // fetchTaxRates();
   }, []);
 
   useEffect(() => {
@@ -54,6 +55,75 @@ const Invoice_create = () => {
     };
 
     setCompanyNo(companyMap[selectedCompany?.toLowerCase()] || null);
+    // resetForm()
+    setFormData({
+      customer: {
+        id: null,
+        name: "",
+        address: "",
+        mobile: "",
+        code: "",
+        gstNo: "",
+      },
+      invoice: {
+        country: "IN",
+        number: "",
+        issueDate: new Date().toISOString().split("T")[0],
+        dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+          .toISOString()
+          .split("T")[0],
+        salesId: "ARAVEND",
+        printedBy: "KAVIYA",
+        yourRef: "399648 CNTL",
+        bookingId: "399648 CNTL",
+      },
+      currencyDetails: {
+        currency: "USD",
+        exchangeRate: 87.52,
+        rateSource: "custom",
+        customRate: 87.52,
+        addOneToRate: true,
+        addTenToRate: false,
+        taxTreatment: "exclusive",
+      },
+      serviceItems: [],
+      additionalCharges: [],
+      taxRates: [],
+      accountDetails: {
+        name: "",
+        number: "",
+        bank: "",
+        branch: "",
+        ifsc: "",
+        address: "",
+      },
+      payment: {
+        type: "non-credit",
+        collectionDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+          .toISOString()
+          .split("T")[0],
+        instructions: "Please settle the invoice on or before",
+        methods: {
+          bankTransfer: true,
+          amex: false,
+          googlePay: false,
+          usdPortal: false,
+        },
+        staff: "KAVIYA",
+        remarks: "Payable in INR(Rate 87.52)",
+      },
+      totals: {
+        subTotal: 0,
+        handlingFee: 0,
+        gst: 0,
+        additionalTax: 0,
+        bankCharges: 0,
+        total: 0,
+        amountReceived: 0,
+        balance: 0,
+      },
+      attachments: [],
+    });
   }, [selectedCompany]);
 
   const renderCompanyName = () => {
@@ -98,12 +168,34 @@ const Invoice_create = () => {
     }
   };
 
+  useEffect(() => {
+    if (component) {
+      fetchTaxRates();
+    }
+  }, [component]);
+
   const fetchTaxRates = async () => {
     try {
-      const response = await axios.get("/api/tax-rates");
-      setTaxRates(response.data);
+      const response = await axios.get(`/api/tax-rate/component/${component}`);
+      console.log("Fetched tax rate:", response.data);
+
+      const rates = Array.isArray(response.data)
+        ? response.data
+        : [response.data];
+    
+      setTaxRates(rates);
+
+      // Safely extract numeric rate
+      if (rates.length > 0 && rates[0]?.rate != null) {
+        const numericRate = Number(rates[0].rate);
+        setNewTaxRate((prev) => ({
+          ...prev,
+          rate: isNaN(numericRate) ? 0 : numericRate,
+        }));
+      }
     } catch (error) {
       console.error("Error fetching tax rates:", error);
+      setTaxRates([]);
     }
   };
 
@@ -153,10 +245,10 @@ const Invoice_create = () => {
         checkout_time: item.checkout_time || null,
       })),
 
-      additional_charges: formData.additionalCharges.map((charge) => ({
+      additional_charges: formData.additionalCharges.map(charge => ({
         description: charge.description,
         amount: charge.amount,
-        taxable: charge.taxable,
+        taxable: !!charge.taxable // Double bang to force boolean
       })),
       attachments: formData.attachments,
       // attachments: formData.attachments.forEach((file) => {
@@ -267,12 +359,12 @@ const Invoice_create = () => {
     additionalCharges: [],
     taxRates: taxRates,
     accountDetails: {
-      name: "SHARMILA TOURS AND TRAVELS",
-      number: "054205002744",
-      bank: "ICICI Bank Ltd",
-      branch: "TEPPAKULAM, MADURAI BRANCH",
-      ifsc: "ICIC0000542",
-      address: "NO 172, DARSHINI TOWER, VASAI COLONY, ANNA NAGAR - 625020",
+      name: "",
+      number: "",
+      bank: "",
+      branch: "",
+      ifsc: "",
+      address: "",
     },
     payment: {
       type: "non-credit",
@@ -326,7 +418,7 @@ const Invoice_create = () => {
     taxable: false,
   });
   const [newTaxRate, setNewTaxRate] = useState({
-    name: "",
+    name: "new",
     component: "",
     rate: 0,
   });
@@ -545,6 +637,7 @@ const Invoice_create = () => {
       // subTotal += item.total;
     });
     console.log(totalAmount);
+   
 
     // Add additional charges
     let taxableCharges = 0;
@@ -570,19 +663,49 @@ const Invoice_create = () => {
       subTotal = totalAmount;
     }
 
+    let additionalTax = 0;
+    console.log(taxRates);
+    
+    if (subTotal > 0 && taxRates.length > 0 ) {  
+      console.log(Number(taxRates[0].rate));
+      additionalTax = subTotal * (parseFloat(Number(taxRates[0].rate)) / 100);
+    }
+    
+    // formData.serviceItems.forEach((item) => {
+    //   console.log(formData.taxRates);
+
+    //   const itemTaxRate = formData.taxRates.find(
+    //     (tax) => tax.component === item.type
+    //   );
+    //   console.log(itemTaxRate);
+
+    //   if (itemTaxRate) {
+    //     const itemTotal = item.price * (1 - item.discount / 100) * item.qty;
+    //     console.log(itemTotal);
+
+    //     additionalTax += itemTotal * (parseFloat(itemTaxRate.rate) / 100);
+    //   }
+    // });
+
     // Calculate GST (only for INR)
     let gst = 0;
     if (currency === "INR") {
       // const gstRate = taxRates.find((tax) => tax.name === "GST")?.rate || 0;
       gst = handlingFee * (18 / 100);
     }
+    const additionalChargeCost = formData.additionalCharges.reduce(
+      (acc, item) => acc + parseFloat(item.amount || 0),
+      0
+    );
 
     // Calculate total
     const total =
       subTotal +
       handlingFee +
       gst +
-      formData.totals.additionalTax +
+      // formData.totals.additionalTax +
+      additionalTax +
+      additionalChargeCost +
       formData.totals.bankCharges;
     const balance = total - formData.totals.amountReceived;
 
@@ -595,6 +718,7 @@ const Invoice_create = () => {
         gst,
         total,
         balance,
+        additionalTax,
       },
     });
   };
@@ -657,14 +781,31 @@ const Invoice_create = () => {
   // Add new tax rate
   const addNewTaxRate = async () => {
     try {
-      const response = await axios.post("/api/tax-rates", newTaxRate);
-      setTaxRates([...taxRates, response.data]);
+      const response = await axios.post("/api/tax-rates", {
+        name: newTaxRate.component,
+        component: newTaxRate.component,
+        rate: newTaxRate.rate,
+      });
+
+      // Update tax rates list
+      const updatedTaxRates = [...taxRates, response.data];
+      setTaxRates(updatedTaxRates);
+
+      // Update formData tax rates
+      setFormData((prev) => ({
+        ...prev,
+        taxRates: updatedTaxRates,
+      }));
+
+      // Reset form
       setNewTaxRate({
-        name: "",
+        name: "new",
         component: "",
         rate: 0,
       });
+
       setShowTaxModal(false);
+      calculateTotals();
     } catch (error) {
       console.error("Error adding tax rate:", error);
       alert(
@@ -675,7 +816,7 @@ const Invoice_create = () => {
   };
 
   // Delete item from table
-  const deleteItem = (id, type) => {
+  const deleteItem = async (id, type) => {
     if (type === "service") {
       setFormData({
         ...formData,
@@ -690,20 +831,21 @@ const Invoice_create = () => {
       });
     } else if (type === "tax") {
       // For tax rates, we'll need to make an API call to delete
-      const taxToDelete = taxRates.find((tax) => tax.name === id);
-      if (taxToDelete) {
-        axios
-          .delete(`/api/tax-rates/${taxToDelete.id}`)
-          .then(() => {
-            setTaxRates(taxRates.filter((tax) => tax.name !== id));
-          })
-          .catch((error) => {
-            console.error("Error deleting tax rate:", error);
-            alert(
-              "Error deleting tax rate: " +
-                (error.response?.data?.message || error.message)
-            );
-          });
+      try {
+        await axios.delete(`/api/tax-rates/${id}`);
+        const updatedTaxRates = taxRates.filter((tax) => tax.id !== id);
+        setTaxRates(updatedTaxRates);
+        setFormData((prev) => ({
+          ...prev,
+          taxRates: updatedTaxRates,
+        }));
+        calculateTotals();
+      } catch (error) {
+        console.error("Error deleting tax rate:", error);
+        alert(
+          "Error deleting tax rate: " +
+            (error.response?.data?.message || error.message)
+        );
       }
     }
   };
@@ -825,14 +967,14 @@ const Invoice_create = () => {
         },
         serviceItems: [],
         additionalCharges: [],
-        taxRates: taxRates,
+        taxRates: [],
         accountDetails: {
-          name: "SHARMILA TOURS AND TRAVELS",
-          number: "054205002744",
-          bank: "ICICI Bank Ltd",
-          branch: "TEPPAKULAM, MADURAI BRANCH",
-          ifsc: "ICIC0000542",
-          address: "NO 172, DARSHINI TOWER, VASAI COLONY, ANNA NAGAR - 625020",
+          name: "",
+          number: "",
+          bank: "",
+          branch: "",
+          ifsc: "",
+          address: "",
         },
         payment: {
           type: "non-credit",
@@ -1343,25 +1485,27 @@ const Invoice_create = () => {
             <Table bordered>
               <thead className="table-light">
                 <tr>
-                  <th>Display Name</th>
-                  <th>Tax Component</th>
+                  <th>Component</th>
                   <th>Rate (%)</th>
                   <th>Action</th>
                 </tr>
               </thead>
               <tbody>
-                {/* {formData.taxRates.map((tax, index) => (
+                {taxRates.map((tax, index) => (
                   <tr key={index}>
-                    <td>{tax.name}</td>
                     <td>{tax.component}</td>
-                    <td>{tax.rate.toFixed(2)}</td>
+                    <td>{tax.rate}</td>
                     <td>
-                      <Button variant="danger" size="sm" onClick={() => deleteItem(tax.name, 'tax')}>
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={() => deleteItem(tax.id, "tax")}
+                      >
                         <FaTrash />
                       </Button>
                     </td>
                   </tr>
-                ))} */}
+                ))}
               </tbody>
             </Table>
           </div>
@@ -1769,7 +1913,7 @@ const Invoice_create = () => {
                     />
                   </div>
 
-                  <div className="d-flex justify-content-between mb-2 pb-2 border-bottom">
+                  {/* <div className="d-flex justify-content-between mb-2 pb-2 border-bottom">
                     <span>Bank Charges:</span>
                     <Form.Control
                       type="number"
@@ -1784,6 +1928,17 @@ const Invoice_create = () => {
                         )
                       }
                     />
+                  </div> */}
+                  <div className="d-flex justify-content-between mb-2 pb-2 border-bottom">
+                    <span>Additional Charges:</span>
+                    <span>
+                      {formData.additionalCharges
+                        .reduce(
+                          (sum, charge) => sum + parseFloat(charge.amount || 0),
+                          0
+                        )
+                        .toFixed(2)}
+                    </span>
                   </div>
 
                   <div className="d-flex justify-content-between mb-2 pb-2 border-bottom fw-bold">
@@ -2058,8 +2213,18 @@ const Invoice_create = () => {
                       }
                     >
                       <option value="">Select Description</option>
-                      <option value="Cost per Adult">Cost per Adult</option>
-                      <option value="Cost per Child">Cost per Child</option>
+
+                      {companyNo === 1 || companyNo === 2 ? (
+                        <>
+                          <option value="Cost per Adult">Cost per Adult</option>
+                          <option value="Cost per Child">Cost per Child</option>
+                        </>
+                      ) : (
+                        <option value="Cost per Product">
+                          Cost per Product
+                        </option>
+                      )}
+
                       {/* <option value="custom">Other (Type Manually)</option> */}
                     </Form.Select>
 
@@ -2280,9 +2445,10 @@ const Invoice_create = () => {
             <Form.Label>Tax Component:</Form.Label>
             <Form.Select
               value={newTaxRate.component}
-              onChange={(e) =>
-                setNewTaxRate({ ...newTaxRate, component: e.target.value })
-              }
+              onChange={(e) => {
+                setNewTaxRate({ ...newTaxRate, component: e.target.value });
+                setComponent(e.target.value);
+              }}
             >
               <option value="">Select Component</option>
               <option value="flight">Flight</option>
@@ -2295,7 +2461,7 @@ const Invoice_create = () => {
             </Form.Select>
           </Form.Group>
 
-          <Form.Group className="mb-3">
+          {/* <Form.Group className="mb-3">
             <Form.Label>Display Name:</Form.Label>
             <Form.Control
               type="text"
@@ -2304,9 +2470,23 @@ const Invoice_create = () => {
                 setNewTaxRate({ ...newTaxRate, name: e.target.value })
               }
             />
-          </Form.Group>
+          </Form.Group> */}
 
           <Form.Group className="mb-3">
+            <Form.Label>Rate (%):</Form.Label>
+            <Form.Control
+              type="number"
+              step="0.01"
+              value={newTaxRate.rate}
+              // onChange={(e) =>
+              //   setNewTaxRate({
+              //     ...newTaxRate,
+              //     rate: parseFloat(e.target.value) || 0,
+              //   })
+              // }
+            />
+          </Form.Group>
+          {/* <Form.Group className="mb-3">
             <Form.Label>Rate (%):</Form.Label>
             <Form.Control
               // type="number"
@@ -2322,13 +2502,19 @@ const Invoice_create = () => {
                 })
               }
             />
-          </Form.Group>
+          </Form.Group> */}
 
           {newTaxRate.rate > 0 && (
             <div className="alert alert-info">
-              <strong>Tax Calculation:</strong> For an item worth 100{" "}
+              {/* <strong>Tax Calculation:</strong> For an item worth 100{" "}
               {formData.currencyDetails.currency}, the tax would be{" "}
-              {newTaxRate.rate} {formData.currencyDetails.currency}
+              {newTaxRate.rate} {formData.currencyDetails.currency} */}
+              <strong>Tax Calculation:</strong> For an item worth{" "}
+              {formData.totals.subTotal} {formData.currencyDetails.currency},
+              the tax would be{" "}
+              {((formData.totals.subTotal * newTaxRate.rate) / 100).toFixed(2)}{" "}
+              {formData.currencyDetails.currency} at a rate of {newTaxRate.rate}
+              %.
             </div>
           )}
         </Modal.Body>

@@ -1,4 +1,4 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, useEffect } from 'react';
 import { 
   Card, Row, Col, Badge, ProgressBar, 
   Table, Button, Dropdown, Form, Container 
@@ -17,142 +17,260 @@ import {
   FaPlane, FaHotel, FaReceipt
 } from 'react-icons/fa';
 import { CompanyContext } from '../contentApi/CompanyProvider';
+import { Link } from 'react-router-dom';
+import axios from 'axios';
 
 const Home = () => {
   const { selectedCompany } = useContext(CompanyContext);
   const [activeSection, setActiveSection] = useState('overview');
-  
-  // Sample data for demonstration
-  const invoiceStats = {
-    total: 125000,
-    paid: 87500,
-    overdue: 12500,
-    pending: 25000
+  const [invoices, setInvoices] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [invoiceStats, setInvoiceStats] = useState({
+    total: 0,
+    paid: 0,
+    overdue: 0,
+    pending: 0
+  });
+
+  const [currency, setCurrency] = useState('INR'); // Default currency
+  const [exchangeRates, setExchangeRates] = useState({
+    INR: 1,
+    USD: 0.012,
+    EUR: 0.011,
+    MYR: 0.057,
+    SGD: 0.016
+  });
+
+  const convertCurrency = (amount) => {
+    const rate = exchangeRates[currency] || 1;
+    return amount * rate;
+  };
+
+  // Function to get currency symbol
+  const getCurrencySymbol = () => {
+    switch(currency) {
+      case 'USD': return '$';
+      case 'EUR': return '€';
+      case 'MYR': return 'RM';
+      case 'SGD': return 'S$';
+      default: return '₹'; // Default to INR
+    }
+  };
+
+  useEffect(() => {
+    const fetchInvoices = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get('/api/invoicess/all');
+        const invoiceData = response.data.data;
+        setInvoices(invoiceData);
+        
+        // Calculate stats
+        const stats = {
+          total: 0,
+          paid: 0,
+          overdue: 0,
+          pending: 0
+        };
+        
+        invoiceData.forEach(invoice => {
+          const amount = parseFloat(invoice.total_amount) || 0;
+          stats.total += amount;
+          
+          if (invoice.amount_received && parseFloat(invoice.amount_received) >= amount) {
+            stats.paid += amount;
+          } else if (new Date(invoice.due_date) < new Date()) {
+            stats.overdue += amount;
+          } else {
+            stats.pending += amount;
+          }
+        });
+        
+        setInvoiceStats(stats);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching invoices:', error);
+        setLoading(false);
+      }
+    };
+
+    fetchInvoices();
+  }, []);
+
+  const getStatusBadge = (invoice) => {
+    const amount = parseFloat(invoice.total_amount) || 0;
+    const received = parseFloat(invoice.amount_received) || 0;
+    
+    if (received >= amount) {
+      return <Badge bg="success">Paid</Badge>;
+    } else if (new Date(invoice.due_date) < new Date()) {
+      return <Badge bg="danger">Overdue</Badge>;
+    } else {
+      return <Badge bg="warning">Pending</Badge>;
+    }
   };
 
   const renderCompanySpecificNav = () => {
-    switch(selectedCompany) {
-      case "appleholidays":
-      case "aahaas":
-        return (
-          <>
-            <Card className="mb-4 shadow-sm">
-              <Card.Body>
-                <h5 className="mb-3 text-primary">
-                  <FaFileInvoiceDollar className="me-2" />
-                  Account Payables
-                </h5>
-                <Row>
-                  {['Sri Lanka', 'Singapore', 'Vietnam', 'Malaysia', 'Maldives', 'Bali', 'Thailand', 'Other'].map(country => (
-                    <Col md={3} key={country} className="mb-3">
-                      <Button 
-                        variant="outline-primary" 
-                        className="w-100 text-start d-flex align-items-center"
-                        onClick={() => setActiveSection(`payables-${country.toLowerCase().replace(' ', '-')}`)}
-                      >
-                        <FiGlobe className="me-2" />
-                        {country}
-                        <FiChevronRight className="ms-auto" />
-                      </Button>
-                    </Col>
-                  ))}
-                </Row>
-                <div className="mt-3">
-                  <Button variant="link" className="text-decoration-none">
-                    <FiBarChart2 className="me-2" />
-                    API Reports
-                  </Button>
-                  <Button variant="link" className="text-decoration-none ms-3">
-                    <FiPieChart className="me-2" />
-                    Summary Reports
-                  </Button>
-                </div>
-              </Card.Body>
-            </Card>
-
-            <Card className="mb-4 shadow-sm">
-              <Card.Body>
-                <h5 className="mb-3 text-success">
-                  <FaMoneyBillWave className="me-2" />
-                  Account Receivables
-                </h5>
-                <div className="d-flex flex-wrap gap-2">
-                  <Button variant="outline-success" className="d-flex align-items-center">
-                    <FiDatabase className="me-2" />
-                    API
-                  </Button>
-                  <Button variant="outline-success" className="d-flex align-items-center">
-                    <FiPieChart className="me-2" />
-                    Summary Reports
-                  </Button>
-                </div>
-              </Card.Body>
-            </Card>
-          </>
-        );
-      
-      case "shirmila":
-        return (
-          <>
-            <Card className="mb-4 shadow-sm">
-              <Card.Body>
-                <h5 className="mb-3 text-primary">
-                  <FaFileInvoiceDollar className="me-2" />
-                  Account Payables
-                </h5>
-                <Row>
-                  {['Ticketing', 'Income', 'Aging Reports', 'Bank Reconciliation', 'Summary Reports', 'Other'].map(item => (
-                    <Col md={4} key={item} className="mb-3">
-                      <Button 
-                        variant="outline-primary" 
-                        className="w-100 text-start d-flex align-items-center"
-                      >
-                        {item === 'Ticketing' && <FaPlane className="me-2" />}
-                        {item === 'Income' && <FiDollarSign className="me-2" />}
-                        {item === 'Aging Reports' && <FiCalendar className="me-2" />}
-                        {item === 'Bank Reconciliation' && <FiCreditCard className="me-2" />}
-                        {item === 'Summary Reports' && <FiPieChart className="me-2" />}
-                        {item === 'Other' && <FiLayers className="me-2" />}
-                        {item}
-                        <FiChevronRight className="ms-auto" />
-                      </Button>
-                    </Col>
-                  ))}
-                </Row>
-              </Card.Body>
-            </Card>
-
-            <Card className="mb-4 shadow-sm">
-              <Card.Body>
-                <h5 className="mb-3 text-success">
-                  <FaMoneyBillWave className="me-2" />
-                  Account Receivables
-                </h5>
-                <Row>
-                  {['API-Ticketing', 'Sales', 'Summary Reports'].map(item => (
-                    <Col md={4} key={item} className="mb-3">
-                      <Button 
-                        variant="outline-success" 
-                        className="w-100 text-start d-flex align-items-center"
-                      >
-                        {item === 'API-Ticketing' && <FaPlane className="me-2" />}
-                        {item === 'Sales' && <FiTrendingUp className="me-2" />}
-                        {item === 'Summary Reports' && <FiPieChart className="me-2" />}
-                        {item}
-                        <FiChevronRight className="ms-auto" />
-                      </Button>
-                    </Col>
-                  ))}
-                </Row>
-              </Card.Body>
-            </Card>
-          </>
-        );
-      
-      default:
-        return null;
-    }
-  };
+     switch (selectedCompany) {
+       case "appleholidays":
+       case "aahaas":
+         return (
+           <>
+             <Card className="mb-4 shadow-sm">
+               <Card.Body>
+                 <h5 className="mb-3 text-primary">
+                   <FaFileInvoiceDollar className="me-2" />
+                   Account Payables
+                 </h5>
+                 <Row>
+                   {[
+                     "Sri Lanka",
+                     "Singapore",
+                     "Vietnam",
+                     "Malaysia",
+                     "Maldives",
+                     "Bali",
+                     "Thailand",
+                     "Other",
+                   ].map((country) => (
+                     <Col md={3} key={country} className="mb-3">
+                       <Button
+                         variant="outline-primary"
+                         className="w-100 text-start d-flex align-items-center"
+                         onClick={() =>
+                           setActiveSection(
+                             `payables-${country
+                               .toLowerCase()
+                               .replace(" ", "-")}`
+                           )
+                         }
+                       >
+                         <FiGlobe className="me-2" />
+                         {country}
+                         <FiChevronRight className="ms-auto" />
+                       </Button>
+                     </Col>
+                   ))}
+                 </Row>
+                 <div className="mt-3">
+                   <Button variant="link" className="text-decoration-none">
+                     <FiBarChart2 className="me-2" />
+                     API Reports
+                   </Button>
+                   <Button variant="link" className="text-decoration-none ms-3">
+                     <FiPieChart className="me-2" />
+                     Summary Reports
+                   </Button>
+                 </div>
+               </Card.Body>
+             </Card>
+ 
+             <Card className="mb-4 shadow-sm">
+               <Card.Body>
+                 <h5 className="mb-3 text-success">
+                   <FaMoneyBillWave className="me-2" />
+                   Account Receivables
+                 </h5>
+                 <div className="d-flex flex-wrap gap-2">
+                   <Button
+                     variant="outline-success"
+                     className="d-flex align-items-center"
+                   >
+                     <FiDatabase className="me-2" />
+                     API
+                   </Button>
+                   <Button
+                     variant="outline-success"
+                     className="d-flex align-items-center"
+                   >
+                     <FiPieChart className="me-2" />
+                     Summary Reports
+                   </Button>
+                 </div>
+               </Card.Body>
+             </Card>
+           </>
+         );
+ 
+       case "shirmila":
+         return (
+           <>
+             <Card className="mb-4 shadow-sm">
+               <Card.Body>
+                 <h5 className="mb-3 text-primary">
+                   <FaFileInvoiceDollar className="me-2" />
+                   Account Payables
+                 </h5>
+                 <Row>
+                   {[
+                     "Ticketing",
+                     "Income",
+                     "Aging Reports",
+                     "Bank Reconciliation",
+                     "Summary Reports",
+                     "Other",
+                   ].map((item) => (
+                     <Col md={4} key={item} className="mb-3">
+                       <Button
+                         variant="outline-primary"
+                         className="w-100 text-start d-flex align-items-center"
+                       >
+                         {item === "Ticketing" && <FaPlane className="me-2" />}
+                         {item === "Income" && <FiDollarSign className="me-2" />}
+                         {item === "Aging Reports" && (
+                           <FiCalendar className="me-2" />
+                         )}
+                         {item === "Bank Reconciliation" && (
+                           <FiCreditCard className="me-2" />
+                         )}
+                         {item === "Summary Reports" && (
+                           <FiPieChart className="me-2" />
+                         )}
+                         {item === "Other" && <FiLayers className="me-2" />}
+                         {item}
+                         <FiChevronRight className="ms-auto" />
+                       </Button>
+                     </Col>
+                   ))}
+                 </Row>
+               </Card.Body>
+             </Card>
+ 
+             <Card className="mb-4 shadow-sm">
+               <Card.Body>
+                 <h5 className="mb-3 text-success">
+                   <FaMoneyBillWave className="me-2" />
+                   Account Receivables
+                 </h5>
+                 <Row>
+                   {["API-Ticketing", "Sales", "Summary Reports"].map((item) => (
+                     <Col md={4} key={item} className="mb-3">
+                       <Button
+                         variant="outline-success"
+                         className="w-100 text-start d-flex align-items-center"
+                       >
+                         {item === "API-Ticketing" && (
+                           <FaPlane className="me-2" />
+                         )}
+                         {item === "Sales" && <FiTrendingUp className="me-2" />}
+                         {item === "Summary Reports" && (
+                           <FiPieChart className="me-2" />
+                         )}
+                         {item}
+                         <FiChevronRight className="ms-auto" />
+                       </Button>
+                     </Col>
+                   ))}
+                 </Row>
+               </Card.Body>
+             </Card>
+           </>
+         );
+ 
+       default:
+         return null;
+     }
+   };
 
   return (
     <Container fluid className="py-4">
@@ -167,6 +285,18 @@ const Home = () => {
           <small className="text-muted">Manage invoices, payments and financial reports</small>
         </Col>
         <Col md={4} className="d-flex align-items-center justify-content-end">
+          <Dropdown className="me-2">
+            <Dropdown.Toggle variant="outline-secondary" className="d-flex align-items-center">
+              {currency} {getCurrencySymbol()}
+            </Dropdown.Toggle>
+            <Dropdown.Menu>
+              <Dropdown.Item onClick={() => setCurrency('INR')}>INR (₹)</Dropdown.Item>
+              <Dropdown.Item onClick={() => setCurrency('USD')}>USD ($)</Dropdown.Item>
+              <Dropdown.Item onClick={() => setCurrency('EUR')}>EUR (€)</Dropdown.Item>
+              <Dropdown.Item onClick={() => setCurrency('MYR')}>MYR (RM)</Dropdown.Item>
+              <Dropdown.Item onClick={() => setCurrency('SGD')}>SGD (S$)</Dropdown.Item>
+            </Dropdown.Menu>
+          </Dropdown>
           <Dropdown>
             <Dropdown.Toggle variant="outline-primary" className="d-flex align-items-center">
               <FiFilter className="me-2" />
@@ -195,7 +325,12 @@ const Home = () => {
               <div className="d-flex justify-content-between">
                 <div>
                   <h6 className="text-muted mb-2">Total Invoices</h6>
-                  <h3 className="mb-0">₹{invoiceStats.total.toLocaleString()}</h3>
+                  <h3 className="mb-0">
+                    {getCurrencySymbol()}{convertCurrency(invoiceStats.total).toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2
+                    })}
+                  </h3>
                 </div>
                 <div className="bg-primary bg-opacity-10 p-3 rounded">
                   <FaFileInvoiceDollar className="text-primary" size={24} />
@@ -203,7 +338,9 @@ const Home = () => {
               </div>
               <ProgressBar now={(invoiceStats.paid / invoiceStats.total) * 100} 
                 variant="success" className="mt-3" style={{height: '6px'}} />
-              <small className="text-muted">{Math.round((invoiceStats.paid / invoiceStats.total) * 100)}% Paid</small>
+              <small className="text-muted">
+                {invoiceStats.total > 0 ? Math.round((invoiceStats.paid / invoiceStats.total) * 100) : 0}% Paid
+              </small>
             </Card.Body>
           </Card>
         </Col>
@@ -213,7 +350,12 @@ const Home = () => {
               <div className="d-flex justify-content-between">
                 <div>
                   <h6 className="text-muted mb-2">Paid Invoices</h6>
-                  <h3 className="mb-0">₹{invoiceStats.paid.toLocaleString()}</h3>
+                  <h3 className="mb-0">
+                    {getCurrencySymbol()}{convertCurrency(invoiceStats.paid).toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2
+                    })}
+                  </h3>
                 </div>
                 <div className="bg-success bg-opacity-10 p-3 rounded">
                   <FiTrendingUp className="text-success" size={24} />
@@ -232,7 +374,12 @@ const Home = () => {
               <div className="d-flex justify-content-between">
                 <div>
                   <h6 className="text-muted mb-2">Pending Invoices</h6>
-                  <h3 className="mb-0">₹{invoiceStats.pending.toLocaleString()}</h3>
+                  <h3 className="mb-0">
+                    {getCurrencySymbol()}{convertCurrency(invoiceStats.pending).toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2
+                    })}
+                  </h3>
                 </div>
                 <div className="bg-warning bg-opacity-10 p-3 rounded">
                   <FiFileText className="text-warning" size={24} />
@@ -251,7 +398,12 @@ const Home = () => {
               <div className="d-flex justify-content-between">
                 <div>
                   <h6 className="text-muted mb-2">Overdue Invoices</h6>
-                  <h3 className="mb-0">₹{invoiceStats.overdue.toLocaleString()}</h3>
+                  <h3 className="mb-0">
+                    {getCurrencySymbol()}{convertCurrency(invoiceStats.overdue).toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2
+                    })}
+                  </h3>
                 </div>
                 <div className="bg-danger bg-opacity-10 p-3 rounded">
                   <FiTrendingDown className="text-danger" size={24} />
@@ -276,22 +428,22 @@ const Home = () => {
                 <FiPocket className="me-2 text-info" />
                 Quick Actions
               </h5>
-              <Button variant="outline-primary" className="w-100 mb-2 d-flex align-items-center">
+              <Link to="/invoice/create" className="btn btn-outline-primary w-100 mb-2 d-flex align-items-center">
                 <FiPlus className="me-2" />
                 Create New Invoice
-              </Button>
-              <Button variant="outline-secondary" className="w-100 mb-2 d-flex align-items-center">
-                <FiPrinter className="me-2" />
-                Print Invoices
-              </Button>
-              <Button variant="outline-success" className="w-100 mb-2 d-flex align-items-center">
-                <FaChartLine className="me-2" />
-                P&L Reports
-              </Button>
-              <Button variant="outline-info" className="w-100 d-flex align-items-center">
-                <FiCreditCard className="me-2" />
+              </Link>
+              <Link to="/invoice/pnl" className="btn btn-outline-success w-100 mb-2 d-flex align-items-center">
+                <FiPlus className="me-2" />
+                P & L reports
+              </Link>
+              <Link to="/invoice/summary" className="btn btn-outline-secondary w-100 mb-2 d-flex align-items-center">
+                <FiPlus className="me-2" />
+                Summary reports
+              </Link>
+              <Link to="/invoice/bank-accounts" className="btn btn-outline-info w-100 mb-2 d-flex align-items-center">
+                <FiPlus className="me-2" />
                 Bank Accounts
-              </Button>
+              </Link>
             </Card.Body>
           </Card>
 
@@ -315,43 +467,51 @@ const Home = () => {
                   className="d-flex align-items-center"
                 />
               </div>
-              <Table hover responsive>
-                <thead>
-                  <tr>
-                    <th>Invoice #</th>
-                    <th>Client</th>
-                    <th>Date</th>
-                    <th>Amount</th>
-                    <th>Status</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {[1, 2, 3, 4, 5].map(item => (
-                    <tr key={item}>
-                      <td>INV-2023-{1000 + item}</td>
-                      <td>Client {item}</td>
-                      <td>2023-06-{10 + item}</td>
-                      <td>₹{(5000 + (item * 1250)).toLocaleString()}</td>
-                      <td>
-                        <Badge bg={item % 3 === 0 ? 'success' : item % 2 === 0 ? 'warning' : 'danger'}>
-                          {item % 3 === 0 ? 'Paid' : item % 2 === 0 ? 'Pending' : 'Overdue'}
-                        </Badge>
-                      </td>
-                      <td>
-                        <Button variant="link" size="sm" className="p-0">
-                          View
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
-              <div className="d-flex justify-content-end">
-                <Button variant="link" className="text-decoration-none">
-                  View All Invoices <FiChevronRight />
-                </Button>
-              </div>
+              {loading ? (
+                <div className="text-center py-4">
+                  <div className="spinner-border text-primary" role="status">
+                    <span className="visually-hidden">Loading...</span>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <Table hover responsive>
+                    <thead>
+                      <tr>
+                        <th>Invoice #</th>
+                        <th>Client</th>
+                        <th>Date</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {invoices.map(invoice => (
+                        <tr key={invoice.id}>
+                          <td>{invoice.invoice_number}</td>
+                          <td>{invoice.customer?.name || 'N/A'}</td>
+                          <td>{new Date(invoice.issue_date).toLocaleDateString()}</td>
+                          <td>₹{parseFloat(invoice.total_amount || 0).toLocaleString()}</td>
+                          <td>
+                            {getStatusBadge(invoice)}
+                          </td>
+                          <td>
+                            <Button variant="link" size="sm" className="p-0">
+                              View
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </Table>
+                  <div className="d-flex justify-content-end">
+                    <Button variant="link" className="text-decoration-none">
+                      View All Invoices <FiChevronRight />
+                    </Button>
+                  </div>
+                </>
+              )}
             </Card.Body>
           </Card>
 
@@ -363,32 +523,21 @@ const Home = () => {
                 Bank Accounts & Reconciliation
               </h5>
               <Row>
-                <Col md={6}>
-                  <div className="p-3 bg-light rounded mb-3">
-                    <div className="d-flex justify-content-between align-items-center mb-2">
-                      <h6 className="mb-0">HDFC Bank</h6>
-                      <Badge bg="success">Active</Badge>
+                {invoices.filter(inv => inv.account).slice(0, 2).map(invoice => (
+                  <Col md={6} key={invoice.account.id}>
+                    <div className="p-3 bg-light rounded mb-3">
+                      <div className="d-flex justify-content-between align-items-center mb-2">
+                        <h6 className="mb-0">{invoice.account.bank}</h6>
+                        <Badge bg="success">Active</Badge>
+                      </div>
+                      <small className="text-muted">A/c No: ******{invoice.account.account_no.slice(-4)}</small>
+                      <div className="mt-2">
+                        <span className="fw-bold">₹{parseFloat(invoice.total_amount || 0).toLocaleString()}</span>
+                        <small className="text-muted ms-2">Current Balance</small>
+                      </div>
                     </div>
-                    <small className="text-muted">A/c No: ******7890</small>
-                    <div className="mt-2">
-                      <span className="fw-bold">₹1,25,890.00</span>
-                      <small className="text-muted ms-2">Current Balance</small>
-                    </div>
-                  </div>
-                </Col>
-                <Col md={6}>
-                  <div className="p-3 bg-light rounded mb-3">
-                    <div className="d-flex justify-content-between align-items-center mb-2">
-                      <h6 className="mb-0">ICICI Bank</h6>
-                      <Badge bg="success">Active</Badge>
-                    </div>
-                    <small className="text-muted">A/c No: ******4567</small>
-                    <div className="mt-2">
-                      <span className="fw-bold">₹89,450.00</span>
-                      <small className="text-muted ms-2">Current Balance</small>
-                    </div>
-                  </div>
-                </Col>
+                  </Col>
+                ))}
               </Row>
               <div className="d-flex justify-content-between mt-2">
                 <Button variant="outline-primary" size="sm">

@@ -51,7 +51,7 @@ const Invoice_summary = () => {
     new Date(),
   ]);
   const [startDate, endDate] = dateRange;
-  const [activeTab, setActiveTab] = useState("overview");
+  const [activeTab, setActiveTab] = useState("invoices");
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [showModal, setShowModal] = useState(false);
 
@@ -487,138 +487,7 @@ const Invoice_summary = () => {
         onSelect={(k) => setActiveTab(k)}
         className="mb-3"
       >
-        <Tab eventKey="overview" title="Overview">
-          <Row>
-            <Col md={8}>
-              <Card className="mb-4">
-                <Card.Header>
-                  <FaChartLine className="me-2" />
-                  Monthly Profit Analysis
-                </Card.Header>
-                <Card.Body>
-                  <BarChart data={profitChartData} />
-                  {/* <Bar
-                    data={profitChartData}
-                    options={{
-                      responsive: true,
-                      plugins: {
-                        legend: {
-                          position: "top",
-                        },
-                        tooltip: {
-                          callbacks: {
-                            label: function (context) {
-                              return `${context.dataset.label}: ${
-                                context.raw
-                              } ${selectedCompany?.currency || "USD"}`;
-                            },
-                          },
-                        },
-                      },
-                      scales: {
-                        y: {
-                          beginAtZero: true,
-                          ticks: {
-                            callback: function (value) {
-                              return `${value} ${
-                                selectedCompany?.currency || "USD"
-                              }`;
-                            },
-                          },
-                        },
-                      },
-                    }}
-                  /> */}
-                </Card.Body>
-              </Card>
-            </Col>
-            <Col md={4}>
-              <Card className="mb-4">
-                <Card.Header>
-                  <FaGlobe className="me-2" />
-                  Country Distribution
-                </Card.Header>
-                <Card.Body>
-                  {/* <Pie
-                    data={countryChartData}
-                    options={{
-                      responsive: true,
-                      plugins: {
-                        legend: {
-                          position: "right",
-                        },
-                      },
-                    }}
-                  /> */}
-                   <PieChart data={countryChartData} />
-                </Card.Body>
-              </Card>
-            </Col>
-          </Row>
-          <Row>
-            <Col md={6}>
-              <Card className="mb-4">
-                <Card.Header>
-                  <FaChartPie className="me-2" />
-                  Refund Status
-                </Card.Header>
-                <Card.Body>
-                  {/* <Pie
-                    data={refundChartData}
-                    options={{
-                      responsive: true,
-                      plugins: {
-                        legend: {
-                          position: "right",
-                        },
-                      },
-                    }}
-                  /> */}
-                  {/* <DoughnutChart data={refundChartData} /> */}
-                  {/* <Pie data={refundChartData} /> */}
-                  <PieChart data={refundChartData} />
-                </Card.Body>
-              </Card>
-            </Col>
-            <Col md={6}>
-              <Card className="mb-4">
-                <Card.Header>
-                  <FaUser className="me-2" />
-                  Top Customers
-                </Card.Header>
-                <Card.Body>
-                  <Table striped hover>
-                    <thead>
-                      <tr>
-                        <th>Customer</th>
-                        <th>Invoices</th>
-                        <th>Total</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {summaryData?.top_customers?.map((customer, idx) => (
-                        <tr key={idx}>
-                          <td>{customer?.name || "N/A"}</td>
-                          <td>{customer?.invoice_count || 0}</td>
-                          <td>
-                            {customer?.total_amount || 0}{" "}
-                            {customer?.currency || "USD"}
-                          </td>
-                        </tr>
-                      )) || (
-                        <tr>
-                          <td colSpan="3" className="text-center">
-                            No customer data available
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </Table>
-                </Card.Body>
-              </Card>
-            </Col>
-          </Row>
-        </Tab>
+
         <Tab eventKey="invoices" title="All Invoices">
           <Card>
             <Card.Header>

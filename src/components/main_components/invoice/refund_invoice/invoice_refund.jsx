@@ -29,6 +29,7 @@ const Invoice_refund = () => {
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [refundData, setRefundData] = useState({
     refund_amount: "",
+    total_amount: "", 
     refund_reason: "",
     refund_status: "",
     status: "refund",
@@ -49,7 +50,7 @@ const Invoice_refund = () => {
         setInvoices(response.data.data);
         // Filter invoices with refunds
         const refundInvoices = response.data.data.filter(
-          (invoice) => invoice.refund !== null
+          (invoice) => invoice.refund?.status !== "non-refund"
         );
         setFilteredInvoices(refundInvoices);
       } catch (err) {
@@ -61,6 +62,21 @@ const Invoice_refund = () => {
 
     fetchInvoices();
   }, []);
+
+  useEffect(() => {
+    if (selectedInvoice?.refund) {
+      setRefundData({
+        refund_amount: selectedInvoice.refund.refund_amount || "",
+        total_amount: selectedInvoice.total_amount || "",
+        refund_reason: selectedInvoice.refund.refund_reason || "",
+        refund_status: selectedInvoice.refund.refund_status || "pending",
+        status: "refund",
+        remark: selectedInvoice.refund.remark || "",
+        payment_methods: selectedInvoice.refund.payment_methods || [],
+        refund_attachments: selectedInvoice.refund.attachments || []
+      });
+    }
+  }, [selectedInvoice]);
 
   // Search invoices by number
   const handleSearch = async () => {
@@ -132,89 +148,146 @@ const Invoice_refund = () => {
   const handleSave = async () => {
     try {
       setLoading(true);
-
+      
       // Create FormData for file uploads
       const formData = new FormData();
-
-      // Add all refund data to FormData
-      Object.entries(refundData).forEach(([key, value]) => {
-        if (key === "attachments") {
-          // Handle file attachments
-          refundData.refund_attachments.forEach((file, index) => {
-            formData.append(`refund_attachments[${index}]`, file);
-          });
-        } else if (key === "payment_methods") {
-          // Convert array to comma-separated string
-          formData.append(key, value.join(","));
-        } else {
-          formData.append(key, value);
+      
+      // Create the refund object structure that matches Postman
+      const refundPayload = {
+        refund: {
+          refund_amount: parseFloat(refundData.refund_amount),
+          total_amount: parseFloat(refundData.total_amount),
+          refund_reason: refundData.refund_reason,
+          refund_status: "pending", // Default status
+          status: "refund", // Change from non-refund to refund
+          remark: refundData.remark,
+          payment_methods: refundData.payment_methods,
+          attachments: refundData.refund_attachments
         }
+      };
+  
+      // Add the refund object as JSON string
+      formData.append('refund', JSON.stringify(refundPayload.refund));
+      
+      // Add attachments if they exist
+      if (refundData.refund_attachments?.length > 0) {
+        refundData.refund_attachments.forEach((file, index) => {
+          formData.append(`attachments[${index}]`, file);
+        });
+      }
+  
+      // Debug: Show what's being sent
+      console.log('Request payload:', {
+        refund: refundPayload.refund,
+        attachments: refundData.refund_attachments
       });
-
-      // Add invoice number
-      formData.append("invoice_number", selectedInvoice.invoice_number);
-
+  
       await axios.put(
         `/api/invoices/by-number/${selectedInvoice.invoice_number}`,
         formData,
         {
           headers: {
-            "Content-Type": "multipart/form-data",
-          },
+            'Content-Type': 'multipart/form-data'
+          }
         }
       );
-
-      // Refresh the list after update
-      const response = await axios.get("/api/invoicess/all");
+  
+      // Refresh data
+      const response = await axios.get('/api/invoicess/all');
       setInvoices(response.data.data);
-      const refundInvoices = response.data.data.filter(
-        (invoice) => invoice.refund !== null
-      );
-      setFilteredInvoices(refundInvoices);
+      setFilteredInvoices(response.data.data.filter(invoice => invoice.refund?.status === "refund"));
+      
       setShowModal(false);
-      setRefundData({
-        refund_amount: "",
-        refund_reason: "",
-        refund_status: "",
-        status: "refund",
-        remark: "",
-        payment_methods: [],
-        refund_attachments: [],
-      });
+      setError(null);
     } catch (err) {
-      setError(err.message);
+      console.error('Refund submission error:', err);
+      setError(err.response?.data?.message || err.message);
     } finally {
       setLoading(false);
     }
   };
+  // const handleSave = async () => {
+  //   try {
+  //     setLoading(true);
+      
+  //     const formData = new FormData();
+  //     console.log(refundData);
+  //     // Add all refund data
+  //     formData.append('refund[refund_amount]', refundData.refund_amount);
+  //     formData.append('refund[total_amount]', refundData.total_amount);
+  //     formData.append('refund[refund_reason]', refundData.refund_reason);
+  //     formData.append('refund[refund_status]', refundData.refund_status);
+  //     formData.append('refund[status]', refundData.status);
+  //     formData.append('refund[remark]', refundData.remark);
+  //     formData.append('refund[payment_methods]', JSON.stringify(refundData.payment_methods));
+      
+  //     // Add attachments
+  //     refundData.refund_attachments.forEach((file, index) => {
+  //       formData.append(`refund[attachments][${index}]`, file);
+  //     });
+      
+  //     console.log('FormData contents:');
+  //     for (let [key, value] of formData.entries()) {
+  //       console.log(key, value);
+  //     }
+        
+  
+  //     await axios.put(
+  //       `/api/invoices/by-number/${selectedInvoice.invoice_number}`,
+  //       formData,
+  //       {
+  //         headers: {
+  //           'Content-Type': 'multipart/form-data'
+  //         }
+  //       }
+  //     );
+  
+  //     // Refresh data
+  //     const response = await axios.get('/api/invoicess/all');
+  //     setInvoices(response.data.data);
+  //     setFilteredInvoices(response.data.data.filter(invoice => invoice.refund?.status === "refund"));
+      
+  //     setShowModal(false);
+  //     setError(null);
+  //   } catch (err) {
+  //     setError(err.response?.data?.message || err.message);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   // Update refund status
   const updateRefundStatus = async (status) => {
     try {
       setLoading(true);
+      
       await axios.put(
         `/api/invoices/by-number/${selectedInvoice.invoice_number}`,
         {
-          ...refundData,
-          refund_status: status,
+          refund: {
+            ...refundData,
+            refund_status: status
+          }
         }
       );
-      // Refresh the list after update
-      const response = await axios.get("/api/invoicess/all");
+      
+      // Refresh data
+      const response = await axios.get('/api/invoices/all');
       setInvoices(response.data.data);
-      const refundInvoices = response.data.data.filter(
-        (invoice) => invoice.refund !== null
-      );
-      setFilteredInvoices(refundInvoices);
-      setSelectedInvoice((prev) => ({
+      setFilteredInvoices(response.data.data.filter(invoice => invoice.refund));
+      
+      // Update local state
+      setRefundData(prev => ({ ...prev, refund_status: status }));
+      setSelectedInvoice(prev => ({
         ...prev,
         refund: {
           ...prev.refund,
-          refund_status: status,
-        },
+          refund_status: status
+        }
       }));
+      
     } catch (err) {
-      setError(err.message);
+      setError(err.response?.data?.message || err.message);
     } finally {
       setLoading(false);
     }
@@ -331,358 +404,214 @@ const Invoice_refund = () => {
 
       {/* Invoice Refund Modal */}
       <Modal show={showModal} onHide={() => setShowModal(false)} size="lg">
-        <Modal.Header closeButton>
-          <Modal.Title>
-            {selectedInvoice?.refund
-              ? "Refund Details"
-              : "Create Refund Request"}
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {selectedInvoice && (
-            <div>
+  <Modal.Header closeButton>
+    <Modal.Title>
+      {selectedInvoice?.refund ? "Refund Details" : "Create Refund Request"}
+    </Modal.Title>
+  </Modal.Header>
+  <Modal.Body>
+    {selectedInvoice && (
+      <>
+        <Row className="mb-3">
+          <Col md={6}>
+            <h5>Invoice Information</h5>
+            <p><strong>Invoice #:</strong> {selectedInvoice.invoice_number}</p>
+            <p><strong>Customer:</strong> {selectedInvoice.customer?.name || "N/A"}</p>
+            <p><strong>Total Amount:</strong> {selectedInvoice.total_amount} {selectedInvoice.currency}</p>
+          </Col>
+          <Col md={6}>
+            {selectedInvoice.refund && (
+              <div className="d-flex align-items-center">
+                <h5 className="mb-0 me-2">Status:</h5>
+                <Badge bg={
+                  selectedInvoice.refund.refund_status === "confirmed" ? "success" :
+                  selectedInvoice.refund.refund_status === "cancelled" ? "danger" : "warning"
+                }>
+                  {selectedInvoice.refund.refund_status}
+                </Badge>
+              </div>
+            )}
+          </Col>
+        </Row>
+
+        {selectedInvoice.refund?.status !== "non-refund" ? (
+          <>
+            <h5>Refund Details</h5>
+            <Table bordered>
+              <tbody>
+                <tr>
+                  <td><strong>Refund Amount</strong></td>
+                  <td>{selectedInvoice.refund.refund_amount} {selectedInvoice.currency}</td>
+                </tr>
+                <tr>
+                  <td><strong>Reason</strong></td>
+                  <td>{selectedInvoice.refund.refund_reason}</td>
+                </tr>
+                <tr>
+                  <td><strong>Status</strong></td>
+                  <td>
+                    <Badge bg={
+                      selectedInvoice.refund.refund_status === "confirmed" ? "success" :
+                      selectedInvoice.refund.refund_status === "cancelled" ? "danger" : "warning"
+                    }>
+                      {selectedInvoice.refund.refund_status}
+                    </Badge>
+                  </td>
+                </tr>
+                <tr>
+                  <td><strong>Remark</strong></td>
+                  <td>{selectedInvoice.refund.remark || "N/A"}</td>
+                </tr>
+                <tr>
+                  <td><strong>Attachments</strong></td>
+                  <td>
+                    {selectedInvoice.refund.attachments?.length > 0 ? (
+                      <div>
+                        {selectedInvoice.refund.attachments.map((file, index) => (
+                          <div key={index}>
+                            <a href={`/storage/${file}`} target="_blank" rel="noreferrer">
+                              View Attachment {index + 1}
+                            </a>
+                          </div>
+                        ))}
+                      </div>
+                    ) : "N/A"}
+                  </td>
+                </tr>
+              </tbody>
+            </Table>
+
+            <div className="d-flex justify-content-end mt-3">
+              <Button
+                variant="success"
+                className="me-2"
+                onClick={() => updateRefundStatus("confirmed")}
+                disabled={selectedInvoice.refund.refund_status === "confirmed"}
+              >
+                <FaCheck className="me-1" /> Confirm Refund
+              </Button>
+              <Button
+                variant="danger"
+                onClick={() => updateRefundStatus("cancelled")}
+                disabled={selectedInvoice.refund.refund_status === "cancelled"}
+              >
+                <FaTimes className="me-1" /> Cancel Refund
+              </Button>
+            </div>
+          </>
+        ) : (
+          <>
+            <h5>Create Refund Request</h5>
+            <Form>
               <Row className="mb-3">
                 <Col md={6}>
-                  <h5>Invoice Information</h5>
-                  <p>
-                    <strong>Invoice #:</strong> {selectedInvoice.invoice_number}
-                  </p>
-                  <p>
-                    <strong>Customer:</strong>{" "}
-                    {selectedInvoice.customer?.name || "N/A"}
-                  </p>
-                  <p>
-                    <strong>Total Amount:</strong>{" "}
-                    {selectedInvoice.total_amount} {selectedInvoice.currency}
-                  </p>
+                  <Form.Group>
+                    <Form.Label>Refund Amount</Form.Label>
+                    <Form.Control
+                      type="number"
+                      name="refund_amount"
+                      value={refundData.refund_amount}
+                      onChange={handleChange}
+                      max={selectedInvoice.total_amount}
+                    />
+                  </Form.Group>
                 </Col>
                 <Col md={6}>
-                  {selectedInvoice.refund && (
-                    <>
-                      <h5>Current Status</h5>
-                      <Badge
-                        bg={
-                          selectedInvoice.refund.refund_status === "confirmed"
-                            ? "success"
-                            : selectedInvoice.refund.refund_status ===
-                              "cancelled"
-                            ? "danger"
-                            : "warning"
-                        }
-                        className="mb-2"
-                      >
-                        {selectedInvoice.refund.refund_status}
-                      </Badge>
-                    </>
-                  )}
+                  <Form.Group>
+                    <Form.Label>Total Amount</Form.Label>
+                    <Form.Control
+                      type="number"
+                      name="total_amount"
+                      value={selectedInvoice.total_amount}
+                      readOnly
+                    />
+                  </Form.Group>
                 </Col>
               </Row>
 
-              {selectedInvoice.refund ? (
-                <>
-                  <h5 className="mt-4">Refund Details</h5>
-                  <Table bordered>
-                    <tbody>
-                      <tr>
-                        <td>
-                          <strong>Refund Amount</strong>
-                        </td>
-                        <td>
-                          {selectedInvoice.refund.refund_amount}{" "}
-                          {selectedInvoice.currency}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td>
-                          <strong>Reason</strong>
-                        </td>
-                        <td>{selectedInvoice.refund.refund_reason}</td>
-                      </tr>
-                      <tr>
-                        <td>
-                          <strong>Payment Methods</strong>
-                        </td>
-                        <td>
-                          {selectedInvoice.refund.payment_methods?.join(", ") ||
-                            "N/A"}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td>
-                          <strong>Remark</strong>
-                        </td>
-                        <td>{selectedInvoice.refund.remark || "N/A"}</td>
-                      </tr>
-                      <tr>
-                        <td>
-                          <strong>Attachments</strong>
-                        </td>
-                        <td>
-                          {selectedInvoice.refund.refund_attachments?.length > 0 ? (
-                            <ul className="list-unstyled">
-                              {selectedInvoice.refund.refund_attachments.map(
-                                (file, index) => (
-                                  <li key={index}>
-                                    <a
-                                      href={`/storage/${file.path}`}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                    >
-                                      {file.name || `Attachment ${index + 1}`}
-                                    </a>
-                                  </li>
-                                )
-                              )}
-                            </ul>
-                          ) : (
-                            "N/A"
-                          )}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </Table>
+              <Form.Group className="mb-3">
+                <Form.Label>Refund Reason</Form.Label>
+                <Form.Control
+                  as="textarea"
+                  rows={3}
+                  name="refund_reason"
+                  value={refundData.refund_reason}
+                  onChange={handleChange}
+                />
+              </Form.Group>
 
-                  <div className="d-flex justify-content-end mt-4">
-                    <Button
-                      variant="success"
-                      className="me-2"
-                      onClick={() => updateRefundStatus("confirmed")}
-                      disabled={
-                        selectedInvoice.refund.refund_status === "confirmed"
-                      }
-                    >
-                      <FaCheck className="me-1" /> Confirm
-                    </Button>
-                    <Button
-                      variant="danger"
-                      onClick={() => updateRefundStatus("cancelled")}
-                      disabled={
-                        selectedInvoice.refund.refund_status === "cancelled"
-                      }
-                    >
-                      <FaTimes className="me-1" /> Cancel
-                    </Button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <h5 className="mt-4">Create Refund Request</h5>
-                  <Form>
-                    <Row className="mb-3">
-                      <Col md={6}>
-                        <Form.Group>
-                          <Form.Label>Refund Amount</Form.Label>
-                          <Form.Control
-                            type="number"
-                            name="refund_amount"
-                            value={refundData.refund_amount}
-                            onChange={handleChange}
-                            placeholder="Enter refund amount"
-                          />
-                        </Form.Group>
-                      </Col>
-                      <Col md={6}>
-                        <Form.Group>
-                          <Form.Label>Refund Reason</Form.Label>
-                          <Form.Control
-                            type="text"
-                            name="refund_reason"
-                            value={refundData.refund_reason}
-                            onChange={handleChange}
-                            placeholder="Enter reason for refund"
-                          />
-                        </Form.Group>
-                      </Col>
-                    </Row>
+              <Form.Group className="mb-3">
+                <Form.Label>Payment Methods</Form.Label>
+                <div>
+                  {['cash', 'bank_transfer', 'credit_card'].map(method => (
+                    <Form.Check
+                      key={method}
+                      inline
+                      type="checkbox"
+                      label={method.replace('_', ' ').toUpperCase()}
+                      checked={refundData.payment_methods.includes(method)}
+                      onChange={() => handlePaymentMethodChange(method)}
+                    />
+                  ))}
+                </div>
+              </Form.Group>
 
-                    <Row className="mb-3">
-                      <Col md={12}>
-                        <Form.Group>
-                          <Form.Label>Remark</Form.Label>
-                          <Form.Control
-                            as="textarea"
-                            rows={2}
-                            name="remark"
-                            value={refundData.remark}
-                            onChange={handleChange}
-                            placeholder="Additional notes"
-                          />
-                        </Form.Group>
-                      </Col>
-                    </Row>
-
-                    <Row className="mb-3">
-                      <Col md={12}>
-                        <Form.Label>Payment Methods</Form.Label>
-                        <div>
-                          <Form.Check
-                            inline
-                            type="checkbox"
-                            label="Cash"
-                            checked={refundData.payment_methods.includes(
-                              "cash"
-                            )}
-                            onChange={() => handlePaymentMethodChange("cash")}
-                          />
-                          <Form.Check
-                            inline
-                            type="checkbox"
-                            label="Bank Transfer"
-                            checked={refundData.payment_methods.includes(
-                              "bank_transfer"
-                            )}
-                            onChange={() =>
-                              handlePaymentMethodChange("bank_transfer")
-                            }
-                          />
-                        </div>
-                      </Col>
-                    </Row>
-
-                    {/* Add this new section for file uploads */}
-                    <Row className="mb-3">
-                      <Col md={12}>
-                        <Form.Group>
-                          <Form.Label>Attachments</Form.Label>
-                          <Form.Control
-                            type="file"
-                            multiple
-                            onChange={(e) => {
-                              const files = Array.from(e.target.files);
-                              setRefundData((prev) => ({
+              <Form.Group className="mb-3">
+                <Form.Label>Attachments</Form.Label>
+                <Form.Control
+                  type="file"
+                  multiple
+                  onChange={(e) => {
+                    setRefundData(prev => ({
+                      ...prev,
+                      refund_attachments: Array.from(e.target.files)
+                    }));
+                  }}
+                />
+                {refundData.refund_attachments.length > 0 && (
+                  <div className="mt-2">
+                    <strong>Selected Files:</strong>
+                    <ul>
+                      {refundData.refund_attachments.map((file, index) => (
+                        <li key={index}>
+                          {file.name} 
+                          <Button
+                            variant="link"
+                            size="sm"
+                            onClick={() => {
+                              const newFiles = [...refundData.refund_attachments];
+                              newFiles.splice(index, 1);
+                              setRefundData(prev => ({
                                 ...prev,
-                                refund_attachments: files,
+                                refund_attachments: newFiles
                               }));
                             }}
-                          />
-                          <Form.Text className="text-muted">
-                            Upload supporting documents for the refund
-                            (receipts, cancellation forms, etc.)
-                          </Form.Text>
-
-                          {/* Display selected files */}
-                          {refundData.refund_attachments &&
-                            refundData.refund_attachments.length > 0 && (
-                              <div className="mt-2">
-                                <h6>Selected Files:</h6>
-                                <ul className="list-unstyled">
-                                  {refundData.refund_attachments.map((file, index) => (
-                                    <li
-                                      key={index}
-                                      className="d-flex align-items-center"
-                                    >
-                                      <FaInfoCircle className="me-2 text-primary" />
-                                      {file.name} (
-                                      {Math.round(file.size / 1024)} KB)
-                                      <Button
-                                        variant="link"
-                                        size="sm"
-                                        className="text-danger ms-2"
-                                        onClick={() => {
-                                          const newAttachments = [
-                                            ...refundData.refund_attachments,
-                                          ];
-                                          newAttachments.splice(index, 1);
-                                          setRefundData((prev) => ({
-                                            ...prev,
-                                            refund_attachments: newAttachments,
-                                          }));
-                                        }}
-                                      >
-                                        Remove
-                                      </Button>
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
-                        </Form.Group>
-                      </Col>
-                    </Row>
-                  </Form>
-                </>
-                // <>
-                //   <h5 className="mt-4">Create Refund Request</h5>
-                //   <Form>
-                //     <Row className="mb-3">
-                //       <Col md={6}>
-                //         <Form.Group>
-                //           <Form.Label>Refund Amount</Form.Label>
-                //           <Form.Control
-                //             type="number"
-                //             name="refund_amount"
-                //             value={refundData.refund_amount}
-                //             onChange={handleChange}
-                //             placeholder="Enter refund amount"
-                //           />
-                //         </Form.Group>
-                //       </Col>
-                //       <Col md={6}>
-                //         <Form.Group>
-                //           <Form.Label>Refund Reason</Form.Label>
-                //           <Form.Control
-                //             type="text"
-                //             name="refund_reason"
-                //             value={refundData.refund_reason}
-                //             onChange={handleChange}
-                //             placeholder="Enter reason for refund"
-                //           />
-                //         </Form.Group>
-                //       </Col>
-                //     </Row>
-                //     <Row className="mb-3">
-                //       <Col md={12}>
-                //         <Form.Group>
-                //           <Form.Label>Remark</Form.Label>
-                //           <Form.Control
-                //             as="textarea"
-                //             rows={2}
-                //             name="remark"
-                //             value={refundData.remark}
-                //             onChange={handleChange}
-                //             placeholder="Additional notes"
-                //           />
-                //         </Form.Group>
-                //       </Col>
-                //     </Row>
-                //     <Row className="mb-3">
-                //       <Col md={12}>
-                //         <Form.Label>Payment Methods</Form.Label>
-                //         <div>
-                //           <Form.Check
-                //             inline
-                //             type="checkbox"
-                //             label="Cash"
-                //             checked={refundData.payment_methods.includes('cash')}
-                //             onChange={() => handlePaymentMethodChange('cash')}
-                //           />
-                //           <Form.Check
-                //             inline
-                //             type="checkbox"
-                //             label="Bank Transfer"
-                //             checked={refundData.payment_methods.includes('bank_transfer')}
-                //             onChange={() => handlePaymentMethodChange('bank_transfer')}
-                //           />
-                //         </div>
-                //       </Col>
-                //     </Row>
-                //   </Form>
-                // </>
-              )}
-            </div>
-          )}
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowModal(false)}>
-            Close
-          </Button>
-          {!selectedInvoice?.refund && (
-            <Button variant="primary" onClick={handleSave}>
-              <FaEdit className="me-1" /> Save Refund Request
-            </Button>
-          )}
-        </Modal.Footer>
-      </Modal>
+                          >
+                            Remove
+                          </Button>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </Form.Group>
+            </Form>
+          </>
+        )}
+      </>
+    )}
+  </Modal.Body>
+  <Modal.Footer>
+    <Button variant="secondary" onClick={() => setShowModal(false)}>
+      Close
+    </Button>
+    {selectedInvoice?.refund?.status == "non-refund" && (
+      <Button variant="primary" onClick={handleSave} type="submit" disabled={loading}>
+        {loading ? 'Processing...' : 'Submit Refund Request'}
+      </Button>
+    )}
+  </Modal.Footer>
+</Modal>
     </Container>
   );
 };

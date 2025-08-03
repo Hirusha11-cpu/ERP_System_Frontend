@@ -291,7 +291,7 @@ export const router = createBrowserRouter([
                 element: <LoginMinimal />
             },
             {
-                path: "/authentication/login/creative",
+                path: "/login",
                 element: <LoginCreative />
             },
             {
@@ -303,7 +303,7 @@ export const router = createBrowserRouter([
                 element: <RegisterMinimal />
             },
             {
-                path: "/authentication/register/creative",
+                path: "/register",
                 element: <RegisterCreative />
             },
             {

@@ -12,7 +12,7 @@ const ProfileModal = () => {
         // localStorage.removeItem("auth_token");
         // sessionStorage.clear();
 
-        navigate('/authentication/login/creative'); // ✅ Redirect to login page
+        navigate('/login'); // ✅ Redirect to login page
     }
     return (
         <div className="dropdown nxl-h-item">
@@ -22,9 +22,9 @@ const ProfileModal = () => {
             <div className="dropdown-menu dropdown-menu-end nxl-h-dropdown nxl-user-dropdown">
                 <div className="dropdown-header">
                     <div className="d-flex align-items-center">
-                        <img src="/images/avatar/1.png" alt="user-image" className="img-fluid user-avtar" />
+                        <img src="/images/avatar/new_user.jpg" alt="user-image" className="img-fluid user-avtar" />
                         <div>
-                            <h6 className="text-dark mb-0">Alexandra Della <span className="badge bg-soft-success text-success ms-1">PRO</span></h6>
+                            <h6 className="text-dark mb-0">Alexandra Della <span className="badge bg-soft-success text-success ms-1"></span></h6>
                             <span className="fs-12 fw-medium text-muted">alex.della@outlook.com</span>
                         </div>
                     </div>
@@ -56,7 +56,7 @@ const ProfileModal = () => {
                     </div>
                 </div>
                 <div className="dropdown-divider"></div>
-                <div className="dropdown">
+                {/* <div className="dropdown d-none">
                     <a href="#" className="dropdown-item" data-bs-toggle="dropdown">
                         <span className="hstack">
                             <i className=" me-2"><FiDollarSign /></i>
@@ -82,13 +82,13 @@ const ProfileModal = () => {
                         }
 
                     </div>
-                </div>
+                </div> */}
                 <div className="dropdown-divider"></div>
                 <a href="#" className="dropdown-item">
                     <i ><FiUser /></i>
                     <span>Profile Details</span>
                 </a>
-                <a href="#" className="dropdown-item">
+                {/* <a href="#" className="dropdown-item">
                     <i ><FiActivity /></i>
                     <span>Activity Feed</span>
                 </a>
@@ -99,7 +99,7 @@ const ProfileModal = () => {
                 <a href="#" className="dropdown-item">
                     <i><FiBell /></i>
                     <span>Notifications</span>
-                </a>
+                </a> */}
                 <a href="#" className="dropdown-item">
                     <i><FiSettings /></i>
                     <span>Account Settings</span>

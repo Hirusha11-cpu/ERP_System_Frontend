@@ -39,6 +39,8 @@ const Invoice_pnl = () => {
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const { selectedCompany } = useContext(CompanyContext);
+      const token =
+    localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
 
   useEffect(() => {
     fetchInvoices();
@@ -69,7 +71,11 @@ const Invoice_pnl = () => {
   const fetchInvoices = async (company_id) => {
     setLoading(true);
     try {
-      const response = await axios.get(`/api/invoices?company_id=${company_id}`);
+      const response = await axios.get(`/api/invoices?company_id=${company_id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       setInvoices(response.data.data || []);
       setFilteredInvoices(response.data.data || []);
     } catch (error) {

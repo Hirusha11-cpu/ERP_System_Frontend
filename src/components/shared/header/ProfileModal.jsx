@@ -9,7 +9,7 @@ const ProfileModal = () => {
 
     const handleLogout = () => {
         // Optional: clear localStorage/session
-        // localStorage.removeItem("auth_token");
+        localStorage.removeItem("authToken");
         // sessionStorage.clear();
 
         navigate('/login'); // ✅ Redirect to login page

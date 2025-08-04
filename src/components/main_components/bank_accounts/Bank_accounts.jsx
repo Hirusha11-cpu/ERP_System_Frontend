@@ -17,11 +17,19 @@ const Bank_accounts = () => {
     bank_address: "",
     currency:""
   });
+  const token =
+    localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
 
   // Fetch accounts (Mock or replace with API call)
   const fetchAccounts = () => {
     // Fetch from API
-    axios.get("/api/accounts").then((res) => setAccounts(res.data));
+    axios.get("/api/accounts",
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        }
+      }
+    ).then((res) => setAccounts(res.data));
     setAccounts([]); // Empty initially for demo
   };
 
@@ -71,14 +79,22 @@ const handleChange = (e) => {
         .then(fetchAccounts);
     } else {
       // Create
-      axios.post("/api/accounts", formData).then(fetchAccounts);
+      axios.post("/api/accounts", formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }).then(fetchAccounts);
     }
     handleCloseModal();
   };
 
   const handleDelete = (id) => {
     if (window.confirm("Are you sure you want to delete this account?")) {
-      axios.delete(`/api/accounts/${id}`).then(fetchAccounts);
+      axios.delete(`/api/accounts/${id}`,{
+        headers: {
+          Authorization: `Bearer ${token}`,
+        }
+      }).then(fetchAccounts);
     }
   };
 

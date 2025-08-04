@@ -14,6 +14,7 @@ import Invoice_summary from './summary_invoice/invoice_summary';
 import Invoice_refund from './refund_invoice/invoice_refund';
 import Invoice_create from './create_invoice/Invoice_create';
 import Invoice_list from './list_invoice/Invoice_list';
+import Invoice_reconciliation from './create_invoice/reconciliation/Invoice_reconciliation';
 
 const Invoice_preview = ({ target }) => {
     const { selectedCompany } = useContext(CompanyContext);
@@ -128,6 +129,18 @@ const Invoice_preview = ({ target }) => {
         return <Invoice_refund company={'aahaas'}/>;
       default:
         return <Invoice_refund company={'aahaas'}/>;
+    }
+  }
+  if (target === "invoice_reconciliation") {
+   switch (selectedCompany) {
+      case "appleholidays":
+        return <Invoice_reconciliation company={'appleholidays'}/>;
+      case "shirmila":
+        return <Invoice_reconciliation company={'shirmila'} />;
+      case "aahaas":
+        return <Invoice_reconciliation company={'aahaas'}/>;
+      default:
+        return <Invoice_reconciliation company={'aahaas'}/>;
     }
   }
 

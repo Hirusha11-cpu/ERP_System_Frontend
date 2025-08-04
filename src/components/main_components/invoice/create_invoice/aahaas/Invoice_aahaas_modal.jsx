@@ -57,6 +57,9 @@ const Invoice_aahaas_modal = ({
               <span className="meta-value">
                 {formData.payment.type === "credit" ? "Credit" : "Non-Credit"} |
                 {formData.totals.balance <= 0 ? "Full Payment" : "Partial Payment"}
+                {formData.payment.type === "non-credit" && (
+                  <span>    {formatDate(formData.payment.collectionDate)}</span>
+                )}
               </span>
             </div>
           </div>

@@ -48,6 +48,8 @@ const Invoice_List_appleholidays = () => {
   const [filterStatus, setFilterStatus] = useState("all");
   const { selectedCompany } = useContext(CompanyContext);
   const navigate = useNavigate();
+  const token =
+    localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
 
   useEffect(() => {
     fetchInvoices();
@@ -59,6 +61,9 @@ const Invoice_List_appleholidays = () => {
       const response = await axios.get("/api/invoices", {
         params: {
           company_id: 2,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
         },
       });
       setInvoices(response.data.data || []);
@@ -96,6 +101,9 @@ const Invoice_List_appleholidays = () => {
     try {
       const response = await axios.get(`/api/invoices/${invoiceId}/print`, {
         responseType: "blob",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
       const fileURL = window.URL.createObjectURL(new Blob([response.data]));
       const fileLink = document.createElement("a");
@@ -115,7 +123,13 @@ const Invoice_List_appleholidays = () => {
 
   const handleDeleteInvoice = async () => {
     try {
-      await axios.delete(`/api/invoices/${invoiceToDelete.id}`);
+      await axios.delete(`/api/invoices/${invoiceToDelete.id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
       fetchInvoices();
       setShowDeleteModal(false);
     } catch (error) {
@@ -183,7 +197,12 @@ const Invoice_List_appleholidays = () => {
 
       await axios.put(
         `/api/invoices/by-number/${currentInvoice.invoice_number}`,
-        updatedData
+        updatedData,
+        {
+          headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        }
       );
       fetchInvoices();
       setShowEditModal(false);

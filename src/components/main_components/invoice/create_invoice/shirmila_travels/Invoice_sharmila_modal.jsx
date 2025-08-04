@@ -11,7 +11,11 @@ const Invoice_sharmila_modal = ({
   printInvoice,
   formatDate
 }) => {
+  console.log("Invoice Data:", formData);
+  
   return (
+
+
     <Modal
       show={show}
       onHide={onHide}
@@ -242,7 +246,7 @@ const Invoice_sharmila_modal = ({
           </div>
 
           {/* Payment Instructions */}
-          <div className="mb-3">{formData.payment.instructions}</div>
+         {formData.payment.type === "non-credit" && <div className="mb-3">{formData.payment.instructions}{" "}{formData.payment.type === "non-credit" && formData.payment.collectionDate}</div>}
 
           {/* Bottom left: Staff and Remark */}
           <div className="row">

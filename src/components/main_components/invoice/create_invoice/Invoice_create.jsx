@@ -32,6 +32,9 @@ const Invoice_create = () => {
   const { selectedCompany } = useContext(CompanyContext);
   const navigate = useNavigate();
 
+   const token =
+    localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+
   const [customers, setCustomers] = useState([]);
   const [taxRates, setTaxRates] = useState([]);
   const [accounts, setAccounts] = useState([]);
@@ -46,6 +49,10 @@ const Invoice_create = () => {
     fetchCustomers();
     // fetchTaxRates();
   }, []);
+
+  useEffect(() => {
+    fetchAccounts()
+  }, [selectedCompany]);
 
   useEffect(() => {
     const companyMap = {
@@ -72,10 +79,10 @@ const Invoice_create = () => {
         dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
           .toISOString()
           .split("T")[0],
-        salesId: "ARAVEND",
-        printedBy: "KAVIYA",
-        yourRef: "399648 CNTL",
-        bookingId: "399648 CNTL",
+        salesId: "",
+        printedBy: "",
+        yourRef: "",
+        bookingId: "",
       },
       currencyDetails: {
         currency: "USD",
@@ -148,7 +155,12 @@ const Invoice_create = () => {
       console.log(`Fetching accounts for currency: ${currencyInfo}`);
 
       const response = await axios.get(
-        `/api/accounts/by-currency/${currencyInfo}/${companyNo}`
+        `/api/accounts/by-currency/${currencyInfo}/${companyNo}`,
+         {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
       console.log(response);
       setAccounts(response.data);
@@ -159,7 +171,13 @@ const Invoice_create = () => {
 
   const fetchCustomers = async () => {
     try {
-      const response = await axios.get("/api/customers");
+      const response = await axios.get("/api/customers",
+         {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
       console.log(response);
 
       setCustomers(response.data);
@@ -176,7 +194,11 @@ const Invoice_create = () => {
 
   const fetchTaxRates = async () => {
     try {
-      const response = await axios.get(`/api/tax-rate/component/${component}`);
+      const response = await axios.get(`/api/tax-rate/component/${component}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       console.log("Fetched tax rate:", response.data);
 
       const rates = Array.isArray(response.data)
@@ -248,7 +270,7 @@ const Invoice_create = () => {
       additional_charges: formData.additionalCharges.map(charge => ({
         description: charge.description,
         amount: charge.amount,
-        taxable: !!charge.taxable // Double bang to force boolean
+        taxable: true // Double bang to force boolean
       })),
       attachments: formData.attachments,
       // attachments: formData.attachments.forEach((file) => {
@@ -262,6 +284,7 @@ const Invoice_create = () => {
       const response = await axios.post("/api/invoices", dataToSend, {
         headers: {
           "Content-Type": "multipart/form-data",
+          Authorization: `Bearer ${token}`,
         },
       });
       console.log(response.data);
@@ -512,7 +535,11 @@ const Invoice_create = () => {
   // Create new customer
   const createNewCustomer = async () => {
     try {
-      const response = await axios.post("/api/customers", newCustomer);
+      const response = await axios.post("/api/customers", newCustomer, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       setCustomers([...customers, response.data]);
       handleCustomerSelect(response.data);
       setShowCustomerModal(false);
@@ -785,6 +812,10 @@ const Invoice_create = () => {
         name: newTaxRate.component,
         component: newTaxRate.component,
         rate: newTaxRate.rate,
+      }, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       // Update tax rates list
@@ -832,7 +863,11 @@ const Invoice_create = () => {
     } else if (type === "tax") {
       // For tax rates, we'll need to make an API call to delete
       try {
-        await axios.delete(`/api/tax-rates/${id}`);
+        await axios.delete(`/api/tax-rates/${id}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         const updatedTaxRates = taxRates.filter((tax) => tax.id !== id);
         setTaxRates(updatedTaxRates);
         setFormData((prev) => ({
@@ -951,10 +986,10 @@ const Invoice_create = () => {
           dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
             .toISOString()
             .split("T")[0],
-          salesId: "ARAVEND",
-          printedBy: "KAVIYA",
-          yourRef: "399648 CNTL",
-          bookingId: "399648 CNTL",
+          salesId: "",
+          printedBy: "",
+          yourRef: "",
+          bookingId: "",
         },
         currencyDetails: {
           currency: "USD",

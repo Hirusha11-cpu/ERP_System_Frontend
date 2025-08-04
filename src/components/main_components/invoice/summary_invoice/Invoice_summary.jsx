@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext , useRef} from "react";
+import React, { useState, useEffect, useContext, useRef } from "react";
 import {
   Table,
   Card,
@@ -30,7 +30,7 @@ import {
   FaUser,
 } from "react-icons/fa";
 import { Bar, Pie, Line } from "react-chartjs-2";
-import Chart from 'chart.js/auto';
+import Chart from "chart.js/auto";
 
 import axios from "axios";
 import { CompanyContext } from "../../../../contentApi/CompanyProvider";
@@ -54,6 +54,18 @@ const Invoice_summary = () => {
   const [activeTab, setActiveTab] = useState("invoices");
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [companyNo, setCompanyNo] = useState(null);
+
+  const token =
+    localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+  useEffect(() => {
+    const companyMap = {
+      appleholidays: 2,
+      aahaas: 3,
+      shirmila: 1,
+    };
+    setCompanyNo(companyMap[selectedCompany?.toLowerCase()] || null);
+  }, [selectedCompany]);
 
   // Fetch invoices and summary data
   useEffect(() => {
@@ -61,8 +73,16 @@ const Invoice_summary = () => {
       try {
         setLoading(true);
         const [invoicesRes, summaryRes] = await Promise.all([
-          axios.get(`/api/invoicesss/all?company_id=1`),
-          axios.get(`/api/invoicess/summary?company_id=1`),
+          axios.get(`/api/invoicesss/all?company_id=${companyNo}`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }),
+          axios.get(`/api/invoicess/summary?company_id=${companyNo}`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }),
           //   axios.get(`/api/invoicess/all?company_id=${selectedCompany.id}`),
           //   axios.get(`/api/invoicess/summary?company_id=${selectedCompany.id}`)
         ]);
@@ -115,7 +135,7 @@ const Invoice_summary = () => {
     // Date filter
   }, [invoices, searchTerm, startDate, endDate]);
 
-    const BarChart = ({ data }) => {
+  const BarChart = ({ data }) => {
     const chartRef = useRef(null);
     const chartInstance = useRef(null);
 
@@ -125,38 +145,40 @@ const Invoice_summary = () => {
           chartInstance.current.destroy();
         }
 
-        const ctx = chartRef.current.getContext('2d');
+        const ctx = chartRef.current.getContext("2d");
         chartInstance.current = new Chart(ctx, {
-          type: 'bar',
+          type: "bar",
           data: {
             labels: data.labels,
-            datasets: data.datasets
+            datasets: data.datasets,
           },
           options: {
             responsive: true,
             plugins: {
               legend: {
-                position: 'top',
+                position: "top",
               },
               tooltip: {
                 callbacks: {
-                  label: function(context) {
-                    return `${context.dataset.label}: ${context.raw} ${selectedCompany?.currency || "USD"}`;
-                  }
-                }
-              }
+                  label: function (context) {
+                    return `${context.dataset.label}: ${context.raw} ${
+                      selectedCompany?.currency || "USD"
+                    }`;
+                  },
+                },
+              },
             },
             scales: {
               y: {
                 beginAtZero: true,
                 ticks: {
-                  callback: function(value) {
+                  callback: function (value) {
                     return `${value} ${selectedCompany?.currency || "USD"}`;
-                  }
-                }
-              }
-            }
-          }
+                  },
+                },
+              },
+            },
+          },
         });
       }
 
@@ -180,21 +202,21 @@ const Invoice_summary = () => {
           chartInstance.current.destroy();
         }
 
-        const ctx = chartRef.current.getContext('2d');
+        const ctx = chartRef.current.getContext("2d");
         chartInstance.current = new Chart(ctx, {
-          type: 'pie',
+          type: "pie",
           data: {
             labels: data.labels,
-            datasets: data.datasets
+            datasets: data.datasets,
           },
           options: {
             responsive: true,
             plugins: {
               legend: {
-                position: 'right',
-              }
-            }
-          }
+                position: "right",
+              },
+            },
+          },
         });
       }
 
@@ -218,21 +240,21 @@ const Invoice_summary = () => {
           chartInstance.current.destroy();
         }
 
-        const ctx = chartRef.current.getContext('2d');
+        const ctx = chartRef.current.getContext("2d");
         chartInstance.current = new Chart(ctx, {
-          type: 'doughnut',
+          type: "doughnut",
           data: {
             labels: data.labels,
-            datasets: data.datasets
+            datasets: data.datasets,
           },
           options: {
             responsive: true,
             plugins: {
               legend: {
-                position: 'right',
-              }
-            }
-          }
+                position: "right",
+              },
+            },
+          },
         });
       }
 
@@ -310,6 +332,7 @@ const Invoice_summary = () => {
 
   // Handle view invoice details
   const handleViewInvoice = (invoice) => {
+    console.log("Selected Invoice:", invoice);
     setSelectedInvoice(invoice);
     setShowModal(true);
   };
@@ -427,7 +450,7 @@ const Invoice_summary = () => {
               <div className="d-flex justify-content-between align-items-center">
                 <div>
                   <Card.Title>Total Revenue</Card.Title>
-                  <h2>{summaryData?.total_amount || 0}</h2>
+                  <h2>{(summaryData?.total_amount.toFixed(2)) || 0}</h2>
                   <small>{selectedCompany?.currency || "USD"}</small>
                 </div>
                 <FaChartLine size={40} />
@@ -487,7 +510,6 @@ const Invoice_summary = () => {
         onSelect={(k) => setActiveTab(k)}
         className="mb-3"
       >
-
         <Tab eventKey="invoices" title="All Invoices">
           <Card>
             <Card.Header>
@@ -724,7 +746,7 @@ const Invoice_summary = () => {
                 </Col>
               </Row>
 
-              <h5 className="mt-4">Items</h5>
+              {/* <h5 className="mt-4">Items</h5>
               <Table striped bordered>
                 <thead>
                   <tr>
@@ -752,8 +774,8 @@ const Invoice_summary = () => {
                     </tr>
                   ))}
                 </tbody>
-              </Table>
-
+              </Table> */}
+{/* 
               {selectedInvoice.additional_charges.length > 0 && (
                 <>
                   <h5 className="mt-4">Additional Charges</h5>
@@ -778,7 +800,7 @@ const Invoice_summary = () => {
                     </tbody>
                   </Table>
                 </>
-              )}
+              )} */}
 
               {selectedInvoice.refund && (
                 <>

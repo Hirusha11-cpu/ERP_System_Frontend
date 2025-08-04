@@ -49,6 +49,9 @@ const Invoice_List_shirmila = () => {
   const { selectedCompany } = useContext(CompanyContext);
   const navigate = useNavigate();
 
+  const token =
+    localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+
   useEffect(() => {
     fetchInvoices();
   }, []);
@@ -59,6 +62,9 @@ const Invoice_List_shirmila = () => {
       const response = await axios.get("/api/invoices", {
         params: {
           company_id: 1,
+        },
+        headers: {
+          Authorization: `Bearer ${token}`,
         },
       });
       setInvoices(response.data.data || []);
@@ -89,16 +95,24 @@ const Invoice_List_shirmila = () => {
 
   const handleEditInvoice = (invoice) => {
     console.log("Editing invoice:", invoice);
-    
+
     setCurrentInvoice(invoice);
     setShowEditModal(true);
-  }; 
+  };
 
   const handlePrintInvoice = async (invoiceId) => {
     try {
-      const response = await axios.get(`/api/invoices/${invoiceId}/print`, {
-        responseType: "blob",
-      });
+      const response = await axios.get(
+        `/api/invoices/${invoiceId}/print`,
+        {
+          responseType: "blob",
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
       const fileURL = window.URL.createObjectURL(new Blob([response.data]));
       const fileLink = document.createElement("a");
       fileLink.href = fileURL;
@@ -117,7 +131,11 @@ const Invoice_List_shirmila = () => {
 
   const handleDeleteInvoice = async () => {
     try {
-      await axios.delete(`/api/invoices/${invoiceToDelete.id}`);
+      await axios.delete(`/api/invoices/${invoiceToDelete.id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       fetchInvoices();
       setShowDeleteModal(false);
     } catch (error) {
@@ -278,6 +296,7 @@ const Invoice_List_shirmila = () => {
         {
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
         }
       );
@@ -624,8 +643,8 @@ const Invoice_List_shirmila = () => {
               <div className="text-center mb-3">
                 <h4 className="mb-1 fw-bold">Sharmila Tours & Travels</h4>
                 <div className="mb-1">
-                No: 148, Aluthmawatha Road, Colombo - 15, Sri Lanka
-              </div>
+                  No: 148, Aluthmawatha Road, Colombo - 15, Sri Lanka
+                </div>
                 {/* <div className="mb-1">Chinna Chokkikulam, Madurai - 625002</div> */}
                 <div className="mb-1">Tel:011 23 52 400 | 011 23 45 800</div>
                 {/* <div className="mb-1">E-mail: chennai@Sharmilatravels.com</div> */}
@@ -821,6 +840,7 @@ const Invoice_List_shirmila = () => {
                 alwaysOpen
               >
                 {/* Customer Information */}
+                {/* Customer Information Section */}
                 <Accordion.Item eventKey="customer">
                   <Accordion.Header>
                     <div className="d-flex align-items-center">
@@ -837,15 +857,89 @@ const Invoice_List_shirmila = () => {
 
                     <Row>
                       <Col md={6}>
+                        <FloatingLabel label="Customer Name" className="mb-3">
+                          <Form.Control
+                            type="text"
+                            name="customer_name"
+                            defaultValue={currentInvoice.customer?.name}
+                            required
+                          />
+                        </FloatingLabel>
+                      </Col>
+                      <Col md={6}>
+                        <FloatingLabel label="Mobile Number" className="mb-3">
+                          <Form.Control
+                            type="text"
+                            name="customer_mobile"
+                            defaultValue={currentInvoice.customer?.mobile}
+                            required
+                          />
+                        </FloatingLabel>
+                      </Col>
+                    </Row>
+
+                    <Row>
+                      <Col md={6}>
+                        <FloatingLabel label="Customer Code" className="mb-3">
+                          <Form.Control
+                            type="text"
+                            name="customer_code"
+                            defaultValue={currentInvoice.customer?.code}
+                            required
+                          />
+                        </FloatingLabel>
+                      </Col>
+                      <Col md={6}>
+                        <FloatingLabel label="GST Number" className="mb-3">
+                          <Form.Control
+                            type="text"
+                            name="customer_gst_no"
+                            defaultValue={currentInvoice.customer?.gst_no}
+                          />
+                        </FloatingLabel>
+                      </Col>
+                    </Row>
+
+                    <FloatingLabel label="Customer Address" className="mb-3">
+                      <Form.Control
+                        as="textarea"
+                        name="customer_address"
+                        style={{ height: "80px" }}
+                        defaultValue={currentInvoice.customer?.address}
+                        required
+                      />
+                    </FloatingLabel>
+
+                    <Row>
+                      <Col md={6}>
                         <FloatingLabel label="Country Code" className="mb-3">
                           <Form.Select
                             name="country_code"
                             defaultValue={currentInvoice.country_code}
                             required
                           >
-                            <option value="MY">Malaysia</option>
+                            <option value="LK">Sri Lanka</option>
                             <option value="IN">India</option>
+                            <option value="SG">Singapore</option>
+                            <option value="MY">Malaysia</option>
                             <option value="US">United States</option>
+                            <option value="UK">United Kingdom</option>
+                          </Form.Select>
+                        </FloatingLabel>
+                      </Col>
+                      <Col md={6}>
+                        <FloatingLabel label="Currency" className="mb-3">
+                          <Form.Select
+                            name="currency"
+                            defaultValue={currentInvoice.currency}
+                            required
+                          >
+                            <option value="LKR">LKR (Sri Lankan Rupee)</option>
+                            <option value="INR">INR (Indian Rupee)</option>
+                            <option value="SGD">SGD (Singapore Dollar)</option>
+                            <option value="MYR">MYR (Malaysian Ringgit)</option>
+                            <option value="USD">USD (US Dollar)</option>
+                            <option value="EUR">EUR (Euro)</option>
                           </Form.Select>
                         </FloatingLabel>
                       </Col>

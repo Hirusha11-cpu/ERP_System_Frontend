@@ -110,6 +110,12 @@ export const menuList = [
         path: "/invoice/bank-accounts",
         subdropdownMenu: false,
       },
+      {
+        id: 6,
+        name: "Reconciliation",
+        path: "/invoice/reconciliation",
+        subdropdownMenu: false,
+      },
     ],
   },
   {

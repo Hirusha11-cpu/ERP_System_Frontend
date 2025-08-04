@@ -10,6 +10,8 @@ const Invoice_appleholidays_modal = ({
   currencySymbols,
   printInvoice
 }) => {
+  console.log("Invoice Data:", formData);
+  
   return (
     <Modal
       show={show}
@@ -103,10 +105,16 @@ const Invoice_appleholidays_modal = ({
             <div className="col-md-6">
               <div className="mb-3">
                 <p className="mb-0">
-                  <strong>
-                    Please settle the invoice on or before{" "}
-                    {formatDate(formData.invoice.dueDate)}
-                  </strong>
+                  {formData.payment.type === "credit" ? (
+                    <span>
+                     
+                    </span>
+                  ) : (
+                    <span>
+                      Please settle the invoice on or before{" "}
+                      {formatDate(formData.payment.collectionDate)}
+                    </span>
+                  )}
                 </p>
               </div>
 

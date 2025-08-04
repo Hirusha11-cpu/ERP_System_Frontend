@@ -1,44 +1,72 @@
-import React, { useContext, useState, useEffect } from 'react';
-import { 
-  Card, Row, Col, Badge, ProgressBar, 
-  Table, Button, Dropdown, Form, Container 
-} from 'react-bootstrap';
-import { 
-  FiDollarSign, FiTrendingUp, FiTrendingDown, 
-  FiPieChart, FiCreditCard, FiCalendar, 
-  FiUsers, FiFileText, FiPrinter, FiPlus,
-  FiRefreshCw, FiSearch, FiFilter,
-  FiBarChart2, FiPocket, FiDatabase,
-  FiChevronRight, FiGlobe, FiLayers
-} from 'react-icons/fi';
-import { 
-  FaFileInvoiceDollar, FaMoneyBillWave, 
-  FaRegMoneyBillAlt, FaChartLine,
-  FaPlane, FaHotel, FaReceipt
-} from 'react-icons/fa';
-import { CompanyContext } from '../contentApi/CompanyProvider';
-import { Link } from 'react-router-dom';
-import axios from 'axios';
+import React, { useContext, useState, useEffect } from "react";
+import {
+  Card,
+  Row,
+  Col,
+  Badge,
+  ProgressBar,
+  Table,
+  Button,
+  Dropdown,
+  Form,
+  Container,
+} from "react-bootstrap";
+import {
+  FiDollarSign,
+  FiTrendingUp,
+  FiTrendingDown,
+  FiPieChart,
+  FiCreditCard,
+  FiCalendar,
+  FiUsers,
+  FiFileText,
+  FiPrinter,
+  FiPlus,
+  FiRefreshCw,
+  FiSearch,
+  FiFilter,
+  FiBarChart2,
+  FiPocket,
+  FiDatabase,
+  FiChevronRight,
+  FiGlobe,
+  FiLayers,
+} from "react-icons/fi";
+import {
+  FaFileInvoiceDollar,
+  FaMoneyBillWave,
+  FaRegMoneyBillAlt,
+  FaChartLine,
+  FaPlane,
+  FaHotel,
+  FaReceipt,
+} from "react-icons/fa";
+import { CompanyContext } from "../contentApi/CompanyProvider";
+import { Link } from "react-router-dom";
+import axios from "axios";
 
 const Home = () => {
   const { selectedCompany } = useContext(CompanyContext);
-  const [activeSection, setActiveSection] = useState('overview');
+  const [activeSection, setActiveSection] = useState("overview");
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [invoiceStats, setInvoiceStats] = useState({
     total: 0,
     paid: 0,
     overdue: 0,
-    pending: 0
+    pending: 0,
   });
 
-  const [currency, setCurrency] = useState('INR'); // Default currency
+  const token =
+    localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+
+  const [currency, setCurrency] = useState("INR"); // Default currency
   const [exchangeRates, setExchangeRates] = useState({
     INR: 1,
     USD: 0.012,
     EUR: 0.011,
     MYR: 0.057,
-    SGD: 0.016
+    SGD: 0.016,
   });
 
   const convertCurrency = (amount) => {
@@ -48,12 +76,17 @@ const Home = () => {
 
   // Function to get currency symbol
   const getCurrencySymbol = () => {
-    switch(currency) {
-      case 'USD': return '$';
-      case 'EUR': return '€';
-      case 'MYR': return 'RM';
-      case 'SGD': return 'S$';
-      default: return '₹'; // Default to INR
+    switch (currency) {
+      case "USD":
+        return "$";
+      case "EUR":
+        return "€";
+      case "MYR":
+        return "RM";
+      case "SGD":
+        return "S$";
+      default:
+        return "₹"; // Default to INR
     }
   };
 
@@ -61,23 +94,30 @@ const Home = () => {
     const fetchInvoices = async () => {
       try {
         setLoading(true);
-        const response = await axios.get('/api/invoicess/all');
+        const response = await axios.get("/api/invoicess/all", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         const invoiceData = response.data.data;
         setInvoices(invoiceData);
-        
+
         // Calculate stats
         const stats = {
           total: 0,
           paid: 0,
           overdue: 0,
-          pending: 0
+          pending: 0,
         };
-        
-        invoiceData.forEach(invoice => {
+
+        invoiceData.forEach((invoice) => {
           const amount = parseFloat(invoice.total_amount) || 0;
           stats.total += amount;
-          
-          if (invoice.amount_received && parseFloat(invoice.amount_received) >= amount) {
+
+          if (
+            invoice.amount_received &&
+            parseFloat(invoice.amount_received) >= amount
+          ) {
             stats.paid += amount;
           } else if (new Date(invoice.due_date) < new Date()) {
             stats.overdue += amount;
@@ -85,11 +125,11 @@ const Home = () => {
             stats.pending += amount;
           }
         });
-        
+
         setInvoiceStats(stats);
         setLoading(false);
       } catch (error) {
-        console.error('Error fetching invoices:', error);
+        console.error("Error fetching invoices:", error);
         setLoading(false);
       }
     };
@@ -100,7 +140,7 @@ const Home = () => {
   const getStatusBadge = (invoice) => {
     const amount = parseFloat(invoice.total_amount) || 0;
     const received = parseFloat(invoice.amount_received) || 0;
-    
+
     if (received >= amount) {
       return <Badge bg="success">Paid</Badge>;
     } else if (new Date(invoice.due_date) < new Date()) {
@@ -111,166 +151,166 @@ const Home = () => {
   };
 
   const renderCompanySpecificNav = () => {
-     switch (selectedCompany) {
-       case "appleholidays":
-       case "aahaas":
-         return (
-           <>
-             <Card className="mb-4 shadow-sm">
-               <Card.Body>
-                 <h5 className="mb-3 text-primary">
-                   <FaFileInvoiceDollar className="me-2" />
-                   Account Payables
-                 </h5>
-                 <Row>
-                   {[
-                     "Sri Lanka",
-                     "Singapore",
-                     "Vietnam",
-                     "Malaysia",
-                     "Maldives",
-                     "Bali",
-                     "Thailand",
-                     "Other",
-                   ].map((country) => (
-                     <Col md={3} key={country} className="mb-3">
-                       <Button
-                         variant="outline-primary"
-                         className="w-100 text-start d-flex align-items-center"
-                         onClick={() =>
-                           setActiveSection(
-                             `payables-${country
-                               .toLowerCase()
-                               .replace(" ", "-")}`
-                           )
-                         }
-                       >
-                         <FiGlobe className="me-2" />
-                         {country}
-                         <FiChevronRight className="ms-auto" />
-                       </Button>
-                     </Col>
-                   ))}
-                 </Row>
-                 <div className="mt-3">
-                   <Button variant="link" className="text-decoration-none">
-                     <FiBarChart2 className="me-2" />
-                     API Reports
-                   </Button>
-                   <Button variant="link" className="text-decoration-none ms-3">
-                     <FiPieChart className="me-2" />
-                     Summary Reports
-                   </Button>
-                 </div>
-               </Card.Body>
-             </Card>
- 
-             <Card className="mb-4 shadow-sm">
-               <Card.Body>
-                 <h5 className="mb-3 text-success">
-                   <FaMoneyBillWave className="me-2" />
-                   Account Receivables
-                 </h5>
-                 <div className="d-flex flex-wrap gap-2">
-                   <Button
-                     variant="outline-success"
-                     className="d-flex align-items-center"
-                   >
-                     <FiDatabase className="me-2" />
-                     API
-                   </Button>
-                   <Button
-                     variant="outline-success"
-                     className="d-flex align-items-center"
-                   >
-                     <FiPieChart className="me-2" />
-                     Summary Reports
-                   </Button>
-                 </div>
-               </Card.Body>
-             </Card>
-           </>
-         );
- 
-       case "shirmila":
-         return (
-           <>
-             <Card className="mb-4 shadow-sm">
-               <Card.Body>
-                 <h5 className="mb-3 text-primary">
-                   <FaFileInvoiceDollar className="me-2" />
-                   Account Payables
-                 </h5>
-                 <Row>
-                   {[
-                     "Ticketing",
-                     "Income",
-                     "Aging Reports",
-                     "Bank Reconciliation",
-                     "Summary Reports",
-                     "Other",
-                   ].map((item) => (
-                     <Col md={4} key={item} className="mb-3">
-                       <Button
-                         variant="outline-primary"
-                         className="w-100 text-start d-flex align-items-center"
-                       >
-                         {item === "Ticketing" && <FaPlane className="me-2" />}
-                         {item === "Income" && <FiDollarSign className="me-2" />}
-                         {item === "Aging Reports" && (
-                           <FiCalendar className="me-2" />
-                         )}
-                         {item === "Bank Reconciliation" && (
-                           <FiCreditCard className="me-2" />
-                         )}
-                         {item === "Summary Reports" && (
-                           <FiPieChart className="me-2" />
-                         )}
-                         {item === "Other" && <FiLayers className="me-2" />}
-                         {item}
-                         <FiChevronRight className="ms-auto" />
-                       </Button>
-                     </Col>
-                   ))}
-                 </Row>
-               </Card.Body>
-             </Card>
- 
-             <Card className="mb-4 shadow-sm">
-               <Card.Body>
-                 <h5 className="mb-3 text-success">
-                   <FaMoneyBillWave className="me-2" />
-                   Account Receivables
-                 </h5>
-                 <Row>
-                   {["API-Ticketing", "Sales", "Summary Reports"].map((item) => (
-                     <Col md={4} key={item} className="mb-3">
-                       <Button
-                         variant="outline-success"
-                         className="w-100 text-start d-flex align-items-center"
-                       >
-                         {item === "API-Ticketing" && (
-                           <FaPlane className="me-2" />
-                         )}
-                         {item === "Sales" && <FiTrendingUp className="me-2" />}
-                         {item === "Summary Reports" && (
-                           <FiPieChart className="me-2" />
-                         )}
-                         {item}
-                         <FiChevronRight className="ms-auto" />
-                       </Button>
-                     </Col>
-                   ))}
-                 </Row>
-               </Card.Body>
-             </Card>
-           </>
-         );
- 
-       default:
-         return null;
-     }
-   };
+    switch (selectedCompany) {
+      case "appleholidays":
+      case "aahaas":
+        return (
+          <>
+            <Card className="mb-4 shadow-sm">
+              <Card.Body>
+                <h5 className="mb-3 text-primary">
+                  <FaFileInvoiceDollar className="me-2" />
+                  Account Payables
+                </h5>
+                <Row>
+                  {[
+                    "Sri Lanka",
+                    "Singapore",
+                    "Vietnam",
+                    "Malaysia",
+                    "Maldives",
+                    "Bali",
+                    "Thailand",
+                    "Other",
+                  ].map((country) => (
+                    <Col md={3} key={country} className="mb-3">
+                      <Button
+                        variant="outline-primary"
+                        className="w-100 text-start d-flex align-items-center"
+                        onClick={() =>
+                          setActiveSection(
+                            `payables-${country
+                              .toLowerCase()
+                              .replace(" ", "-")}`
+                          )
+                        }
+                      >
+                        <FiGlobe className="me-2" />
+                        {country}
+                        <FiChevronRight className="ms-auto" />
+                      </Button>
+                    </Col>
+                  ))}
+                </Row>
+                <div className="mt-3">
+                  <Button variant="link" className="text-decoration-none">
+                    <FiBarChart2 className="me-2" />
+                    API Reports
+                  </Button>
+                  <Button variant="link" className="text-decoration-none ms-3">
+                    <FiPieChart className="me-2" />
+                    Summary Reports
+                  </Button>
+                </div>
+              </Card.Body>
+            </Card>
+
+            <Card className="mb-4 shadow-sm">
+              <Card.Body>
+                <h5 className="mb-3 text-success">
+                  <FaMoneyBillWave className="me-2" />
+                  Account Receivables
+                </h5>
+                <div className="d-flex flex-wrap gap-2">
+                  <Button
+                    variant="outline-success"
+                    className="d-flex align-items-center"
+                  >
+                    <FiDatabase className="me-2" />
+                    API
+                  </Button>
+                  <Button
+                    variant="outline-success"
+                    className="d-flex align-items-center"
+                  >
+                    <FiPieChart className="me-2" />
+                    Summary Reports
+                  </Button>
+                </div>
+              </Card.Body>
+            </Card>
+          </>
+        );
+
+      case "shirmila":
+        return (
+          <>
+            <Card className="mb-4 shadow-sm">
+              <Card.Body>
+                <h5 className="mb-3 text-primary">
+                  <FaFileInvoiceDollar className="me-2" />
+                  Account Payables
+                </h5>
+                <Row>
+                  {[
+                    "Ticketing",
+                    "Income",
+                    "Aging Reports",
+                    "Bank Reconciliation",
+                    "Summary Reports",
+                    "Other",
+                  ].map((item) => (
+                    <Col md={4} key={item} className="mb-3">
+                      <Button
+                        variant="outline-primary"
+                        className="w-100 text-start d-flex align-items-center"
+                      >
+                        {item === "Ticketing" && <FaPlane className="me-2" />}
+                        {item === "Income" && <FiDollarSign className="me-2" />}
+                        {item === "Aging Reports" && (
+                          <FiCalendar className="me-2" />
+                        )}
+                        {item === "Bank Reconciliation" && (
+                          <FiCreditCard className="me-2" />
+                        )}
+                        {item === "Summary Reports" && (
+                          <FiPieChart className="me-2" />
+                        )}
+                        {item === "Other" && <FiLayers className="me-2" />}
+                        {item}
+                        <FiChevronRight className="ms-auto" />
+                      </Button>
+                    </Col>
+                  ))}
+                </Row>
+              </Card.Body>
+            </Card>
+
+            <Card className="mb-4 shadow-sm">
+              <Card.Body>
+                <h5 className="mb-3 text-success">
+                  <FaMoneyBillWave className="me-2" />
+                  Account Receivables
+                </h5>
+                <Row>
+                  {["API-Ticketing", "Sales", "Summary Reports"].map((item) => (
+                    <Col md={4} key={item} className="mb-3">
+                      <Button
+                        variant="outline-success"
+                        className="w-100 text-start d-flex align-items-center"
+                      >
+                        {item === "API-Ticketing" && (
+                          <FaPlane className="me-2" />
+                        )}
+                        {item === "Sales" && <FiTrendingUp className="me-2" />}
+                        {item === "Summary Reports" && (
+                          <FiPieChart className="me-2" />
+                        )}
+                        {item}
+                        <FiChevronRight className="ms-auto" />
+                      </Button>
+                    </Col>
+                  ))}
+                </Row>
+              </Card.Body>
+            </Card>
+          </>
+        );
+
+      default:
+        return null;
+    }
+  };
 
   return (
     <Container fluid className="py-4">
@@ -278,27 +318,50 @@ const Home = () => {
         <Col md={8}>
           <h2 className="mb-0">
             <FaFileInvoiceDollar className="me-2 text-primary" />
-            {selectedCompany === 'appleholidays' ? 'Apple Holidays' : 
-             selectedCompany === 'aahaas' ? 'Aahaas' : 
-             selectedCompany === 'shirmila' ? 'Shirmila Travels' : ''} Finance Dashboard
+            {selectedCompany === "appleholidays"
+              ? "Apple Holidays"
+              : selectedCompany === "aahaas"
+              ? "Aahaas"
+              : selectedCompany === "shirmila"
+              ? "Shirmila Travels"
+              : ""}{" "}
+            Finance Dashboard
           </h2>
-          <small className="text-muted">Manage invoices, payments and financial reports</small>
+          <small className="text-muted">
+            Manage invoices, payments and financial reports
+          </small>
         </Col>
         <Col md={4} className="d-flex align-items-center justify-content-end">
           <Dropdown className="me-2">
-            <Dropdown.Toggle variant="outline-secondary" className="d-flex align-items-center">
+            <Dropdown.Toggle
+              variant="outline-secondary"
+              className="d-flex align-items-center"
+            >
               {currency} {getCurrencySymbol()}
             </Dropdown.Toggle>
             <Dropdown.Menu>
-              <Dropdown.Item onClick={() => setCurrency('INR')}>INR (₹)</Dropdown.Item>
-              <Dropdown.Item onClick={() => setCurrency('USD')}>USD ($)</Dropdown.Item>
-              <Dropdown.Item onClick={() => setCurrency('EUR')}>EUR (€)</Dropdown.Item>
-              <Dropdown.Item onClick={() => setCurrency('MYR')}>MYR (RM)</Dropdown.Item>
-              <Dropdown.Item onClick={() => setCurrency('SGD')}>SGD (S$)</Dropdown.Item>
+              <Dropdown.Item onClick={() => setCurrency("INR")}>
+                INR (₹)
+              </Dropdown.Item>
+              <Dropdown.Item onClick={() => setCurrency("USD")}>
+                USD ($)
+              </Dropdown.Item>
+              <Dropdown.Item onClick={() => setCurrency("EUR")}>
+                EUR (€)
+              </Dropdown.Item>
+              <Dropdown.Item onClick={() => setCurrency("MYR")}>
+                MYR (RM)
+              </Dropdown.Item>
+              <Dropdown.Item onClick={() => setCurrency("SGD")}>
+                SGD (S$)
+              </Dropdown.Item>
             </Dropdown.Menu>
           </Dropdown>
           <Dropdown>
-            <Dropdown.Toggle variant="outline-primary" className="d-flex align-items-center">
+            <Dropdown.Toggle
+              variant="outline-primary"
+              className="d-flex align-items-center"
+            >
               <FiFilter className="me-2" />
               Filter Period
             </Dropdown.Toggle>
@@ -326,20 +389,31 @@ const Home = () => {
                 <div>
                   <h6 className="text-muted mb-2">Total Invoices</h6>
                   <h3 className="mb-0">
-                    {getCurrencySymbol()}{convertCurrency(invoiceStats.total).toLocaleString(undefined, {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2
-                    })}
+                    {getCurrencySymbol()}
+                    {convertCurrency(invoiceStats.total).toLocaleString(
+                      undefined,
+                      {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      }
+                    )}
                   </h3>
                 </div>
                 <div className="bg-primary bg-opacity-10 p-3 rounded">
                   <FaFileInvoiceDollar className="text-primary" size={24} />
                 </div>
               </div>
-              <ProgressBar now={(invoiceStats.paid / invoiceStats.total) * 100} 
-                variant="success" className="mt-3" style={{height: '6px'}} />
+              <ProgressBar
+                now={(invoiceStats.paid / invoiceStats.total) * 100}
+                variant="success"
+                className="mt-3"
+                style={{ height: "6px" }}
+              />
               <small className="text-muted">
-                {invoiceStats.total > 0 ? Math.round((invoiceStats.paid / invoiceStats.total) * 100) : 0}% Paid
+                {invoiceStats.total > 0
+                  ? Math.round((invoiceStats.paid / invoiceStats.total) * 100)
+                  : 0}
+                % Paid
               </small>
             </Card.Body>
           </Card>
@@ -351,10 +425,14 @@ const Home = () => {
                 <div>
                   <h6 className="text-muted mb-2">Paid Invoices</h6>
                   <h3 className="mb-0">
-                    {getCurrencySymbol()}{convertCurrency(invoiceStats.paid).toLocaleString(undefined, {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2
-                    })}
+                    {getCurrencySymbol()}
+                    {convertCurrency(invoiceStats.paid).toLocaleString(
+                      undefined,
+                      {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      }
+                    )}
                   </h3>
                 </div>
                 <div className="bg-success bg-opacity-10 p-3 rounded">
@@ -362,7 +440,9 @@ const Home = () => {
                 </div>
               </div>
               <div className="mt-3">
-                <Badge bg="success" className="me-2">+12%</Badge>
+                <Badge bg="success" className="me-2">
+                  +12%
+                </Badge>
                 <small className="text-muted">vs last month</small>
               </div>
             </Card.Body>
@@ -375,10 +455,14 @@ const Home = () => {
                 <div>
                   <h6 className="text-muted mb-2">Pending Invoices</h6>
                   <h3 className="mb-0">
-                    {getCurrencySymbol()}{convertCurrency(invoiceStats.pending).toLocaleString(undefined, {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2
-                    })}
+                    {getCurrencySymbol()}
+                    {convertCurrency(invoiceStats.pending).toLocaleString(
+                      undefined,
+                      {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      }
+                    )}
                   </h3>
                 </div>
                 <div className="bg-warning bg-opacity-10 p-3 rounded">
@@ -386,7 +470,9 @@ const Home = () => {
                 </div>
               </div>
               <div className="mt-3">
-                <Badge bg="warning" className="me-2">+5%</Badge>
+                <Badge bg="warning" className="me-2">
+                  +5%
+                </Badge>
                 <small className="text-muted">vs last month</small>
               </div>
             </Card.Body>
@@ -399,10 +485,14 @@ const Home = () => {
                 <div>
                   <h6 className="text-muted mb-2">Overdue Invoices</h6>
                   <h3 className="mb-0">
-                    {getCurrencySymbol()}{convertCurrency(invoiceStats.overdue).toLocaleString(undefined, {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2
-                    })}
+                    {getCurrencySymbol()}
+                    {convertCurrency(invoiceStats.overdue).toLocaleString(
+                      undefined,
+                      {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      }
+                    )}
                   </h3>
                 </div>
                 <div className="bg-danger bg-opacity-10 p-3 rounded">
@@ -410,7 +500,9 @@ const Home = () => {
                 </div>
               </div>
               <div className="mt-3">
-                <Badge bg="danger" className="me-2">+8%</Badge>
+                <Badge bg="danger" className="me-2">
+                  +8%
+                </Badge>
                 <small className="text-muted">vs last month</small>
               </div>
             </Card.Body>
@@ -428,19 +520,30 @@ const Home = () => {
                 <FiPocket className="me-2 text-info" />
                 Quick Actions
               </h5>
-              <Link to="/invoice/create" className="btn btn-outline-primary w-100 mb-2 d-flex align-items-center">
+              <Link
+                to="/invoice/create"
+                className="btn btn-outline-primary w-100 mb-2 d-flex align-items-center"
+              >
                 <FiPlus className="me-2" />
                 Create New Invoice
               </Link>
-              <Link to="/invoice/pnl" className="btn btn-outline-success w-100 mb-2 d-flex align-items-center">
-                <FiPlus className="me-2" />
-                P & L reports
+              <Link
+                to="/invoice/pnl"
+                className="btn btn-outline-success w-100 mb-2 d-flex align-items-center"
+              >
+                <FiPlus className="me-2" />P & L reports
               </Link>
-              <Link to="/invoice/summary" className="btn btn-outline-secondary w-100 mb-2 d-flex align-items-center">
+              <Link
+                to="/invoice/summary"
+                className="btn btn-outline-secondary w-100 mb-2 d-flex align-items-center"
+              >
                 <FiPlus className="me-2" />
                 Summary reports
               </Link>
-              <Link to="/invoice/bank-accounts" className="btn btn-outline-info w-100 mb-2 d-flex align-items-center">
+              <Link
+                to="/invoice/bank-accounts"
+                className="btn btn-outline-info w-100 mb-2 d-flex align-items-center"
+              >
                 <FiPlus className="me-2" />
                 Bank Accounts
               </Link>
@@ -460,10 +563,10 @@ const Home = () => {
                   <FaReceipt className="me-2 text-primary" />
                   Recent Invoices
                 </h5>
-                <Form.Control 
-                  type="text" 
-                  placeholder="Search invoices..." 
-                  style={{width: '200px'}}
+                <Form.Control
+                  type="text"
+                  placeholder="Search invoices..."
+                  style={{ width: "200px" }}
                   className="d-flex align-items-center"
                 />
               </div>
@@ -487,15 +590,20 @@ const Home = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {invoices.map(invoice => (
+                      {invoices.map((invoice) => (
                         <tr key={invoice.id}>
                           <td>{invoice.invoice_number}</td>
-                          <td>{invoice.customer?.name || 'N/A'}</td>
-                          <td>{new Date(invoice.issue_date).toLocaleDateString()}</td>
-                          <td>₹{parseFloat(invoice.total_amount || 0).toLocaleString()}</td>
+                          <td>{invoice.customer?.name || "N/A"}</td>
                           <td>
-                            {getStatusBadge(invoice)}
+                            {new Date(invoice.issue_date).toLocaleDateString()}
                           </td>
+                          <td>
+                            ₹
+                            {parseFloat(
+                              invoice.total_amount || 0
+                            ).toLocaleString()}
+                          </td>
+                          <td>{getStatusBadge(invoice)}</td>
                           <td>
                             <Button variant="link" size="sm" className="p-0">
                               View
@@ -523,28 +631,44 @@ const Home = () => {
                 Bank Accounts & Reconciliation
               </h5>
               <Row>
-                {invoices.filter(inv => inv.account).slice(0, 2).map(invoice => (
-                  <Col md={6} key={invoice.account.id}>
-                    <div className="p-3 bg-light rounded mb-3">
-                      <div className="d-flex justify-content-between align-items-center mb-2">
-                        <h6 className="mb-0">{invoice.account.bank}</h6>
-                        <Badge bg="success">Active</Badge>
+                {invoices
+                  .filter((inv) => inv.account)
+                  .slice(0, 2)
+                  .map((invoice) => (
+                    <Col md={6} key={invoice.account.id}>
+                      <div className="p-3 bg-light rounded mb-3">
+                        <div className="d-flex justify-content-between align-items-center mb-2">
+                          <h6 className="mb-0">{invoice.account.bank}</h6>
+                          <Badge bg="success">Active</Badge>
+                        </div>
+                        <small className="text-muted">
+                          A/c No: ******{invoice.account.account_no.slice(-4)}
+                        </small>
+                        <div className="mt-2">
+                          <span className="fw-bold">
+                            ₹
+                            {parseFloat(
+                              invoice.total_amount || 0
+                            ).toLocaleString()}
+                          </span>
+                          <small className="text-muted ms-2">
+                            Current Balance
+                          </small>
+                        </div>
                       </div>
-                      <small className="text-muted">A/c No: ******{invoice.account.account_no.slice(-4)}</small>
-                      <div className="mt-2">
-                        <span className="fw-bold">₹{parseFloat(invoice.total_amount || 0).toLocaleString()}</span>
-                        <small className="text-muted ms-2">Current Balance</small>
-                      </div>
-                    </div>
-                  </Col>
-                ))}
+                    </Col>
+                  ))}
               </Row>
               <div className="d-flex justify-content-between mt-2">
                 <Button variant="outline-primary" size="sm">
                   <FiRefreshCw className="me-1" />
                   Reconcile Now
                 </Button>
-                <Button variant="link" size="sm" className="text-decoration-none">
+                <Button
+                  variant="link"
+                  size="sm"
+                  className="text-decoration-none"
+                >
                   View All Accounts <FiChevronRight />
                 </Button>
               </div>

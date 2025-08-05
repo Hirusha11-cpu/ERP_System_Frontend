@@ -672,6 +672,78 @@ const Invoice_summary = () => {
             </Card.Body>
           </Card>
         </Tab>
+        <Tab eventKey="awaiting" title="Awaiting Payment Invoices">
+          <Card>
+            <Card.Header>
+              <div className="d-flex justify-content-between align-items-center">
+                <span>
+                  <FaMoneyBillWave className="me-2" />
+                  Awaiting Payments
+                </span>
+                <Badge bg="secondary">
+                  {0} awaiting
+                  {/* {summaryData?.refund_summary?.pending || 0} pending */}
+                </Badge>
+              </div>
+            </Card.Header>
+            <Card.Body>
+              <Table striped hover responsive>
+                <thead>
+                  <tr>
+                    <th>Invoice #</th>
+                    <th>Customer</th>
+                    <th>Amount</th>
+                    {/* <th>Refund Amount</th>
+                    <th>Reason</th> */}
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredInvoices
+                    .filter((invoice) => invoice.refund)
+                    .map((invoice) => (
+                      <tr key={invoice.id}>
+                        <td>{invoice.invoice_number}</td>
+                        <td>{invoice.customer.name}</td>
+                        <td>
+                          {invoice.total_amount} {invoice.currency}
+                        </td>
+                        <td>
+                          {invoice.refund.refund_amount} {invoice.currency}
+                        </td>
+                        {/* <td>
+                          <small>{invoice.refund.refund_reason}</small>
+                        </td>
+                        <td>
+                          <Badge
+                            bg={
+                              invoice.refund.refund_status === "confirmed"
+                                ? "success"
+                                : invoice.refund.refund_status === "pending"
+                                ? "warning"
+                                : "danger"
+                            }
+                          >
+                            {invoice.refund.refund_status}
+                          </Badge>
+                        </td> */}
+                        <td>
+                          <Button
+                            variant="info"
+                            size="sm"
+                            onClick={() => handleViewInvoice(invoice)}
+                          >
+                            <FaEye /> View
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                </tbody>
+              </Table>
+            </Card.Body>
+          </Card>
+        </Tab>
       </Tabs>
 
       {/* Invoice Detail Modal */}

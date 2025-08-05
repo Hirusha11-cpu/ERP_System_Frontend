@@ -8,17 +8,19 @@ const Invoice_appleholidays_modal = ({
   formData,
   formatDate,
   currencySymbols,
-  printInvoice
+  printInvoice,
 }) => {
   console.log("Invoice Data:", formData);
-  
+  const calculateTravelDays = (start, end) => {
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    const diffTime = endDate - startDate;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 to include both days
+    return diffDays > 0 ? diffDays : 0;
+  };
+
   return (
-    <Modal
-      show={show}
-      onHide={onHide}
-      size="xl"
-      fullscreen="lg-down"
-    >
+    <Modal show={show} onHide={onHide} size="xl" fullscreen="lg-down">
       <Modal.Header closeButton>
         <Modal.Title>Invoice Preview</Modal.Title>
       </Modal.Header>
@@ -45,7 +47,8 @@ const Invoice_appleholidays_modal = ({
           <div className="d-flex justify-content-between mb-4">
             <div>
               <div>
-                <strong>To:</strong> {formData.customer.name || "PICK YOUR TRAVEL"}
+                <strong>To:</strong>{" "}
+                {formData.customer.name || "PICK YOUR TRAVEL"}
               </div>
               <div>
                 {formData.customer.address || "Ravichander Balachander • 9"}
@@ -59,13 +62,16 @@ const Invoice_appleholidays_modal = ({
                 <strong>Date</strong> {formatDate(formData.invoice.issueDate)}
               </div>
               <div>
-                <strong>Your Ref.</strong> {formData.invoice.yourRef || "399648 CNTL"}
+                <strong>Your Ref.</strong>{" "}
+                {formData.invoice.yourRef || "399648 CNTL"}
               </div>
               <div>
-                <strong>Sales ID</strong> {formData.invoice.salesId || "ARAVEND"}
+                <strong>Sales ID</strong>{" "}
+                {formData.invoice.salesId || "ARAVEND"}
               </div>
               <div>
-                <strong>Printed By</strong> {formData.invoice.printedBy || "KAVIYA"}
+                <strong>Printed By</strong>{" "}
+                {formData.invoice.printedBy || "KAVIYA"}
               </div>
             </div>
           </div>
@@ -106,9 +112,7 @@ const Invoice_appleholidays_modal = ({
               <div className="mb-3">
                 <p className="mb-0">
                   {formData.payment.type === "credit" ? (
-                    <span>
-                     
-                    </span>
+                    <span></span>
                   ) : (
                     <span>
                       Please settle the invoice on or before{" "}
@@ -193,6 +197,18 @@ const Invoice_appleholidays_modal = ({
           <div className="row">
             <div className="col-md-6">
               <div>
+                <p>
+                  <strong>Start Date:</strong> {formData.invoice.startDate}{" "}
+                  &nbsp;|&nbsp;
+                  <strong>End Date:</strong> {formData.invoice.endDate}{" "}
+                  &nbsp;|&nbsp;
+                  <strong>Travel Period:</strong>{" "}
+                  {calculateTravelDays(
+                    formData.invoice.startDate,
+                    formData.invoice.endDate
+                  )}{" "}
+                  days
+                </p>
                 <strong>Remark:</strong> {formData.payment.remarks}
               </div>
             </div>

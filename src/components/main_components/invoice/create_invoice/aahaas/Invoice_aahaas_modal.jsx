@@ -10,6 +10,13 @@ const Invoice_aahaas_modal = ({
   currencySymbols,
   printInvoice
 }) => {
+  const calculateTravelDays = (start, end) => {
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    const diffTime = endDate - startDate;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 to include both days
+    return diffDays > 0 ? diffDays : 0;
+  };
   return (
     <Modal
       show={show}
@@ -167,6 +174,18 @@ const Invoice_aahaas_modal = ({
               </td>
             </tr>
           </table>
+          <p>
+                  <strong>Start Date:</strong> {formData.invoice.startDate}{" "}
+                  &nbsp;|&nbsp;
+                  <strong>End Date:</strong> {formData.invoice.endDate}{" "}
+                  &nbsp;|&nbsp;
+                  <strong>Travel Period:</strong>{" "}
+                  {calculateTravelDays(
+                    formData.invoice.startDate,
+                    formData.invoice.endDate
+                  )}{" "}
+                  days
+                </p>
 
           {/* Contact Information */}
           <div className="contact-info">

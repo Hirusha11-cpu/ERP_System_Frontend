@@ -9,19 +9,19 @@ const Invoice_sharmila_modal = ({
   countryOptions,
   currencySymbols,
   printInvoice,
-  formatDate
+  formatDate,
 }) => {
   console.log("Invoice Data:", formData);
-  
+  const calculateTravelDays = (start, end) => {
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    const diffTime = endDate - startDate;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 to include both days
+    return diffDays > 0 ? diffDays : 0;
+  };
+
   return (
-
-
-    <Modal
-      show={show}
-      onHide={onHide}
-      size="lg"
-      fullscreen="lg-down"
-    >
+    <Modal show={show} onHide={onHide} size="lg" fullscreen="lg-down">
       <Modal.Header closeButton>
         <Modal.Title>Invoice Preview</Modal.Title>
       </Modal.Header>
@@ -58,9 +58,8 @@ const Invoice_sharmila_modal = ({
               </div>
               <div>
                 <strong>Invoice No.</strong>{" "}
-                {countryOptions.find(
-                  (c) => c.code === formData.invoice.country
-                )?.prefix || "IN"}
+                {countryOptions.find((c) => c.code === formData.invoice.country)
+                  ?.prefix || "IN"}
                 {formData.invoice.number || "IS44641"}
               </div>
               <div>
@@ -98,9 +97,7 @@ const Invoice_sharmila_modal = ({
                 <th style={{ padding: "8px", textAlign: "right" }}>
                   Unit Fare
                 </th>
-                <th style={{ padding: "8px", textAlign: "right" }}>
-                  Discount
-                </th>
+                <th style={{ padding: "8px", textAlign: "right" }}>Discount</th>
                 <th style={{ padding: "8px", textAlign: "right" }}>Qty</th>
                 <th style={{ padding: "8px", textAlign: "right" }}>Amount</th>
               </tr>
@@ -246,7 +243,24 @@ const Invoice_sharmila_modal = ({
           </div>
 
           {/* Payment Instructions */}
-         {formData.payment.type === "non-credit" && <div className="mb-3">{formData.payment.instructions}{" "}{formData.payment.type === "non-credit" && formData.payment.collectionDate}</div>}
+          {formData.payment.type === "non-credit" && (
+            <div className="mb-3">
+              {formData.payment.instructions}{" "}
+              {formData.payment.type === "non-credit" &&
+                formData.payment.collectionDate}
+            </div>
+          )}
+          <p>
+            <strong>Start Date:</strong> {formData.invoice.startDate}{" "}
+            &nbsp;|&nbsp;
+            <strong>End Date:</strong> {formData.invoice.endDate} &nbsp;|&nbsp;
+            <strong>Travel Period:</strong>{" "}
+            {calculateTravelDays(
+              formData.invoice.startDate,
+              formData.invoice.endDate
+            )}{" "}
+            days
+          </p>
 
           {/* Bottom left: Staff and Remark */}
           <div className="row">
@@ -259,10 +273,7 @@ const Invoice_sharmila_modal = ({
         </div>
       </Modal.Body>
       <Modal.Footer>
-        <Button
-          variant="secondary"
-          onClick={onHide}
-        >
+        <Button variant="secondary" onClick={onHide}>
           Close
         </Button>
         <Button variant="primary" onClick={printInvoice}>

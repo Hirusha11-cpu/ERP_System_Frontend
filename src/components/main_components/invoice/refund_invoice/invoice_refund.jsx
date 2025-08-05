@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import {
   Container,
   Card,
@@ -28,8 +28,10 @@ import {
   FaDownload,
 } from "react-icons/fa";
 import axios from "axios";
+import { CompanyContext } from "../../../../contentApi/CompanyProvider";
 
 const Invoice_refund = () => {
+  const { selectedCompany } = useContext(CompanyContext);
   const [invoices, setInvoices] = useState([]);
   const [filteredInvoices, setFilteredInvoices] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -46,6 +48,7 @@ const Invoice_refund = () => {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [companyNo, setCompanyNo] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
@@ -60,6 +63,23 @@ const Invoice_refund = () => {
     return date.toLocaleDateString();
   };
 
+  useEffect(() => {
+  const companyMap = {
+    appleholidays: 2,
+    aahaas: 3,
+    shirmila: 1,
+  };
+
+  setCompanyNo(companyMap[selectedCompany?.toLowerCase()] || null);
+}, [selectedCompany]);
+
+useEffect(() => {
+  if (companyNo !== null) {
+    console.log(companyNo, "Company No in Invoice Refund");
+  }
+}, [companyNo]);
+
+
   // Calculate item total
   const calculateItemTotal = (item) => {
     return item.price * (1 - item.discount / 100) * item.quantity;
@@ -67,14 +87,21 @@ const Invoice_refund = () => {
 
   // Fetch all invoices
   useEffect(() => {
+    console.log(companyNo, "Company No in Invoice Refund");
+    
     const fetchInvoices = async () => {
       try {
         setLoading(true);
-        const response = await axios.get("/api/invoicess/all", {
+        const response = await axios.get(`/api/invoicesss/all?company_id=${companyNo}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
+        // const response = await axios.get("/api/invoicess/all", {
+        //   headers: {
+        //     Authorization: `Bearer ${token}`,
+        //   },
+        // });
         setInvoices(response.data.data);
         // Filter invoices with refunds
         const refundInvoices = response.data.data.filter(
@@ -375,8 +402,10 @@ const Invoice_refund = () => {
   };
 
   // Render company header based on company number
-  const renderCompanyHeader = () => {
-    switch (selectedInvoice?.company_id) {
+  const renderCompanyHeader = (invoice) => {
+    console.log("Selected Company no:", invoice?.company_id);
+
+    switch (invoice?.company_id) {
       case 1: // Sharmila Tours & Travels
         return (
           <div className="text-center mb-3">
@@ -397,9 +426,7 @@ const Invoice_refund = () => {
               className="img-fluid mb-3"
               style={{ width: "400px" }}
             />
-            <div>
-              One Galle Face Tower, 2208, 1A Centre Road, Colombo 002
-            </div>
+            <div>One Galle Face Tower, 2208, 1A Centre Road, Colombo 002</div>
             <div>Tel: 011 2352 400 | Web: www.appleholidaysds.com</div>
             <h5 className="fw-bold mb-3 mt-3">INVOICE</h5>
           </div>
@@ -412,9 +439,7 @@ const Invoice_refund = () => {
               alt="Aahaas Logo"
               style={{ width: "200px" }}
             />
-            <div>
-              One Galle Face Tower, 2208, 1A Centre Road, Colombo 002
-            </div>
+            <div>One Galle Face Tower, 2208, 1A Centre Road, Colombo 002</div>
             <div>Tel: 011 2352 400 | Web: www.appleholidaysds.com</div>
             <h5 className="fw-bold mb-3">INVOICE</h5>
           </div>
@@ -516,7 +541,7 @@ const Invoice_refund = () => {
                             {invoice.refund?.refund_status || "N/A"}
                           </Badge>
                         </td>
-                        <td>
+                        <td className="flex flex-row">
                           <Button
                             variant="info"
                             size="sm"
@@ -524,7 +549,8 @@ const Invoice_refund = () => {
                             onClick={() => handlePreview(invoice)}
                           >
                             <FaEye /> View
-                          </Button>
+                          </Button>{" "}
+                          &nbsp;
                           <Button
                             variant="warning"
                             size="sm"
@@ -574,7 +600,8 @@ const Invoice_refund = () => {
                       bg={
                         selectedInvoice.refund?.refund_status === "confirmed"
                           ? "success"
-                          : selectedInvoice.refund?.refund_status === "cancelled"
+                          : selectedInvoice.refund?.refund_status ===
+                            "cancelled"
                           ? "danger"
                           : "warning"
                       }
@@ -689,7 +716,11 @@ const Invoice_refund = () => {
       </Modal>
 
       {/* Edit Refund Modal */}
-      <Modal show={showEditModal} onHide={() => setShowEditModal(false)} size="lg">
+      <Modal
+        show={showEditModal}
+        onHide={() => setShowEditModal(false)}
+        size="lg"
+      >
         <Modal.Header closeButton>
           <Modal.Title>Edit Refund Request</Modal.Title>
         </Modal.Header>
@@ -718,7 +749,8 @@ const Invoice_refund = () => {
                       bg={
                         selectedInvoice.refund?.refund_status === "confirmed"
                           ? "success"
-                          : selectedInvoice.refund?.refund_status === "cancelled"
+                          : selectedInvoice.refund?.refund_status ===
+                            "cancelled"
                           ? "danger"
                           : "warning"
                       }
@@ -881,13 +913,14 @@ const Invoice_refund = () => {
           {selectedInvoice && (
             <div className="invoice-preview p-4">
               {/* Company Header */}
-              {renderCompanyHeader()}
+              {renderCompanyHeader(selectedInvoice)}
 
               {/* Invoice Meta and Customer Info */}
               <div className="d-flex justify-content-between mb-4">
                 <div>
                   <div>
-                    <strong>To:</strong> {selectedInvoice.customer?.name || "N/A"}
+                    <strong>To:</strong>{" "}
+                    {selectedInvoice.customer?.name || "N/A"}
                   </div>
                   <div>{selectedInvoice.customer?.address || "N/A"}</div>
                 </div>
@@ -896,16 +929,20 @@ const Invoice_refund = () => {
                     <strong>No.</strong> {selectedInvoice.invoice_number}
                   </div>
                   <div>
-                    <strong>Date</strong> {formatDate(selectedInvoice.issue_date)}
+                    <strong>Date</strong>{" "}
+                    {formatDate(selectedInvoice.issue_date)}
                   </div>
                   <div>
-                    <strong>Your Ref.</strong> {selectedInvoice.your_ref || "N/A"}
+                    <strong>Your Ref.</strong>{" "}
+                    {selectedInvoice.your_ref || "N/A"}
                   </div>
                   <div>
-                    <strong>Sales ID</strong> {selectedInvoice.sales_id || "N/A"}
+                    <strong>Sales ID</strong>{" "}
+                    {selectedInvoice.sales_id || "N/A"}
                   </div>
                   <div>
-                    <strong>Printed By</strong> {selectedInvoice.printed_by || "N/A"}
+                    <strong>Printed By</strong>{" "}
+                    {selectedInvoice.printed_by || "N/A"}
                   </div>
                 </div>
               </div>
@@ -931,7 +968,8 @@ const Invoice_refund = () => {
                       <td style={{ textAlign: "right" }}>{item.discount}%</td>
                       <td style={{ textAlign: "right" }}>{item.quantity}</td>
                       <td style={{ textAlign: "right" }}>
-                        {selectedInvoice.currency} {calculateItemTotal(item).toFixed(2)}
+                        {selectedInvoice.currency}{" "}
+                        {calculateItemTotal(item).toFixed(2)}
                       </td>
                     </tr>
                   ))}
@@ -959,7 +997,8 @@ const Invoice_refund = () => {
                           <strong>Total:</strong>
                         </td>
                         <td style={{ padding: "4px", textAlign: "right" }}>
-                          {selectedInvoice.currency} {selectedInvoice.total_amount}
+                          {selectedInvoice.currency}{" "}
+                          {selectedInvoice.total_amount}
                         </td>
                       </tr>
                       <tr>
@@ -967,7 +1006,8 @@ const Invoice_refund = () => {
                           <strong>Amount Received:</strong>
                         </td>
                         <td style={{ padding: "4px", textAlign: "right" }}>
-                          {selectedInvoice.currency} {selectedInvoice.amount_received}
+                          {selectedInvoice.currency}{" "}
+                          {selectedInvoice.amount_received}
                         </td>
                       </tr>
                       <tr>
@@ -995,7 +1035,10 @@ const Invoice_refund = () => {
           )}
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowPreviewModal(false)}>
+          <Button
+            variant="secondary"
+            onClick={() => setShowPreviewModal(false)}
+          >
             Close
           </Button>
           <Button

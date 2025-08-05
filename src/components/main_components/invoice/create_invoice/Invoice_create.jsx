@@ -32,7 +32,7 @@ const Invoice_create = () => {
   const { selectedCompany } = useContext(CompanyContext);
   const navigate = useNavigate();
 
-   const token =
+  const token =
     localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
 
   const [customers, setCustomers] = useState([]);
@@ -51,7 +51,7 @@ const Invoice_create = () => {
   }, []);
 
   useEffect(() => {
-    fetchAccounts()
+    fetchAccounts();
   }, [selectedCompany]);
 
   useEffect(() => {
@@ -156,7 +156,7 @@ const Invoice_create = () => {
 
       const response = await axios.get(
         `/api/accounts/by-currency/${currencyInfo}/${companyNo}`,
-         {
+        {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -171,13 +171,11 @@ const Invoice_create = () => {
 
   const fetchCustomers = async () => {
     try {
-      const response = await axios.get("/api/customers",
-         {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const response = await axios.get("/api/customers", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       console.log(response);
 
       setCustomers(response.data);
@@ -204,7 +202,7 @@ const Invoice_create = () => {
       const rates = Array.isArray(response.data)
         ? response.data
         : [response.data];
-    
+
       setTaxRates(rates);
 
       // Safely extract numeric rate
@@ -255,6 +253,10 @@ const Invoice_create = () => {
       company_id: companyNo,
       account_id: formData.selectedAccountId || 1, // use your selected account logic
       booking_no: formData.invoice.bookingId,
+      start_date: formData.invoice.startDate,
+      sales_id: formData.invoice.salesId,
+      end_date: formData.invoice.endDate,
+      travel_period: calculateTravelDays(formData.invoice.startDate, formData.invoice.endDate),
 
       items: formData.serviceItems.map((item) => ({
         code: item.code,
@@ -267,10 +269,10 @@ const Invoice_create = () => {
         checkout_time: item.checkout_time || null,
       })),
 
-      additional_charges: formData.additionalCharges.map(charge => ({
+      additional_charges: formData.additionalCharges.map((charge) => ({
         description: charge.description,
         amount: charge.amount,
-        taxable: true // Double bang to force boolean
+        taxable: true, // Double bang to force boolean
       })),
       attachments: formData.attachments,
       // attachments: formData.attachments.forEach((file) => {
@@ -368,6 +370,9 @@ const Invoice_create = () => {
       printedBy: "",
       yourRef: "",
       bookingId: "",
+      startDate: "",
+      endDate: ""
+
     },
     currencyDetails: {
       currency: "USD",
@@ -514,6 +519,15 @@ const Invoice_create = () => {
       setFilteredCustomers([]);
     }
   }, [customerSearch, customers]);
+
+  const calculateTravelDays = (start, end) => {
+  const startDate = new Date(start);
+  const endDate = new Date(end);
+  const diffTime = endDate - startDate;
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 to include both days
+  return diffDays > 0 ? diffDays : 0;
+};
+
 
   // Handle customer selection
   const handleCustomerSelect = (customer) => {
@@ -664,7 +678,6 @@ const Invoice_create = () => {
       // subTotal += item.total;
     });
     console.log(totalAmount);
-   
 
     // Add additional charges
     let taxableCharges = 0;
@@ -692,12 +705,12 @@ const Invoice_create = () => {
 
     let additionalTax = 0;
     console.log(taxRates);
-    
-    if (subTotal > 0 && taxRates.length > 0 ) {  
+
+    if (subTotal > 0 && taxRates.length > 0) {
       console.log(Number(taxRates[0].rate));
       additionalTax = subTotal * (parseFloat(Number(taxRates[0].rate)) / 100);
     }
-    
+
     // formData.serviceItems.forEach((item) => {
     //   console.log(formData.taxRates);
 
@@ -808,15 +821,19 @@ const Invoice_create = () => {
   // Add new tax rate
   const addNewTaxRate = async () => {
     try {
-      const response = await axios.post("/api/tax-rates", {
-        name: newTaxRate.component,
-        component: newTaxRate.component,
-        rate: newTaxRate.rate,
-      }, {
-        headers: {
-          Authorization: `Bearer ${token}`,
+      const response = await axios.post(
+        "/api/tax-rates",
+        {
+          name: newTaxRate.component,
+          component: newTaxRate.component,
+          rate: newTaxRate.rate,
         },
-      });
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
       // Update tax rates list
       const updatedTaxRates = [...taxRates, response.data];
@@ -1322,6 +1339,65 @@ const Invoice_create = () => {
           </Row>
         </Card.Body>
       </Card>
+      <Card className="mb-4">
+        <Card.Body>
+          <h5 className="section-title fw-semibold mb-3 pb-2 border-bottom">
+            Travel Period
+          </h5>
+
+          <Row className="mb-3">
+            <Col>
+              <Card>
+                <Card.Body>
+                  {/* <h6 className="card-title">Customer Details</h6> */}
+                  <Form.Group className="mb-3">
+                    <Form.Label>Start Date:</Form.Label>
+                    <Form.Control
+                      type="date"
+                      value={formData.invoice.startDate}
+                      onChange={(e) =>
+                        handleInputChange(
+                          "invoice",
+                          "startDate",
+                          e.target.value
+                        )
+                      }
+                    />
+                  </Form.Group>
+
+                  <Form.Group className="mb-3">
+                    <Form.Label>End Date:</Form.Label>
+                    <Form.Control
+                      type="date"
+                      value={formData.invoice.endDate}
+                      onChange={(e) =>
+                        handleInputChange("invoice", "endDate", e.target.value)
+                      }
+                    />
+                  </Form.Group>
+
+                  <Form.Group className="mb-3">
+                    <Form.Label>Travel Period (Days):</Form.Label>
+                    <Form.Control
+                      type="text"
+                      value={
+                        formData.invoice.startDate && formData.invoice.endDate
+                          ? `${calculateTravelDays(
+                              formData.invoice.startDate,
+                              formData.invoice.endDate
+                            )} day(s)`
+                          : ""
+                      }
+                      readOnly
+                    />
+                  </Form.Group>
+                </Card.Body>
+              </Card>
+            </Col>
+          </Row>
+        </Card.Body>
+      </Card>
+
       {/* Currency Details */}
       <Card className="mb-4">
         <Card.Body>

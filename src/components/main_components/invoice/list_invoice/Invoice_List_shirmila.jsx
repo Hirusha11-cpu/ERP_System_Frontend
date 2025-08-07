@@ -491,7 +491,7 @@ const Invoice_List_shirmila = () => {
                     <th>Customer</th>
                     <th>Date</th>
                     <th>Total</th>
-                    {/* <th>Status</th> */}
+                    <th>Status</th>
                     <th className="text-end">Actions</th>
                   </tr>
                 </thead>
@@ -544,7 +544,7 @@ const Invoice_List_shirmila = () => {
                             {invoice.currency} {invoice.total_amount}
                           </div>
                         </td>
-                        {/* <td>{getStatusBadge(invoice.status)}</td> */}
+                        <td>{invoice.status}</td>
                         <td className="text-end">
                           <div className="d-flex justify-content-end">
                             <ActionButton
@@ -695,6 +695,10 @@ const Invoice_List_shirmila = () => {
                   <div>
                     <strong>Printed By</strong>{" "}
                     {currentInvoice.printed_by || "N/A"}
+                  </div>
+                  <div>
+                    <strong>Booking ID</strong>{" "}
+                    {currentInvoice.booking_id || "N/A"}
                   </div>
                 </div>
               </div>

@@ -1,6 +1,8 @@
 import React from "react";
 import { Modal, Button } from "react-bootstrap";
 import { FaPrint, FaDownload } from "react-icons/fa";
+import html2pdf from "html2pdf.js";
+import { useRef } from "react";
 
 const Invoice_sharmila_modal = ({
   show,
@@ -19,13 +21,27 @@ const Invoice_sharmila_modal = ({
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 to include both days
     return diffDays > 0 ? diffDays : 0;
   };
+   const receiptRef = useRef(); // Reference to modal body
+    
+      const downloadPDF = () => {
+        const element = receiptRef.current;
+        const opt = {
+          margin:       0.3,
+          filename:     `receipt_${formData.invoice.number || "order"}.pdf`,
+          image:        { type: 'jpeg', quality: 0.98 },
+          html2canvas:  { scale: 2 },
+          jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+        };
+    
+        html2pdf().set(opt).from(element).save();
+      };
 
   return (
     <Modal show={show} onHide={onHide} size="lg" fullscreen="lg-down">
       <Modal.Header closeButton>
         <Modal.Title>Invoice Preview</Modal.Title>
       </Modal.Header>
-      <Modal.Body className="p-0">
+      <Modal.Body className="p-0" ref={receiptRef}>
         <div id="invoice-preview-content" className="invoice-preview p-4">
           {/* Company Header */}
           <div className="text-center mb-3">
@@ -276,15 +292,15 @@ const Invoice_sharmila_modal = ({
         <Button variant="secondary" onClick={onHide}>
           Close
         </Button>
-        <Button variant="primary" onClick={printInvoice}>
-          <FaPrint /> Print Invoice
-        </Button>
-        <Button
+        <Button variant="success" onClick={downloadPDF}>
+                    <FaDownload /> Download PDF
+                  </Button>
+        {/* <Button
           variant="success"
           onClick={() => alert("PDF download would be implemented here")}
         >
           <FaDownload /> Download PDF
-        </Button>
+        </Button> */}
       </Modal.Footer>
     </Modal>
   );

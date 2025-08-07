@@ -1,15 +1,36 @@
 import React, { useState, useEffect, useContext } from "react";
-import { 
-  Table, Button, Card, Badge, Modal, 
-  Row, Col, Form, FloatingLabel, 
-  Accordion, OverlayTrigger, Tooltip 
+import {
+  Table,
+  Button,
+  Card,
+  Badge,
+  Modal,
+  Row,
+  Col,
+  Form,
+  FloatingLabel,
+  Accordion,
+  OverlayTrigger,
+  Tooltip,
 } from "react-bootstrap";
-import { 
-  FaEye, FaTrash, FaPrint, FaDownload, 
-  FaEdit, FaPlus, FaMinus, FaFileInvoiceDollar,
-  FaUser, FaCalendarAlt, FaMoneyBillWave,
-  FaReceipt, FaInfoCircle, FaChevronDown,
-  FaChevronUp, FaSearch, FaFilter
+import {
+  FaEye,
+  FaTrash,
+  FaPrint,
+  FaDownload,
+  FaEdit,
+  FaPlus,
+  FaMinus,
+  FaFileInvoiceDollar,
+  FaUser,
+  FaCalendarAlt,
+  FaMoneyBillWave,
+  FaReceipt,
+  FaInfoCircle,
+  FaChevronDown,
+  FaChevronUp,
+  FaSearch,
+  FaFilter,
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -53,12 +74,16 @@ const Invoice_List_aahaas = () => {
     }
   };
 
-  const filteredInvoices = invoices.filter(invoice => {
-    const matchesSearch = invoice.invoice_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (invoice.customer?.name || "").toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = filterStatus === "all" || invoice.status === filterStatus;
-    
+  const filteredInvoices = invoices.filter((invoice) => {
+    const matchesSearch =
+      invoice.invoice_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (invoice.customer?.name || "")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
+
+    const matchesStatus =
+      filterStatus === "all" || invoice.status === filterStatus;
+
     return matchesSearch && matchesStatus;
   });
 
@@ -74,13 +99,17 @@ const Invoice_List_aahaas = () => {
 
   const handlePrintInvoice = async (invoiceId) => {
     try {
-      const response = await axios.get(`/api/invoices/${invoiceId}/print`, {
-        responseType: "blob",
-      }, {
-        headers: {
-          Authorization: `Bearer ${token}`,
+      const response = await axios.get(
+        `/api/invoices/${invoiceId}/print`,
+        {
+          responseType: "blob",
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
-    });
+      );
       const fileURL = window.URL.createObjectURL(new Blob([response.data]));
       const fileLink = document.createElement("a");
       fileLink.href = fileURL;
@@ -99,10 +128,10 @@ const Invoice_List_aahaas = () => {
 
   const handleDeleteInvoice = async () => {
     try {
-      await axios.delete(`/api/invoices/${invoiceToDelete.id}`,{
+      await axios.delete(`/api/invoices/${invoiceToDelete.id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
-        }
+        },
       });
       fetchInvoices();
       setShowDeleteModal(false);
@@ -188,7 +217,11 @@ const Invoice_List_aahaas = () => {
   const getStatusBadge = (status) => {
     switch (status) {
       case "paid":
-        return <Badge bg="success" className="d-flex align-items-center"><FaMoneyBillWave className="me-1" /> Paid</Badge>;
+        return (
+          <Badge bg="success" className="d-flex align-items-center">
+            <FaMoneyBillWave className="me-1" /> Paid
+          </Badge>
+        );
       case "pending":
         return (
           <Badge bg="warning" text="dark" className="d-flex align-items-center">
@@ -196,9 +229,17 @@ const Invoice_List_aahaas = () => {
           </Badge>
         );
       case "cancelled":
-        return <Badge bg="danger" className="d-flex align-items-center"><FaMinus className="me-1" /> Cancelled</Badge>;
+        return (
+          <Badge bg="danger" className="d-flex align-items-center">
+            <FaMinus className="me-1" /> Cancelled
+          </Badge>
+        );
       default:
-        return <Badge bg="secondary" className="d-flex align-items-center"><FaInfoCircle className="me-1" /> Unknown</Badge>;
+        return (
+          <Badge bg="secondary" className="d-flex align-items-center">
+            <FaInfoCircle className="me-1" /> Unknown
+          </Badge>
+        );
     }
   };
 
@@ -212,11 +253,14 @@ const Invoice_List_aahaas = () => {
     return item.price * (1 - item.discount / 100) * item.quantity;
   };
 
-  const ActionButton = ({ icon, label, variant = "primary", onClick, disabled = false }) => (
-    <OverlayTrigger
-      placement="top"
-      overlay={<Tooltip>{label}</Tooltip>}
-    >
+  const ActionButton = ({
+    icon,
+    label,
+    variant = "primary",
+    onClick,
+    disabled = false,
+  }) => (
+    <OverlayTrigger placement="top" overlay={<Tooltip>{label}</Tooltip>}>
       <Button
         variant={variant}
         size="sm"
@@ -237,15 +281,15 @@ const Invoice_List_aahaas = () => {
             <FaFileInvoiceDollar className="me-2" />
             Invoice Management
           </h5>
-          <Button 
-            variant="light" 
+          <Button
+            variant="light"
             onClick={() => navigate("/invoice/create")}
             className="d-flex align-items-center"
           >
             <FaPlus className="me-1" /> New Invoice
           </Button>
         </Card.Header>
-        
+
         <Card.Body>
           {/* Search and Filter Bar */}
           <div className="d-flex mb-4">
@@ -260,12 +304,12 @@ const Invoice_List_aahaas = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            
+
             <div className="d-flex align-items-center me-3">
               <span className="me-2">
                 <FaFilter />
               </span>
-              <Form.Select 
+              <Form.Select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
                 style={{ width: "150px" }}
@@ -276,16 +320,16 @@ const Invoice_List_aahaas = () => {
                 <option value="cancelled">Cancelled</option>
               </Form.Select>
             </div>
-            
-            <Button 
-              variant="outline-secondary" 
+
+            <Button
+              variant="outline-secondary"
               onClick={fetchInvoices}
               className="d-flex align-items-center"
             >
               Refresh
             </Button>
           </div>
-          
+
           {loading ? (
             <div className="text-center py-5">
               <div className="spinner-border text-primary" role="status">
@@ -302,7 +346,7 @@ const Invoice_List_aahaas = () => {
                     <th>Customer</th>
                     <th>Date</th>
                     <th>Total</th>
-                    {/* <th>Status</th> */}
+                    <th>Status</th>
                     <th className="text-end">Actions</th>
                   </tr>
                 </thead>
@@ -312,9 +356,13 @@ const Invoice_List_aahaas = () => {
                       <tr
                         key={invoice.id}
                         className={
-                          invoice.status === "cancelled" ? "table-danger" : 
-                          invoice.status === "paid" ? "table-success" : 
-                          invoice.status === "pending" ? "table-warning" : ""
+                          invoice.status === "cancelled"
+                            ? "table-danger"
+                            : invoice.status === "paid"
+                            ? "table-success"
+                            : invoice.status === "pending"
+                            ? "table-warning"
+                            : ""
                         }
                       >
                         <td>
@@ -322,12 +370,17 @@ const Invoice_List_aahaas = () => {
                         </td>
                         <td>
                           <div className="d-flex align-items-center">
-                            <div className="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style={{ width: "32px", height: "32px" }}>
+                            <div
+                              className="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2"
+                              style={{ width: "32px", height: "32px" }}
+                            >
                               <FaUser />
                             </div>
                             <div>
                               <div>{invoice.customer?.name || "N/A"}</div>
-                              <small className="text-muted">{invoice.customer?.email || ""}</small>
+                              <small className="text-muted">
+                                {invoice.customer?.email || ""}
+                              </small>
                             </div>
                           </div>
                         </td>
@@ -336,7 +389,9 @@ const Invoice_List_aahaas = () => {
                             <FaCalendarAlt className="me-2 text-muted" />
                             {formatDate(invoice.issue_date)}
                           </div>
-                          <small className="text-muted">Due: {formatDate(invoice.due_date)}</small>
+                          <small className="text-muted">
+                            Due: {formatDate(invoice.due_date)}
+                          </small>
                         </td>
                         <td>
                           <div className="d-flex align-items-center">
@@ -344,33 +399,33 @@ const Invoice_List_aahaas = () => {
                             {invoice.currency} {invoice.total_amount}
                           </div>
                         </td>
-                        {/* <td>{getStatusBadge(invoice.status)}</td> */}
+                        <td>{invoice.status}</td>
                         <td className="text-end">
                           <div className="d-flex justify-content-end">
-                            <ActionButton 
-                              icon={<FaEye />} 
-                              label="View" 
-                              variant="info" 
-                              onClick={() => handleViewInvoice(invoice)} 
+                            <ActionButton
+                              icon={<FaEye />}
+                              label="View"
+                              variant="info"
+                              onClick={() => handleViewInvoice(invoice)}
                             />
-                            <ActionButton 
-                              icon={<FaEdit />} 
-                              label="Edit" 
-                              variant="primary" 
-                              onClick={() => handleEditInvoice(invoice)} 
+                            <ActionButton
+                              icon={<FaEdit />}
+                              label="Edit"
+                              variant="primary"
+                              onClick={() => handleEditInvoice(invoice)}
                             />
-                            <ActionButton 
-                              icon={<FaPrint />} 
-                              label="Print" 
-                              variant="secondary" 
-                              onClick={() => handlePrintInvoice(invoice.id)} 
+                            <ActionButton
+                              icon={<FaPrint />}
+                              label="Print"
+                              variant="secondary"
+                              onClick={() => handlePrintInvoice(invoice.id)}
                             />
-                            <ActionButton 
-                              icon={<FaTrash />} 
-                              label="Cancel" 
-                              variant="danger" 
+                            <ActionButton
+                              icon={<FaTrash />}
+                              label="Cancel"
+                              variant="danger"
                               onClick={() => confirmDelete(invoice)}
-                              disabled={invoice.status === "cancelled"} 
+                              disabled={invoice.status === "cancelled"}
                             />
                           </div>
                         </td>
@@ -380,11 +435,16 @@ const Invoice_List_aahaas = () => {
                     <tr>
                       <td colSpan="6" className="text-center py-4">
                         <div className="d-flex flex-column align-items-center">
-                          <FaFileInvoiceDollar size={48} className="text-muted mb-3" />
+                          <FaFileInvoiceDollar
+                            size={48}
+                            className="text-muted mb-3"
+                          />
                           <h5>No invoices found</h5>
-                          <p className="text-muted">Try adjusting your search or create a new invoice</p>
-                          <Button 
-                            variant="primary" 
+                          <p className="text-muted">
+                            Try adjusting your search or create a new invoice
+                          </p>
+                          <Button
+                            variant="primary"
                             onClick={() => navigate("/invoice/create")}
                             className="mt-2"
                           >
@@ -399,11 +459,12 @@ const Invoice_List_aahaas = () => {
             </div>
           )}
         </Card.Body>
-        
+
         {filteredInvoices.length > 0 && (
           <Card.Footer className="d-flex justify-content-between align-items-center">
             <div>
-              Showing <strong>{filteredInvoices.length}</strong> of <strong>{invoices.length}</strong> invoices
+              Showing <strong>{filteredInvoices.length}</strong> of{" "}
+              <strong>{invoices.length}</strong> invoices
             </div>
             <div className="d-flex">
               <Button variant="outline-primary" size="sm" className="me-2">
@@ -435,16 +496,18 @@ const Invoice_List_aahaas = () => {
             <div className="invoice-preview p-4">
               {/* Company Header */}
               <div className="text-center mb-3">
-                 <div className="company-header text-center mb-4">
-            <img
-              src="https://s3-aahaas-prod-assets.s3.ap-southeast-1.amazonaws.com/images/aahaas.png"
-              alt="Aahaas Logo"
-              className="receipt-logo"
-              style={{ width: "200px" }}
-            />
-            <div>One Galle Face Tower, 2208, 1A Centre Road, Colombo 002</div>
-            <div>Tel: 011 2352 400 | Web: www.appleholidaysds.com</div>
-          </div>
+                <div className="company-header text-center mb-4">
+                  <img
+                    src="https://s3-aahaas-prod-assets.s3.ap-southeast-1.amazonaws.com/images/aahaas.png"
+                    alt="Aahaas Logo"
+                    className="receipt-logo"
+                    style={{ width: "200px" }}
+                  />
+                  <div>
+                    One Galle Face Tower, 2208, 1A Centre Road, Colombo 002
+                  </div>
+                  <div>Tel: 011 2352 400 | Web: www.appleholidaysds.com</div>
+                </div>
 
                 {/* <div className="notice-box p-2 mb-3 text-start bg-warning bg-opacity-10 border-start border-warning border-4">
                   <strong>STRICTLY TO BE NOTED:</strong> Finance bill 2017
@@ -488,6 +551,10 @@ const Invoice_List_aahaas = () => {
                   <div>
                     <strong>Printed By</strong>{" "}
                     {currentInvoice.printed_by || "N/A"}
+                  </div>
+                  <div>
+                    <strong>Booking ID</strong>{" "}
+                    {currentInvoice.booking_id || "N/A"}
                   </div>
                 </div>
               </div>
@@ -628,9 +695,12 @@ const Invoice_List_aahaas = () => {
                 handleUpdateInvoice(formValues);
               }}
             >
-              <Accordion defaultActiveKey={['customer', 'invoice', 'items']} alwaysOpen>
+              <Accordion
+                defaultActiveKey={["customer", "invoice", "items"]}
+                alwaysOpen
+              >
                 {/* Customer Information */}
-                <Accordion.Item eventKey="customer">
+                {/* <Accordion.Item eventKey="customer">
                   <Accordion.Header>
                     <div className="d-flex align-items-center">
                       <FaUser className="me-2" />
@@ -655,6 +725,111 @@ const Invoice_List_aahaas = () => {
                             <option value="MY">Malaysia</option>
                             <option value="IN">India</option>
                             <option value="US">United States</option>
+                          </Form.Select>
+                        </FloatingLabel>
+                      </Col>
+                    </Row>
+                  </Accordion.Body>
+                </Accordion.Item> */}
+                <Accordion.Item eventKey="customer">
+                  <Accordion.Header>
+                    <div className="d-flex align-items-center">
+                      <FaUser className="me-2" />
+                      <span>Customer Information</span>
+                    </div>
+                  </Accordion.Header>
+                  <Accordion.Body>
+                    <input
+                      type="hidden"
+                      name="customer_id"
+                      value={currentInvoice.customer?.id}
+                    />
+
+                    <Row>
+                      <Col md={6}>
+                        <FloatingLabel label="Customer Name" className="mb-3">
+                          <Form.Control
+                            type="text"
+                            name="customer_name"
+                            defaultValue={currentInvoice.customer?.name}
+                            required
+                          />
+                        </FloatingLabel>
+                      </Col>
+                      <Col md={6}>
+                        <FloatingLabel label="Mobile Number" className="mb-3">
+                          <Form.Control
+                            type="text"
+                            name="customer_mobile"
+                            defaultValue={currentInvoice.customer?.mobile}
+                            required
+                          />
+                        </FloatingLabel>
+                      </Col>
+                    </Row>
+
+                    <Row>
+                      <Col md={6}>
+                        <FloatingLabel label="Customer Code" className="mb-3">
+                          <Form.Control
+                            type="text"
+                            name="customer_code"
+                            defaultValue={currentInvoice.customer?.code}
+                            required
+                          />
+                        </FloatingLabel>
+                      </Col>
+                      <Col md={6}>
+                        <FloatingLabel label="GST Number" className="mb-3">
+                          <Form.Control
+                            type="text"
+                            name="customer_gst_no"
+                            defaultValue={currentInvoice.customer?.gst_no}
+                          />
+                        </FloatingLabel>
+                      </Col>
+                    </Row>
+
+                    <FloatingLabel label="Customer Address" className="mb-3">
+                      <Form.Control
+                        as="textarea"
+                        name="customer_address"
+                        style={{ height: "80px" }}
+                        defaultValue={currentInvoice.customer?.address}
+                        required
+                      />
+                    </FloatingLabel>
+
+                    <Row>
+                      <Col md={6}>
+                        <FloatingLabel label="Country Code" className="mb-3">
+                          <Form.Select
+                            name="country_code"
+                            defaultValue={currentInvoice.country_code}
+                            required
+                          >
+                            <option value="LK">Sri Lanka</option>
+                            <option value="IN">India</option>
+                            <option value="SG">Singapore</option>
+                            <option value="MY">Malaysia</option>
+                            <option value="US">United States</option>
+                            <option value="UK">United Kingdom</option>
+                          </Form.Select>
+                        </FloatingLabel>
+                      </Col>
+                      <Col md={6}>
+                        <FloatingLabel label="Currency" className="mb-3">
+                          <Form.Select
+                            name="currency"
+                            defaultValue={currentInvoice.currency}
+                            required
+                          >
+                            <option value="LKR">LKR (Sri Lankan Rupee)</option>
+                            <option value="INR">INR (Indian Rupee)</option>
+                            <option value="SGD">SGD (Singapore Dollar)</option>
+                            <option value="MYR">MYR (Malaysian Ringgit)</option>
+                            <option value="USD">USD (US Dollar)</option>
+                            <option value="EUR">EUR (Euro)</option>
                           </Form.Select>
                         </FloatingLabel>
                       </Col>
@@ -733,7 +908,9 @@ const Invoice_List_aahaas = () => {
                           <Form.Control
                             type="date"
                             name="issue_date"
-                            defaultValue={currentInvoice.issue_date?.split("T")[0]}
+                            defaultValue={
+                              currentInvoice.issue_date?.split("T")[0]
+                            }
                             required
                           />
                         </FloatingLabel>
@@ -743,7 +920,9 @@ const Invoice_List_aahaas = () => {
                           <Form.Control
                             type="date"
                             name="due_date"
-                            defaultValue={currentInvoice.due_date?.split("T")[0]}
+                            defaultValue={
+                              currentInvoice.due_date?.split("T")[0]
+                            }
                             required
                           />
                         </FloatingLabel>
@@ -753,7 +932,9 @@ const Invoice_List_aahaas = () => {
                           <Form.Control
                             type="date"
                             name="collection_date"
-                            defaultValue={currentInvoice.collection_date?.split("T")[0]}
+                            defaultValue={
+                              currentInvoice.collection_date?.split("T")[0]
+                            }
                           />
                         </FloatingLabel>
                       </Col>
@@ -762,22 +943,30 @@ const Invoice_List_aahaas = () => {
                     {/* Payment Information */}
                     <Row className="mb-3">
                       <Col md={6}>
-                        <FloatingLabel label="Payment Instructions" className="mb-3">
+                        <FloatingLabel
+                          label="Payment Instructions"
+                          className="mb-3"
+                        >
                           <Form.Control
                             as="textarea"
                             name="payment_instructions"
-                            style={{ height: '100px' }}
+                            style={{ height: "100px" }}
                             defaultValue={currentInvoice.payment_instructions}
                             required
                           />
                         </FloatingLabel>
                       </Col>
                       <Col md={6}>
-                        <FloatingLabel label="Payment Methods (comma separated)" className="mb-3">
+                        <FloatingLabel
+                          label="Payment Methods (comma separated)"
+                          className="mb-3"
+                        >
                           <Form.Control
                             type="text"
                             name="payment_methods"
-                            defaultValue={currentInvoice.payment_methods?.join(",")}
+                            defaultValue={currentInvoice.payment_methods?.join(
+                              ","
+                            )}
                           />
                         </FloatingLabel>
                       </Col>
@@ -811,7 +1000,7 @@ const Invoice_List_aahaas = () => {
                       <Form.Control
                         as="textarea"
                         name="remarks"
-                        style={{ height: '100px' }}
+                        style={{ height: "100px" }}
                         defaultValue={currentInvoice.remarks}
                       />
                     </FloatingLabel>
@@ -905,13 +1094,14 @@ const Invoice_List_aahaas = () => {
                               />
                             </td>
                             <td className="text-end">
-                              {currentInvoice.currency} {calculateItemTotal(item).toFixed(2)}
+                              {currentInvoice.currency}{" "}
+                              {calculateItemTotal(item).toFixed(2)}
                             </td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
-                    
+
                     <div className="d-flex justify-content-end mt-2">
                       <Button variant="outline-primary" size="sm">
                         <FaPlus className="me-1" /> Add Item
@@ -942,46 +1132,48 @@ const Invoice_List_aahaas = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {currentInvoice.additional_charges?.map((charge, index) => (
-                          <tr key={index}>
-                            <td>
-                              <Form.Control
-                                type="text"
-                                name={`additional_charges[${index}][description]`}
-                                size="sm"
-                                defaultValue={charge.description}
-                              />
-                            </td>
-                            <td>
-                              <Form.Control
-                                type="number"
-                                name={`additional_charges[${index}][amount]`}
-                                size="sm"
-                                step="0.01"
-                                min="0"
-                                defaultValue={charge.amount}
-                              />
-                            </td>
-                            <td>
-                              <Form.Select
-                                name={`additional_charges[${index}][taxable]`}
-                                size="sm"
-                                defaultValue={charge.taxable ? "1" : "0"}
-                              >
-                                <option value="1">Yes</option>
-                                <option value="0">No</option>
-                              </Form.Select>
-                            </td>
-                            <td className="text-end">
-                              <Button variant="outline-danger" size="sm">
-                                <FaTrash />
-                              </Button>
-                            </td>
-                          </tr>
-                        ))}
+                        {currentInvoice.additional_charges?.map(
+                          (charge, index) => (
+                            <tr key={index}>
+                              <td>
+                                <Form.Control
+                                  type="text"
+                                  name={`additional_charges[${index}][description]`}
+                                  size="sm"
+                                  defaultValue={charge.description}
+                                />
+                              </td>
+                              <td>
+                                <Form.Control
+                                  type="number"
+                                  name={`additional_charges[${index}][amount]`}
+                                  size="sm"
+                                  step="0.01"
+                                  min="0"
+                                  defaultValue={charge.amount}
+                                />
+                              </td>
+                              <td>
+                                <Form.Select
+                                  name={`additional_charges[${index}][taxable]`}
+                                  size="sm"
+                                  defaultValue={charge.taxable ? "1" : "0"}
+                                >
+                                  <option value="1">Yes</option>
+                                  <option value="0">No</option>
+                                </Form.Select>
+                              </td>
+                              <td className="text-end">
+                                <Button variant="outline-danger" size="sm">
+                                  <FaTrash />
+                                </Button>
+                              </td>
+                            </tr>
+                          )
+                        )}
                       </tbody>
                     </table>
-                    
+
                     <div className="d-flex justify-content-end mt-2">
                       <Button variant="outline-primary" size="sm">
                         <FaPlus className="me-1" /> Add Charge
@@ -1009,7 +1201,11 @@ const Invoice_List_aahaas = () => {
       </Modal>
 
       {/* Delete Confirmation Modal */}
-      <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)} centered>
+      <Modal
+        show={showDeleteModal}
+        onHide={() => setShowDeleteModal(false)}
+        centered
+      >
         <Modal.Header closeButton>
           <Modal.Title className="d-flex align-items-center">
             <FaTrash className="me-2 text-danger" />

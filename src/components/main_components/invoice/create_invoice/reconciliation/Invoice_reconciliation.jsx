@@ -318,13 +318,16 @@ const handleReconcileNonMatched = async (invoice) => {
   };
 
   const handleStatusUpdate = async () => {
+    console.log(selectedInvoice)
     if (!selectedInvoice) return;
 
     const invoiceNumber =
-      selectedInvoice.invoiceNumber || selectedInvoice.apiData?.invoice_number;
+      selectedInvoice.invoice_number || selectedInvoice.apiData?.invoice_number;
     if (!invoiceNumber) return;
 
+    console.log(invoiceNumber)
     try {
+      console.log("sss2")
       setUpdatingStatus((prev) => ({ ...prev, [invoiceNumber]: true }));
 
       const token = localStorage.getItem("authToken");
@@ -333,13 +336,15 @@ const handleReconcileNonMatched = async (invoice) => {
       if (statusUpdate.remark) {
         formData.append("remark", statusUpdate.remark);
       }
-
-      await axios.put(`/api/invoices/by-number/${invoiceNumber}`, formData, {
+      
+     let response = await axios.put(`/api/invoices/by-number/${invoiceNumber}`, formData, {
         headers: {
           "Content-Type": "multipart/form-data",
           Authorization: `Bearer ${token}`,
         },
       });
+      console.log("Response from status update:", response.data);
+      
 
       // Update local state
       setReconciliationStatus((prev) => ({

@@ -15,6 +15,10 @@ import Invoice_refund from './refund_invoice/invoice_refund';
 import Invoice_create from './create_invoice/Invoice_create';
 import Invoice_list from './list_invoice/Invoice_list';
 import Invoice_reconciliation from './create_invoice/reconciliation/Invoice_reconciliation';
+import Reconciliation_apple from '../reconciliation/appleholidays/Reconciliation_apple';
+import Reconciliation_sharmila from '../reconciliation/sharmila/Reconciliation_sharmila';
+import Reconciliation_aahaas from '../reconciliation/aahaas/Reconciliation_aahaas';
+import Reconciliation from '../reconciliation/Reconciliation';
 
 const Invoice_preview = ({ target }) => {
     const { selectedCompany } = useContext(CompanyContext);
@@ -141,6 +145,18 @@ const Invoice_preview = ({ target }) => {
         return <Invoice_reconciliation company={'aahaas'}/>;
       default:
         return <Invoice_reconciliation company={'aahaas'}/>;
+    }
+  }
+  if (target === "reconciliation") {
+   switch (selectedCompany) {
+      case "appleholidays":
+        return <Reconciliation company={'appleholidays'}/>;
+      case "shirmila":
+        return <Reconciliation company={'shirmila'} />;
+      case "aahaas":
+        return <Reconciliation company={'aahaas'}/>;
+      default:
+        return <Reconciliation company={'aahaas'}/>;
     }
   }
 

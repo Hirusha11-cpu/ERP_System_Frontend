@@ -253,45 +253,16 @@ export const menuList = [
   {
     id: 5,
     name: "Reconciliations",
-    path: "/payment/list",
+    path: "/reconciliation",
     icon: "feather-sliders",
     dropdownMenu: [
       {
         id: 1,
-        name: "Create Invoice",
-        path: "/payment/list",
+        name: "Reconciliation",
+        path: "/reconciliation",
         subdropdownMenu: false,
       },
-      {
-        id: 2,
-        name: "Edit Invoice",
-        path: "/payment/view",
-        subdropdownMenu: false,
-      },
-      {
-        id: 3,
-        name: "P&L Reports",
-        path: "/payment/view",
-        subdropdownMenu: false,
-      },
-      {
-        id: 4,
-        name: "Cancelled Invoice",
-        path: "/payment/list",
-        subdropdownMenu: false,
-      },
-      {
-        id: 5,
-        name: "Awaiting Payment Invoice",
-        path: "/payment/create",
-        subdropdownMenu: false,
-      },
-      {
-        id: 6,
-        name: "Summary invoice",
-        path: "/payment/list",
-        subdropdownMenu: false,
-      },
+      
     ],
   },
   {

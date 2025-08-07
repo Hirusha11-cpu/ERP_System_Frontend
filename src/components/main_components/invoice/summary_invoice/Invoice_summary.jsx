@@ -58,52 +58,77 @@ const Invoice_summary = () => {
 
   const token =
     localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+
+  // useEffect(() => {
+  //   const companyMap = {
+  //     appleholidays: 2,
+  //     aahaas: 3,
+  //     shirmila: 1,
+  //   };
+  //   setCompanyNo(companyMap[selectedCompany?.toLowerCase()] || null);
+  //   fetchData(companyNo);
+  // }, [selectedCompany]);
   useEffect(() => {
+    console.log("Selected Company:", selectedCompany);
+    
+    if (!selectedCompany) return;
+
     const companyMap = {
       appleholidays: 2,
       aahaas: 3,
       shirmila: 1,
     };
-    setCompanyNo(companyMap[selectedCompany?.toLowerCase()] || null);
+
+    const mappedCompanyNo = companyMap[selectedCompany.toLowerCase()] || null;
+    setCompanyNo(mappedCompanyNo);
+
+    if (mappedCompanyNo) {
+      fetchData(mappedCompanyNo);
+    }
   }, [selectedCompany]);
 
   // Fetch invoices and summary data
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const [invoicesRes, summaryRes] = await Promise.all([
-          axios.get(`/api/invoicesss/all?company_id=${companyNo}`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }),
-          axios.get(`/api/invoicess/summary?company_id=${companyNo}`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }),
-          //   axios.get(`/api/invoicess/all?company_id=${selectedCompany.id}`),
-          //   axios.get(`/api/invoicess/summary?company_id=${selectedCompany.id}`)
-        ]);
-        console.log(invoicesRes.data);
 
-        setInvoices(invoicesRes.data);
+  const fetchData = async (companyNumber) => {
+    console.log("Fetching data for company:", companyNumber);
+    try {
+      setLoading(true);
+      const [invoicesRes, summaryRes] = await Promise.all([
+        axios.get(`/api/invoicesss/all?company_id=${companyNumber}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }),
+        axios.get(`/api/invoicess/summary?company_id=${companyNumber}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }),
+        //   axios.get(`/api/invoicess/all?company_id=${selectedCompany.id}`),
+        //   axios.get(`/api/invoicess/summary?company_id=${selectedCompany.id}`)
+      ]);
+      console.log(invoicesRes.data);
 
-        console.log(invoicesRes.data, "Invoices xxxxx");
-        setFilteredInvoices(invoicesRes.data);
-        setSummaryData(summaryRes.data);
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
+      setInvoices(invoicesRes.data);
 
-    if (selectedCompany) {
-      fetchData();
+      console.log(invoicesRes.data, "Invoices xxxxx");
+      console.log(summaryRes.data, "Summary xxxxx");
+      setFilteredInvoices(invoicesRes.data);
+      setSummaryData(summaryRes.data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
     }
-  }, [selectedCompany]);
+  };
+  useEffect(() => {
+    console.log("Company No:", companyNo);
+    if (companyNo){
+      fetchData(companyNo);
+    }else{
+      fetchData(3);
+    }
+  }, []);
 
   // Apply filters
   useEffect(() => {
@@ -443,14 +468,14 @@ const Invoice_summary = () => {
       </Card>
 
       {/* Summary Cards */}
-      <Row className="mb-4">
+      {/* <Row className="mb-4">
         <Col md={3}>
           <Card className="text-white bg-primary">
             <Card.Body>
               <div className="d-flex justify-content-between align-items-center">
                 <div>
                   <Card.Title>Total Revenue</Card.Title>
-                  <h2>{(summaryData?.total_amount.toFixed(2)) || 0}</h2>
+                  <h2>{summaryData?.total_amount.toFixed(2) || 0}</h2>
                   <small>{selectedCompany?.currency || "USD"}</small>
                 </div>
                 <FaChartLine size={40} />
@@ -492,7 +517,7 @@ const Invoice_summary = () => {
               <div className="d-flex justify-content-between align-items-center">
                 <div>
                   <Card.Title>Refund Requests</Card.Title>
-                  <h2>{summaryData?.total_refunds || 0}</h2>
+                  <h2>{summaryData?.total_refund.toFixed(2) || 0}</h2>
                   <small>
                     {summaryData?.refund_summary?.pending || 0} pending
                   </small>
@@ -502,7 +527,7 @@ const Invoice_summary = () => {
             </Card.Body>
           </Card>
         </Col>
-      </Row>
+      </Row> */}
 
       {/* Main Content */}
       <Tabs
@@ -514,8 +539,8 @@ const Invoice_summary = () => {
           <Card>
             <Card.Header>
               <div className="d-flex justify-content-between align-items-center">
-                <span>
-                  <FaBuilding className="me-2" />
+                <span className="me-2">
+                  <FaBuilding className="me-4" />
                   Invoice List
                 </span>
                 <Badge bg="primary">{filteredInvoices.length} invoices</Badge>
@@ -609,7 +634,7 @@ const Invoice_summary = () => {
                   Refund Requests
                 </span>
                 <Badge bg="danger">
-                  {0} pending
+                  {/* {0} pending */}
                   {/* {summaryData?.refund_summary?.pending || 0} pending */}
                 </Badge>
               </div>
@@ -681,7 +706,7 @@ const Invoice_summary = () => {
                   Awaiting Payments
                 </span>
                 <Badge bg="secondary">
-                  {0} awaiting
+                  {/* {0} awaiting */}
                   {/* {summaryData?.refund_summary?.pending || 0} pending */}
                 </Badge>
               </div>
@@ -701,7 +726,13 @@ const Invoice_summary = () => {
                 </thead>
                 <tbody>
                   {filteredInvoices
-                    .filter((invoice) => invoice.refund)
+                    .filter(
+                      (invoice) =>
+                        invoice.refund &&
+                        invoice.balance !== '""' &&
+                        invoice.balance !== "" &&
+                        invoice.balance !== null
+                    )
                     .map((invoice) => (
                       <tr key={invoice.id}>
                         <td>{invoice.invoice_number}</td>
@@ -709,25 +740,25 @@ const Invoice_summary = () => {
                         <td>
                           {invoice.total_amount} {invoice.currency}
                         </td>
-                        <td>
+                        {/* <td>
                           {invoice.refund.refund_amount} {invoice.currency}
                         </td>
-                        {/* <td>
+                        <td>
                           <small>{invoice.refund.refund_reason}</small>
-                        </td>
+                        </td> */}
                         <td>
                           <Badge
                             bg={
-                              invoice.refund.refund_status === "confirmed"
+                              invoice.status === "confirmed"
                                 ? "success"
-                                : invoice.refund.refund_status === "pending"
+                                : invoice.status === "pending"
                                 ? "warning"
                                 : "danger"
                             }
                           >
-                            {invoice.refund.refund_status}
+                            {invoice.status}
                           </Badge>
-                        </td> */}
+                        </td>
                         <td>
                           <Button
                             variant="info"
@@ -847,7 +878,7 @@ const Invoice_summary = () => {
                   ))}
                 </tbody>
               </Table> */}
-{/* 
+              {/* 
               {selectedInvoice.additional_charges.length > 0 && (
                 <>
                   <h5 className="mt-4">Additional Charges</h5>

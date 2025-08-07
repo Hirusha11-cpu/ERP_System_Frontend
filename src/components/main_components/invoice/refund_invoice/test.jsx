@@ -53,12 +53,6 @@ const Invoice_refund = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [files, setFiles] = useState([]);
-  const [showNonRefundModal, setShowNonRefundModal] = useState(false);
-  const [currentInvoice, setCurrentInvoice] = useState(null);
-  const [updateStatusData, setUpdateStatusData] = useState({
-    status: "refund",
-    remark: "",
-  });
   const token =
     localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
 
@@ -69,103 +63,61 @@ const Invoice_refund = () => {
     return date.toLocaleDateString();
   };
 
+  useEffect(() => {
   const companyMap = {
     appleholidays: 2,
     aahaas: 3,
     shirmila: 1,
   };
 
+  setCompanyNo(companyMap[selectedCompany?.toLowerCase()] || null);
+}, [selectedCompany]);
+
+useEffect(() => {
+  if (companyNo !== null) {
+    console.log(companyNo, "Company No in Invoice Refund");
+  }
+}, [companyNo]);
+
+
   // Calculate item total
   const calculateItemTotal = (item) => {
-    return (item.price * (1 - item.discount / 100) * item.quantity).toFixed(2);
+    return item.price * (1 - item.discount / 100) * item.quantity;
   };
 
-  const fetchInvoices = async (companyId) => {
-    try {
-      setLoading(true);
-      const response = await axios.get(
-        `/api/invoicess/all?company_id=${companyId}`,
-        {
+  // Fetch all invoices
+  useEffect(() => {
+    console.log(companyNo, "Company No in Invoice Refund");
+    
+    const fetchInvoices = async () => {
+      try {
+        setLoading(true);
+        const response = await axios.get(`/api/invoicess/all?company_id=${companyNo}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        }
-      );
-      setInvoices(response.data.data);
-
-      // Separate invoices into refund and non-refund
-      const refundInvoices = response.data.data.filter(
-        (invoice) => invoice.refund?.status === "refund"
-      );
-      setFilteredInvoices(refundInvoices);
-
-      // Check for non-refund invoices that need updating
-      const nonRefundInvoices = response.data.data.filter(
-        (invoice) =>
-          invoice.refund?.status === "non-refund" || invoice.refund === null
-      );
-      // if (nonRefundInvoices.length > 0) {
-      //   setCurrentInvoice(nonRefundInvoices[0]);
-      //   setShowNonRefundModal(true);
-      // }
-    } catch (err) {
-      setError(err.message || "Failed to fetch invoices");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-const handleUpdateNonRefundStatus = async () => {
-  try {
-    setLoading(true);
-    
-    const updatedData = {
-      refund: {
-        ...selectedInvoice.refund,
-        status: "refund", // Change from "non-refund" to "refund"
-        refund_status: "pending", // Set initial refund status
-        remark: refundData.remark || "Status updated to refundable",
-        // Include other required fields
-        refund_amount: 0, // Initialize with 0
-        total_amount: selectedInvoice.total_amount
+        });
+        // const response = await axios.get("/api/invoicess/all", {
+        //   headers: {
+        //     Authorization: `Bearer ${token}`,
+        //   },
+        // });
+        setInvoices(response.data.data);
+        // Filter invoices with refunds
+        const refundInvoices = response.data.data.filter(
+          (invoice) =>
+            invoice.refund?.status !== "non-refund" && invoice.refund !== null
+        );
+        setFilteredInvoices(refundInvoices);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
       }
     };
 
-    await axios.put(
-      `/api/invoices/by-number/${selectedInvoice.invoice_number}?company_id=${companyNo}`,
-      updatedData,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-
-    // Refresh the data
-    await fetchInvoices(companyNo);
-    setShowNonRefundModal(false);
-    setError(null);
-  } catch (err) {
-    console.error("Status update error:", err);
-    setError(err.response?.data?.message || err.message);
-  } finally {
-    setLoading(false);
-  }
-};
-
-
-  useEffect(() => {
-    if (!selectedCompany) return;
-
-    const companyNumber = companyMap[selectedCompany.toLowerCase()];
-    if (!companyNumber) {
-      console.error("Unknown company selected:", selectedCompany);
-      return;
-    }
-
-    setCompanyNo(companyNumber);
-    fetchInvoices(companyNumber);
-  }, [selectedCompany]);
+    fetchInvoices();
+  }, []);
 
   useEffect(() => {
     if (selectedInvoice?.refund) {
@@ -184,41 +136,24 @@ const handleUpdateNonRefundStatus = async () => {
 
   // Search invoices by number
   const handleSearch = async () => {
-  if (!searchTerm.trim()) {
-    setError("Please enter an invoice number");
-    return;
-  }
-
-  try {
-    setLoading(true);
-    const response = await axios.get(
-      `/api/invoices/by-number/${searchTerm}?company_id=${companyNo}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-    
-    const searchedInvoice = response.data;
-    setSelectedInvoice(searchedInvoice);
-
-    // Check if the searched invoice is non-refundable or has no refund data
-    if (searchedInvoice.refund?.status === "non-refund" || searchedInvoice.refund === null) {
-      setShowNonRefundModal(true);
-      setShowModal(false); // Ensure the regular modal doesn't show
-    } else {
-      setShowModal(true); // Show regular modal for refundable invoices
-      setShowNonRefundModal(false);
+    try {
+      setLoading(true);
+      const response = await axios.get(
+        `/api/invoices/by-number/${searchTerm}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      setSelectedInvoice(response.data);
+      setShowModal(true);
+    } catch (err) {
+      setError("Invoice not found");
+    } finally {
+      setLoading(false);
     }
-    
-    setError(null);
-  } catch (err) {
-    setError(err.response?.data?.message || "Invoice not found");
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   // Handle refund data changes
   const handleChange = (e) => {
@@ -261,11 +196,6 @@ const handleUpdateNonRefundStatus = async () => {
 
   // Save refund request
   const handleSave = async () => {
-    if (!refundData.refund_amount || !refundData.refund_reason) {
-      setError("Refund amount and reason are required");
-      return;
-    }
-
     try {
       setLoading(true);
 
@@ -288,7 +218,7 @@ const handleUpdateNonRefundStatus = async () => {
       });
 
       await axios.put(
-        `/api/invoices/by-number/${selectedInvoice.invoice_number}?company_id=${companyNo}`,
+        `/api/invoices/by-number/${selectedInvoice.invoice_number}`,
         formData,
         {
           headers: {
@@ -299,7 +229,18 @@ const handleUpdateNonRefundStatus = async () => {
       );
 
       // Refresh data
-      await fetchInvoices(companyNo);
+      const response = await axios.get("/api/invoicesss/all", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setInvoices(response.data.data);
+      setFilteredInvoices(
+        response.data.data.filter(
+          (invoice) => invoice.refund?.status === "refund"
+        )
+      );
+
       setShowModal(false);
       setError(null);
     } catch (err) {
@@ -316,7 +257,7 @@ const handleUpdateNonRefundStatus = async () => {
       setLoading(true);
 
       await axios.put(
-        `/api/invoices/by-number/${selectedInvoice.invoice_number}?company_id=${companyNo}`,
+        `/api/invoices/by-number/${selectedInvoice.invoice_number}`,
         {
           refund: {
             ...refundData,
@@ -331,7 +272,15 @@ const handleUpdateNonRefundStatus = async () => {
       );
 
       // Refresh data
-      await fetchInvoices(companyNo);
+      const response = await axios.get("/api/invoices/all", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setInvoices(response.data.data);
+      setFilteredInvoices(
+        response.data.data.filter((invoice) => invoice.refund)
+      );
 
       // Update local state
       setRefundData((prev) => ({ ...prev, refund_status: status }));
@@ -363,11 +312,6 @@ const handleUpdateNonRefundStatus = async () => {
 
   // Save edited refund
   const handleEditSave = async () => {
-    if (!refundData.refund_amount || !refundData.refund_reason) {
-      setError("Refund amount and reason are required");
-      return;
-    }
-
     try {
       setLoading(true);
 
@@ -399,7 +343,7 @@ const handleUpdateNonRefundStatus = async () => {
       });
 
       await axios.put(
-        `/api/invoices/by-number/${selectedInvoice.invoice_number}?company_id=${companyNo}`,
+        `/api/invoices/by-number/${selectedInvoice.invoice_number}`,
         formData,
         {
           headers: {
@@ -410,7 +354,18 @@ const handleUpdateNonRefundStatus = async () => {
       );
 
       // Refresh data
-      await fetchInvoices(companyNo);
+      const response = await axios.get("/api/invoicess/all", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setInvoices(response.data.data);
+      setFilteredInvoices(
+        response.data.data.filter(
+          (invoice) => invoice.refund?.status === "refund"
+        )
+      );
+
       setShowEditModal(false);
       setError(null);
     } catch (err) {
@@ -425,9 +380,11 @@ const handleUpdateNonRefundStatus = async () => {
   const handlePrintInvoice = async (invoiceId) => {
     try {
       const response = await axios.get(
-        `/api/invoices/${invoiceId}/print?company_id=${companyNo}`,
+        `/api/invoices/${invoiceId}/print`,
         {
           responseType: "blob",
+        },
+        {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -439,15 +396,15 @@ const handleUpdateNonRefundStatus = async () => {
       fileLink.setAttribute("download", `invoice_${invoiceId}.pdf`);
       document.body.appendChild(fileLink);
       fileLink.click();
-      fileLink.remove();
     } catch (error) {
       console.error("Error printing invoice:", error);
-      setError("Failed to download invoice");
     }
   };
 
   // Render company header based on company number
   const renderCompanyHeader = (invoice) => {
+    console.log("Selected Company no:", invoice?.company_id);
+
     switch (invoice?.company_id) {
       case 1: // Sharmila Tours & Travels
         return (
@@ -478,13 +435,12 @@ const handleUpdateNonRefundStatus = async () => {
         return (
           <div className="text-center mb-3">
             <img
-              src="/images/logo/aahaas.png"
+              src="https://s3-aahaas-prod-assets.s3.ap-southeast-1.amazonaws.com/images/aahaas.png"
               alt="Aahaas Logo"
-              className="img-fluid mb-3"
               style={{ width: "200px" }}
             />
             <div>One Galle Face Tower, 2208, 1A Centre Road, Colombo 002</div>
-            <div>Tel: 011 2352 400 | Web: www.aahaas.com</div>
+            <div>Tel: 011 2352 400 | Web: www.appleholidaysds.com</div>
             <h5 className="fw-bold mb-3">INVOICE</h5>
           </div>
         );
@@ -508,7 +464,11 @@ const handleUpdateNonRefundStatus = async () => {
           </h2>
         </Card.Header>
         <Card.Body>
-          {error && <Alert variant="danger">{error}</Alert>}
+          {error && (
+            <div className="alert alert-danger" role="alert">
+              {error}
+            </div>
+          )}
 
           <Row className="mb-4">
             <Col md={8}>
@@ -518,13 +478,8 @@ const handleUpdateNonRefundStatus = async () => {
                   placeholder="Search by invoice number"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  onKeyPress={(e) => e.key === "Enter" && handleSearch()}
                 />
-                <Button
-                  variant="primary"
-                  onClick={handleSearch}
-                  disabled={loading || !searchTerm.trim()}
-                >
+                <Button variant="primary" onClick={handleSearch}>
                   <FaSearch className="me-1" /> Search
                 </Button>
               </InputGroup>
@@ -567,10 +522,7 @@ const handleUpdateNonRefundStatus = async () => {
                         <td>
                           {invoice.total_amount} {invoice.currency}
                         </td>
-                        <td>
-                          {invoice.refund?.refund_amount || "N/A"}{" "}
-                          {invoice.currency}
-                        </td>
+                        <td>{invoice.refund?.refund_amount || "N/A"}</td>
                         <td>
                           <small>
                             {invoice.refund?.refund_reason || "N/A"}
@@ -589,26 +541,24 @@ const handleUpdateNonRefundStatus = async () => {
                             {invoice.refund?.refund_status || "N/A"}
                           </Badge>
                         </td>
-                        <td>
-                          <div className="d-flex">
-                            <Button
-                              variant="info"
-                              size="sm"
-                              className="me-2"
-                              onClick={() => handlePreview(invoice)}
-                              disabled={loading}
-                            >
-                              <FaEye /> View
-                            </Button>
-                            <Button
-                              variant="warning"
-                              size="sm"
-                              onClick={() => handleEdit(invoice)}
-                              disabled={loading}
-                            >
-                              <FaEdit /> Edit
-                            </Button>
-                          </div>
+                        <td className="flex flex-row">
+                          <Button
+                            variant="info"
+                            size="sm"
+                            className="me-2"
+                            onClick={() => handlePreview(invoice)}
+                          >
+                            <FaEye /> View
+                          </Button>{" "}
+                          &nbsp;
+                          <Button
+                            variant="warning"
+                            size="sm"
+                            className="me-2"
+                            onClick={() => handleEdit(invoice)}
+                          >
+                            <FaEdit /> Edit
+                          </Button>
                         </td>
                       </tr>
                     ))}
@@ -621,12 +571,7 @@ const handleUpdateNonRefundStatus = async () => {
       </Card>
 
       {/* View Refund Details Modal */}
-      <Modal
-        show={showModal}
-        onHide={() => setShowModal(false)}
-        size="lg"
-        backdrop="static"
-      >
+      <Modal show={showModal} onHide={() => setShowModal(false)} size="lg">
         <Modal.Header closeButton>
           <Modal.Title>Refund Details</Modal.Title>
         </Modal.Header>
@@ -712,20 +657,6 @@ const handleUpdateNonRefundStatus = async () => {
                   </tr>
                   <tr>
                     <td>
-                      <strong>Payment Methods</strong>
-                    </td>
-                    <td>
-                      {selectedInvoice.refund?.payment_methods?.length > 0
-                        ? selectedInvoice.refund.payment_methods
-                            .map((method) =>
-                              method.replace("_", " ").toUpperCase()
-                            )
-                            .join(", ")
-                        : "N/A"}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>
                       <strong>Attachments</strong>
                     </td>
                     <td>
@@ -738,9 +669,8 @@ const handleUpdateNonRefundStatus = async () => {
                                   href={`/storage/${file}`}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="me-2"
                                 >
-                                  Attachment {index + 1}
+                                  View Attachment {index + 1}
                                 </a>
                               </div>
                             )
@@ -760,8 +690,7 @@ const handleUpdateNonRefundStatus = async () => {
                   className="me-2"
                   onClick={() => updateRefundStatus("confirmed")}
                   disabled={
-                    selectedInvoice.refund?.refund_status === "confirmed" ||
-                    loading
+                    selectedInvoice.refund?.refund_status === "confirmed"
                   }
                 >
                   <FaCheck className="me-1" /> Confirm Refund
@@ -770,8 +699,7 @@ const handleUpdateNonRefundStatus = async () => {
                   variant="danger"
                   onClick={() => updateRefundStatus("cancelled")}
                   disabled={
-                    selectedInvoice.refund?.refund_status === "cancelled" ||
-                    loading
+                    selectedInvoice.refund?.refund_status === "cancelled"
                   }
                 >
                   <FaTimes className="me-1" /> Cancel Refund
@@ -781,11 +709,7 @@ const handleUpdateNonRefundStatus = async () => {
           )}
         </Modal.Body>
         <Modal.Footer>
-          <Button
-            variant="secondary"
-            onClick={() => setShowModal(false)}
-            disabled={loading}
-          >
+          <Button variant="secondary" onClick={() => setShowModal(false)}>
             Close
           </Button>
         </Modal.Footer>
@@ -796,7 +720,6 @@ const handleUpdateNonRefundStatus = async () => {
         show={showEditModal}
         onHide={() => setShowEditModal(false)}
         size="lg"
-        backdrop="static"
       >
         <Modal.Header closeButton>
           <Modal.Title>Edit Refund Request</Modal.Title>
@@ -841,29 +764,24 @@ const handleUpdateNonRefundStatus = async () => {
               <Form>
                 <Row className="mb-3">
                   <Col md={6}>
-                    <Form.Group>
-                      <Form.Label>Refund Amount</Form.Label>
-                      <Form.Control
-                        type="number"
-                        name="refund_amount"
-                        value={refundData.refund_amount}
-                        onChange={handleChange}
-                        max={selectedInvoice.total_amount}
-                        min="0"
-                        step="0.01"
-                        required
-                      />
-                    </Form.Group>
+                    <Form.Label>Refund Amount</Form.Label>
+                    <Form.Control
+                      type="number"
+                      name="refund_amount"
+                      value={refundData.refund_amount}
+                      onChange={handleChange}
+                      max={selectedInvoice.total_amount}
+                      required
+                    />
                   </Col>
                   <Col md={6}>
-                    <Form.Group>
-                      <Form.Label>Total Amount</Form.Label>
-                      <Form.Control
-                        type="text"
-                        value={`${selectedInvoice.total_amount} ${selectedInvoice.currency}`}
-                        readOnly
-                      />
-                    </Form.Group>
+                    <Form.Label>Total Amount</Form.Label>
+                    <Form.Control
+                      type="number"
+                      name="total_amount"
+                      value={selectedInvoice.total_amount}
+                      readOnly
+                    />
                   </Col>
                 </Row>
 
@@ -898,7 +816,6 @@ const handleUpdateNonRefundStatus = async () => {
                         key={method}
                         inline
                         type="checkbox"
-                        id={`payment-method-${method}`}
                         label={method.replace("_", " ").toUpperCase()}
                         checked={refundData.payment_methods.includes(method)}
                         onChange={() => handlePaymentMethodChange(method)}
@@ -913,7 +830,6 @@ const handleUpdateNonRefundStatus = async () => {
                     type="file"
                     multiple
                     onChange={handleFileChange}
-                    disabled={loading}
                   />
                   {files.length > 0 && (
                     <div className="mt-2">
@@ -926,7 +842,6 @@ const handleUpdateNonRefundStatus = async () => {
                               variant="link"
                               size="sm"
                               onClick={() => removeFile(index)}
-                              disabled={loading}
                             >
                               <FaTrash />
                             </Button>
@@ -940,14 +855,13 @@ const handleUpdateNonRefundStatus = async () => {
                       <strong>Existing Attachments:</strong>
                       <ul className="list-unstyled">
                         {refundData.refund_attachments.map((file, index) => (
-                          <li key={index} className="d-flex align-items-center">
+                          <li key={index}>
                             <a
                               href={`/storage/${file}`}
                               target="_blank"
                               rel="noreferrer"
-                              className="me-2"
                             >
-                              Attachment {index + 1}
+                              View Attachment {index + 1}
                             </a>
                           </li>
                         ))}
@@ -962,7 +876,6 @@ const handleUpdateNonRefundStatus = async () => {
                     name="refund_status"
                     value={refundData.refund_status}
                     onChange={handleChange}
-                    disabled={loading}
                   >
                     <option value="pending">Pending</option>
                     <option value="confirmed">Confirmed</option>
@@ -974,11 +887,7 @@ const handleUpdateNonRefundStatus = async () => {
           )}
         </Modal.Body>
         <Modal.Footer>
-          <Button
-            variant="secondary"
-            onClick={() => setShowEditModal(false)}
-            disabled={loading}
-          >
+          <Button variant="secondary" onClick={() => setShowEditModal(false)}>
             Cancel
           </Button>
           <Button variant="primary" onClick={handleEditSave} disabled={loading}>
@@ -1059,7 +968,8 @@ const handleUpdateNonRefundStatus = async () => {
                       <td style={{ textAlign: "right" }}>{item.discount}%</td>
                       <td style={{ textAlign: "right" }}>{item.quantity}</td>
                       <td style={{ textAlign: "right" }}>
-                        {selectedInvoice.currency} {calculateItemTotal(item)}
+                        {selectedInvoice.currency}{" "}
+                        {calculateItemTotal(item).toFixed(2)}
                       </td>
                     </tr>
                   ))}
@@ -1067,12 +977,7 @@ const handleUpdateNonRefundStatus = async () => {
               </table>
 
               {/* Payment Instructions */}
-              {selectedInvoice.payment_instructions && (
-                <div className="mb-3">
-                  <strong>Payment Instructions:</strong>{" "}
-                  {selectedInvoice.payment_instructions}
-                </div>
-              )}
+              <div className="mb-3">{selectedInvoice.payment_instructions}</div>
 
               {/* Totals */}
               <div className="row mb-4">
@@ -1102,7 +1007,7 @@ const handleUpdateNonRefundStatus = async () => {
                         </td>
                         <td style={{ padding: "4px", textAlign: "right" }}>
                           {selectedInvoice.currency}{" "}
-                          {selectedInvoice.amount_received || "0.00"}
+                          {selectedInvoice.amount_received}
                         </td>
                       </tr>
                       <tr>
@@ -1110,8 +1015,7 @@ const handleUpdateNonRefundStatus = async () => {
                           <strong>Balance:</strong>
                         </td>
                         <td style={{ padding: "4px", textAlign: "right" }}>
-                          {selectedInvoice.currency}{" "}
-                          {selectedInvoice.balance || "0.00"}
+                          {selectedInvoice.currency} {selectedInvoice.balance}
                         </td>
                       </tr>
                     </tbody>
@@ -1122,11 +1026,9 @@ const handleUpdateNonRefundStatus = async () => {
               {/* Bottom left: Staff and Remark */}
               <div className="row">
                 <div className="col-md-6">
-                  {selectedInvoice.remarks && (
-                    <div>
-                      <strong>Remark:</strong> {selectedInvoice.remarks}
-                    </div>
-                  )}
+                  <div>
+                    <strong>Remark:</strong> {selectedInvoice.remarks}
+                  </div>
                 </div>
               </div>
             </div>
@@ -1136,7 +1038,6 @@ const handleUpdateNonRefundStatus = async () => {
           <Button
             variant="secondary"
             onClick={() => setShowPreviewModal(false)}
-            disabled={loading}
           >
             Close
           </Button>
@@ -1144,81 +1045,18 @@ const handleUpdateNonRefundStatus = async () => {
             variant="primary"
             onClick={() => handlePrintInvoice(selectedInvoice?.id)}
             className="d-flex align-items-center"
-            disabled={loading}
           >
             <FaPrint className="me-1" /> Print Invoice
           </Button>
           <Button
             variant="success"
-            onClick={() => handlePrintInvoice(selectedInvoice?.id)}
+            onClick={() => alert("PDF download would be implemented here")}
             className="d-flex align-items-center"
-            disabled={loading}
           >
             <FaDownload className="me-1" /> Download PDF
           </Button>
         </Modal.Footer>
       </Modal>
-      <Modal
-      show={showNonRefundModal}
-      onHide={() => setShowNonRefundModal(false)}
-      backdrop="static"
-    >
-      <Modal.Header closeButton>
-        <Modal.Title>Convert to Refundable Invoice</Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
-        {selectedInvoice && (
-          <>
-            <p>
-              Invoice <strong>{selectedInvoice.invoice_number}</strong> is currently marked as non-refundable.
-            </p>
-            <p>Would you like to convert it to a refundable invoice?</p>
-            
-            <Form.Group className="mb-3">
-              <Form.Label>Refund Reason</Form.Label>
-              <Form.Control
-                as="textarea"
-                rows={3}
-                name="refund_reason"
-                value={refundData.refund_reason}
-                onChange={handleChange}
-                placeholder="Enter reason for refund..."
-              />
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label>Initial Refund Amount</Form.Label>
-              <Form.Control
-                type="number"
-                name="refund_amount"
-                value={refundData.refund_amount}
-                onChange={handleChange}
-                min="0"
-                max={selectedInvoice.total_amount}
-                step="0.01"
-                placeholder="Enter refund amount"
-              />
-            </Form.Group>
-          </>
-        )}
-      </Modal.Body>
-      <Modal.Footer>
-        <Button 
-          variant="secondary" 
-          onClick={() => setShowNonRefundModal(false)}
-          disabled={loading}
-        >
-          Cancel
-        </Button>
-        <Button 
-          variant="primary" 
-          onClick={handleUpdateNonRefundStatus}
-          disabled={loading || !refundData.refund_reason}
-        >
-          {loading ? "Updating..." : "Convert to Refundable"}
-        </Button>
-      </Modal.Footer>
-    </Modal>
     </Container>
   );
 };

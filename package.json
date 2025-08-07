@@ -25,6 +25,7 @@
     "emoji-picker-react": "^4.12.0",
     "feather-icons": "^4.29.2",
     "feather-icons-react": "^0.7.0",
+    "html2pdf.js": "^0.10.3",
     "perfect-scrollbar": "^1.5.5",
     "quill": "^2.0.2",
     "react": "^18.3.1",

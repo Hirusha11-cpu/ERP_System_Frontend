@@ -50,6 +50,8 @@ const Invoice_pnl = () => {
     applyFilters();
   }, [invoices, searchTerm, filters]);
 
+  // const focus = useFocus
+
     useEffect(() => {
     if (!selectedCompany) return;
 

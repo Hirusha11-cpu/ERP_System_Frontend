@@ -399,9 +399,9 @@ const Home = () => {
                     )}
                   </h3>
                 </div>
-                <div className="bg-primary bg-opacity-10 p-3 rounded">
+                {/* <div className="bg-primary bg-opacity-10 p-3 rounded">
                   <FaFileInvoiceDollar className="text-primary" size={24} />
-                </div>
+                </div> */}
               </div>
               <ProgressBar
                 now={(invoiceStats.paid / invoiceStats.total) * 100}
@@ -435,9 +435,9 @@ const Home = () => {
                     )}
                   </h3>
                 </div>
-                <div className="bg-success bg-opacity-10 p-3 rounded">
+                {/* <div className="bg-success bg-opacity-10 p-3 rounded">
                   <FiTrendingUp className="text-success" size={24} />
-                </div>
+                </div> */}
               </div>
               <div className="mt-3">
                 <Badge bg="success" className="me-2">
@@ -465,9 +465,9 @@ const Home = () => {
                     )}
                   </h3>
                 </div>
-                <div className="bg-warning bg-opacity-10 p-3 rounded">
+                {/* <div className="bg-warning bg-opacity-10 p-3 rounded">
                   <FiFileText className="text-warning" size={24} />
-                </div>
+                </div> */}
               </div>
               <div className="mt-3">
                 <Badge bg="warning" className="me-2">
@@ -495,9 +495,9 @@ const Home = () => {
                     )}
                   </h3>
                 </div>
-                <div className="bg-danger bg-opacity-10 p-3 rounded">
+                {/* <div className="bg-danger bg-opacity-10 p-3 rounded">
                   <FiTrendingDown className="text-danger" size={24} />
-                </div>
+                </div> */}
               </div>
               <div className="mt-3">
                 <Badge bg="danger" className="me-2">
@@ -590,27 +590,31 @@ const Home = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {invoices.map((invoice) => (
-                        <tr key={invoice.id}>
-                          <td>{invoice.invoice_number}</td>
-                          <td>{invoice.customer?.name || "N/A"}</td>
-                          <td>
-                            {new Date(invoice.issue_date).toLocaleDateString()}
-                          </td>
-                          <td>
-                            ₹
-                            {parseFloat(
-                              invoice.total_amount || 0
-                            ).toLocaleString()}
-                          </td>
-                          <td>{getStatusBadge(invoice)}</td>
-                          <td>
-                            <Button variant="link" size="sm" className="p-0">
-                              View
-                            </Button>
-                          </td>
-                        </tr>
-                      ))}
+                      {invoices
+                        .slice(0, 10) // This will limit to first 10 invoices
+                        .map((invoice) => (
+                          <tr key={invoice.id}>
+                            <td>{invoice.invoice_number}</td>
+                            <td>{invoice.customer?.name || "N/A"}</td>
+                            <td>
+                              {new Date(
+                                invoice.issue_date
+                              ).toLocaleDateString()}
+                            </td>
+                            <td>
+                              ₹
+                              {parseFloat(
+                                invoice.total_amount || 0
+                              ).toLocaleString()}
+                            </td>
+                            <td>{getStatusBadge(invoice)}</td>
+                            <td>
+                              <Button variant="link" size="sm" className="p-0">
+                                View
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
                     </tbody>
                   </Table>
                   <div className="d-flex justify-content-end">

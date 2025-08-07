@@ -300,7 +300,7 @@ const Header = () => {
                     >
                       <option value="aahaas">Aahaas</option>
                       <option value="appleholidays">Apple Holidays</option>
-                      <option value="shirmila">Shirmila Travels</option>
+                      <option value="shirmila">Sharmila Travels</option>
                     </select>
                     <div
                       style={{

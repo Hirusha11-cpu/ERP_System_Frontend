@@ -1,6 +1,8 @@
 import React from "react";
 import { Modal, Button } from "react-bootstrap";
 import { FaPrint, FaDownload } from "react-icons/fa";
+import html2pdf from "html2pdf.js";
+import { useRef } from "react";
 
 const Invoice_aahaas_modal = ({
   show,
@@ -17,6 +19,20 @@ const Invoice_aahaas_modal = ({
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 to include both days
     return diffDays > 0 ? diffDays : 0;
   };
+  const receiptRef = useRef(); // Reference to modal body
+
+  const downloadPDF = () => {
+    const element = receiptRef.current;
+    const opt = {
+      margin:       0.3,
+      filename:     `receipt_${formData.invoice.number || "order"}.pdf`,
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2 },
+      jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+    };
+
+    html2pdf().set(opt).from(element).save();
+  };
   return (
     <Modal
       show={show}
@@ -26,18 +42,24 @@ const Invoice_aahaas_modal = ({
       className="receipt-modal"
     >
       <div className="modal-content">
+        <Modal.Body className="receipt-body" ref={receiptRef}>
         <div className="receipt-header">
           <div className="receipt-title" style={{ textAlign: "center" }}>
             <img
-              src="https://s3-aahaas-prod-assets.s3.ap-southeast-1.amazonaws.com/images/aahaas.png"
+              // src="https://s3-aahaas-prod-assets.s3.ap-southeast-1.amazonaws.com/images/aahaas.png"
+              src="/images/logo/aahaas.png"
               alt="Aahaas Logo"
               className="receipt-logo"
               style={{ width: "200px" }}
             />
           </div>
-          <div>{new Date().toLocaleDateString()}</div>
+          <div className="receipt-info" style={{ textAlign: "center" }}>
+            
+             <div>One Galle Face Tower, 2208, 1A Centre Road, Colombo 002</div>
+            <div>Tel: 011 2352 400 | Web: www.appleholidaysds.com</div>
+          </div>
+          {/* <div>{new Date().toLocaleDateString()}</div> */}
         </div>
-        <Modal.Body className="receipt-body">
           <div className="thank-you">
             Dear {formData.customer.name || "Customer"}, Thank you for your
             order
@@ -202,10 +224,10 @@ const Invoice_aahaas_modal = ({
           <Button variant="secondary" onClick={onHide}>
             Close
           </Button>
-          <Button variant="primary" onClick={printInvoice} className="print-receipt">
+          {/* <Button variant="primary" onClick={printInvoice} className="print-receipt">
             <FaPrint /> Print Receipt
-          </Button>
-          <Button variant="success" onClick={() => alert("PDF download would be implemented here")}>
+          </Button> */}
+          <Button variant="success" onClick={downloadPDF}>
             <FaDownload /> Download PDF
           </Button>
         </Modal.Footer>

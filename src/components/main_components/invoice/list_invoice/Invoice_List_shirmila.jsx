@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useContext } from "react";
+import ReactDOM from 'react-dom';
 import {
   Table,
   Button,
@@ -35,10 +36,13 @@ import {
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { CompanyContext } from "../../../../contentApi/CompanyProvider";
+import { PDFDownloadLink } from "@react-pdf/renderer";
+import { InvoicePDF } from "../upload_invoice/InvoicePDF";
 
 const Invoice_List_shirmila = () => {
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -49,11 +53,14 @@ const Invoice_List_shirmila = () => {
   const { selectedCompany } = useContext(CompanyContext);
   const navigate = useNavigate();
 
+
   const token =
     localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
 
   useEffect(() => {
     fetchInvoices();
+    console.log(invoices);
+    
   }, []);
 
   const fetchInvoices = async () => {
@@ -67,7 +74,12 @@ const Invoice_List_shirmila = () => {
           Authorization: `Bearer ${token}`,
         },
       });
-      setInvoices(response.data.data || []);
+      const sortedInvoices = (response.data.data || []).sort(
+      (a, b) => new Date(b.created_at) - new Date(a.created_at)
+    );
+
+    setInvoices(sortedInvoices);
+      // setInvoices(response.data.data || []);
     } catch (error) {
       console.error("Error fetching invoices:", error);
     } finally {
@@ -76,16 +88,18 @@ const Invoice_List_shirmila = () => {
   };
 
   const filteredInvoices = invoices.filter((invoice) => {
+    
     const matchesSearch =
       invoice.invoice_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (invoice.customer?.name || "")
         .toLowerCase()
         .includes(searchTerm.toLowerCase());
 
-    const matchesStatus =
-      filterStatus === "all" || invoice.status === filterStatus;
+    // const matchesStatus =
+    //   filterStatus === "all" || invoice.status === filterStatus;
 
-    return matchesSearch && matchesStatus;
+    // return matchesSearch && matchesStatus;
+    return matchesSearch;
   });
 
   const handleViewInvoice = (invoice) => {
@@ -100,36 +114,47 @@ const Invoice_List_shirmila = () => {
     setShowEditModal(true);
   };
 
-  const handlePrintInvoice = async (invoiceId) => {
-    try {
-      const response = await axios.get(
-        `/api/invoices/${invoiceId}/print`,
-        {
-          responseType: "blob",
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      const fileURL = window.URL.createObjectURL(new Blob([response.data]));
-      const fileLink = document.createElement("a");
-      fileLink.href = fileURL;
-      fileLink.setAttribute("download", `invoice_${invoiceId}.pdf`);
-      document.body.appendChild(fileLink);
-      fileLink.click();
-    } catch (error) {
-      console.error("Error printing invoice:", error);
+  const handlePrintInvoice = (invoice) => {
+  // Set the current invoice to generate the PDF for
+  setCurrentInvoice(invoice);
+  
+  // Create a download link using the PDFDownloadLink component
+  const pdfLink = (
+    <PDFDownloadLink 
+      document={<InvoicePDF invoice={invoice} />} 
+      fileName={`invoice_${invoice.invoice_number}.pdf`}
+    >
+      {({ blob, url, loading, error }) => 
+        loading ? 'Loading document...' : 'Download now!'
+      }
+    </PDFDownloadLink>
+  );
+
+  // Programmatically trigger the download
+  // Since we can't directly access the download link in this way,
+  // we'll need to create a temporary button and click it
+  const tempDiv = document.createElement('div');
+  document.body.appendChild(tempDiv);
+  
+  // Render the PDFDownloadLink to our temp div
+  ReactDOM.render(pdfLink, tempDiv);
+  
+  // Find the anchor tag and click it
+  setTimeout(() => {
+    const downloadLink = tempDiv.querySelector('a');
+    if (downloadLink) {
+      downloadLink.click();
     }
-  };
+    document.body.removeChild(tempDiv);
+  }, 100);
+};
 
   const confirmDelete = (invoice) => {
     setInvoiceToDelete(invoice);
     setShowDeleteModal(true);
   };
 
-  const handleDeleteInvoice = async () => {
+  const handleDeleteInvoice1 = async () => {
     try {
       await axios.delete(`/api/invoices/${invoiceToDelete.id}`, {
         headers: {
@@ -397,6 +422,56 @@ const Invoice_List_shirmila = () => {
   const calculateItemTotal = (item) => {
     return item.price * (1 - item.discount / 100) * item.quantity;
   };
+  const handleCancelInvoice = async (invoice) => {
+    try {
+      setInvoiceToDelete(invoice);
+      setShowDeleteModal(true);
+    } catch (error) {
+      console.error("Error preparing to cancel invoice:", error);
+    }
+  };
+
+  const handleDeleteInvoice = async () => {
+  try {
+    setIsLoading(true);
+    
+    const emailResponse = await axios.post(
+      '/api/send-email',
+      {
+        to: 'nightvine121@gmail.com',
+        subject: `Invoice Cancellation: ${invoiceToDelete.invoice_number}`,
+        invoice_number: invoiceToDelete.invoice_number,
+        customer_name: invoiceToDelete.customer?.name || 'N/A',
+        currency: invoiceToDelete.currency,
+        amount: invoiceToDelete.total_amount,
+        date: formatDate(invoiceToDelete.issue_date),
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    if (emailResponse.status === 200) {
+      // Only delete if email sent successfully
+      await axios.delete(`/api/invoices/${invoiceToDelete.id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+    }  
+
+    fetchInvoices();
+    setShowDeleteModal(false);
+    setSuccess(`Invoice ${invoiceToDelete.invoice_number} cancelled successfully and notification sent.`);
+  } catch (error) {
+    console.error("Error cancelling invoice:", error);
+    setError(error.response?.data?.error || "Failed to cancel invoice. Please try again.");
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const ActionButton = ({
     icon,
@@ -569,7 +644,7 @@ const Invoice_List_shirmila = () => {
                               icon={<FaTrash />}
                               label="Cancel"
                               variant="danger"
-                              onClick={() => confirmDelete(invoice)}
+                              onClick={() => handleCancelInvoice(invoice)}
                               disabled={invoice.status === "cancelled"}
                             />
                           </div>

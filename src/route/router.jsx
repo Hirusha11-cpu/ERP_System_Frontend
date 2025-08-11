@@ -80,6 +80,10 @@ export const router = createBrowserRouter([
                 element: <Home />
             },
             {
+                path: "/invoice/upload",
+                element: <Invoice_preview target="invoice_upload"/>
+            },
+            {
                 path: "/invoice",
                 element: <Invoice_preview target="main_invoice_view"/>
             },

@@ -19,6 +19,7 @@ import Reconciliation_apple from '../reconciliation/appleholidays/Reconciliation
 import Reconciliation_sharmila from '../reconciliation/sharmila/Reconciliation_sharmila';
 import Reconciliation_aahaas from '../reconciliation/aahaas/Reconciliation_aahaas';
 import Reconciliation from '../reconciliation/Reconciliation';
+import Upload_invoice from './upload_invoice/Upload_invoice';
 
 const Invoice_preview = ({ target }) => {
     const { selectedCompany } = useContext(CompanyContext);
@@ -157,6 +158,18 @@ const Invoice_preview = ({ target }) => {
         return <Reconciliation company={'aahaas'}/>;
       default:
         return <Reconciliation company={'aahaas'}/>;
+    }
+  }
+  if (target === "invoice_upload") {
+   switch (selectedCompany) {
+      case "appleholidays":
+        return <Upload_invoice company={'appleholidays'}/>;
+      case "shirmila":
+        return <Upload_invoice company={'shirmila'} />;
+      case "aahaas":
+        return <Upload_invoice company={'aahaas'}/>;
+      default:
+        return <Upload_invoice company={'aahaas'}/>;
     }
   }
 

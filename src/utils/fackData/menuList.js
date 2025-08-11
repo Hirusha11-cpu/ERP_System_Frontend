@@ -111,9 +111,15 @@ export const menuList = [
         subdropdownMenu: false,
       },
       {
-        id: 6,
+        id: 7,
         name: "Reconciliation",
         path: "/invoice/reconciliation",
+        subdropdownMenu: false,
+      },
+      {
+        id: 8,
+        name: "Upload Invoice",
+        path: "/invoice/upload",
         subdropdownMenu: false,
       },
     ],

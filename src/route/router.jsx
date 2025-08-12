@@ -116,6 +116,10 @@ export const router = createBrowserRouter([
                 element: <Invoice_preview target="reconciliation" />
             },
             {
+                path: "/receivables/api_list",
+                element: <Invoice_preview target="receivables_api_list" />
+            },
+            {
                 path: "/payment/list",
                 element: <PaymentList />
             },

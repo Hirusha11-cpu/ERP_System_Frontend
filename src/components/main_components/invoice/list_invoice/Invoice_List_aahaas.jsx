@@ -35,10 +35,13 @@ import {
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { CompanyContext } from "../../../../contentApi/CompanyProvider";
+import { PDFDownloadLink } from "@react-pdf/renderer";
+import { InvoicePDF } from "../upload_invoice/InvoicePDF";
 
 const Invoice_List_aahaas = () => {
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -81,10 +84,10 @@ const Invoice_List_aahaas = () => {
         .toLowerCase()
         .includes(searchTerm.toLowerCase());
 
-    const matchesStatus =
-      filterStatus === "all" || invoice.status === filterStatus;
+    // const matchesStatus =
+    //   filterStatus === "all" || invoice.status === filterStatus;
 
-    return matchesSearch && matchesStatus;
+    return matchesSearch ;
   });
 
   const handleViewInvoice = (invoice) => {
@@ -97,12 +100,60 @@ const Invoice_List_aahaas = () => {
     setShowEditModal(true);
   };
 
-  const handlePrintInvoice = async (invoiceId) => {
+   const handlePrintInvoice = (invoice) => {
+      // Set the current invoice to generate the PDF for
+      setCurrentInvoice(invoice);
+  
+      // Create a download link using the PDFDownloadLink component
+      const pdfLink = (
+        <PDFDownloadLink
+          document={<InvoicePDF invoice={invoice} />}
+          fileName={`invoice_${invoice.invoice_number}.pdf`}
+        >
+          {({ blob, url, loading, error }) =>
+            loading ? "Loading document..." : "Download now!"
+          }
+        </PDFDownloadLink>
+      );
+  
+      // Programmatically trigger the download
+      // Since we can't directly access the download link in this way,
+      // we'll need to create a temporary button and click it
+      const tempDiv = document.createElement("div");
+      document.body.appendChild(tempDiv);
+  
+      // Render the PDFDownloadLink to our temp div
+      ReactDOM.render(pdfLink, tempDiv);
+  
+      // Find the anchor tag and click it
+      setTimeout(() => {
+        const downloadLink = tempDiv.querySelector("a");
+        if (downloadLink) {
+          downloadLink.click();
+        }
+        document.body.removeChild(tempDiv);
+      }, 100);
+    };
+
+  const confirmDelete = (invoice) => {
+    setInvoiceToDelete(invoice);
+    setShowDeleteModal(true);
+  };
+
+   const handleDeleteInvoice = async () => {
     try {
-      const response = await axios.get(
-        `/api/invoices/${invoiceId}/print`,
+      setIsLoading(true);
+
+      const emailResponse = await axios.post(
+        "/api/send-email",
         {
-          responseType: "blob",
+          to: "nightvine121@gmail.com",
+          subject: `Invoice Cancellation: ${invoiceToDelete.invoice_number}`,
+          invoice_number: invoiceToDelete.invoice_number,
+          customer_name: invoiceToDelete.customer?.name || "N/A",
+          currency: invoiceToDelete.currency,
+          amount: invoiceToDelete.total_amount,
+          date: formatDate(invoiceToDelete.issue_date),
         },
         {
           headers: {
@@ -110,33 +161,29 @@ const Invoice_List_aahaas = () => {
           },
         }
       );
-      const fileURL = window.URL.createObjectURL(new Blob([response.data]));
-      const fileLink = document.createElement("a");
-      fileLink.href = fileURL;
-      fileLink.setAttribute("download", `invoice_${invoiceId}.pdf`);
-      document.body.appendChild(fileLink);
-      fileLink.click();
-    } catch (error) {
-      console.error("Error printing invoice:", error);
-    }
-  };
 
-  const confirmDelete = (invoice) => {
-    setInvoiceToDelete(invoice);
-    setShowDeleteModal(true);
-  };
+      if (emailResponse.status === 200) {
+        // Only delete if email sent successfully
+        await axios.delete(`/api/invoices/${invoiceToDelete.id}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+      }
 
-  const handleDeleteInvoice = async () => {
-    try {
-      await axios.delete(`/api/invoices/${invoiceToDelete.id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
       fetchInvoices();
       setShowDeleteModal(false);
+      setSuccess(
+        `Invoice ${invoiceToDelete.invoice_number} cancelled successfully and notification sent.`
+      );
     } catch (error) {
-      console.error("Error deleting invoice:", error);
+      console.error("Error cancelling invoice:", error);
+      setError(
+        error.response?.data?.error ||
+          "Failed to cancel invoice. Please try again."
+      );
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -251,6 +298,15 @@ const Invoice_List_aahaas = () => {
 
   const calculateItemTotal = (item) => {
     return item.price * (1 - item.discount / 100) * item.quantity;
+  };
+
+  const handleCancelInvoice = async (invoice) => {
+    try {
+      setInvoiceToDelete(invoice);
+      setShowDeleteModal(true);
+    } catch (error) {
+      console.error("Error preparing to cancel invoice:", error);
+    }
   };
 
   const ActionButton = ({
@@ -424,7 +480,7 @@ const Invoice_List_aahaas = () => {
                               icon={<FaTrash />}
                               label="Cancel"
                               variant="danger"
-                              onClick={() => confirmDelete(invoice)}
+                              onClick={() => handleCancelInvoice(invoice)}
                               disabled={invoice.status === "cancelled"}
                             />
                           </div>
@@ -1226,8 +1282,8 @@ const Invoice_List_aahaas = () => {
             Close
           </Button>
           <Button variant="danger" onClick={handleDeleteInvoice}>
-            Confirm Cancel
-          </Button>
+                      Confirm Cancel
+                    </Button>
         </Modal.Footer>
       </Modal>
     </div>

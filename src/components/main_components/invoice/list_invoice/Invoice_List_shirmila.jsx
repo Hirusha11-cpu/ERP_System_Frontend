@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from "react";
-import ReactDOM from 'react-dom';
+import ReactDOM from "react-dom";
 import {
   Table,
   Button,
@@ -53,14 +53,12 @@ const Invoice_List_shirmila = () => {
   const { selectedCompany } = useContext(CompanyContext);
   const navigate = useNavigate();
 
-
   const token =
     localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
 
   useEffect(() => {
     fetchInvoices();
     console.log(invoices);
-    
   }, []);
 
   const fetchInvoices = async () => {
@@ -75,10 +73,10 @@ const Invoice_List_shirmila = () => {
         },
       });
       const sortedInvoices = (response.data.data || []).sort(
-      (a, b) => new Date(b.created_at) - new Date(a.created_at)
-    );
+        (a, b) => new Date(b.created_at) - new Date(a.created_at)
+      );
 
-    setInvoices(sortedInvoices);
+      setInvoices(sortedInvoices);
       // setInvoices(response.data.data || []);
     } catch (error) {
       console.error("Error fetching invoices:", error);
@@ -88,7 +86,6 @@ const Invoice_List_shirmila = () => {
   };
 
   const filteredInvoices = invoices.filter((invoice) => {
-    
     const matchesSearch =
       invoice.invoice_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (invoice.customer?.name || "")
@@ -115,39 +112,39 @@ const Invoice_List_shirmila = () => {
   };
 
   const handlePrintInvoice = (invoice) => {
-  // Set the current invoice to generate the PDF for
-  setCurrentInvoice(invoice);
-  
-  // Create a download link using the PDFDownloadLink component
-  const pdfLink = (
-    <PDFDownloadLink 
-      document={<InvoicePDF invoice={invoice} />} 
-      fileName={`invoice_${invoice.invoice_number}.pdf`}
-    >
-      {({ blob, url, loading, error }) => 
-        loading ? 'Loading document...' : 'Download now!'
-      }
-    </PDFDownloadLink>
-  );
+    // Set the current invoice to generate the PDF for
+    setCurrentInvoice(invoice);
 
-  // Programmatically trigger the download
-  // Since we can't directly access the download link in this way,
-  // we'll need to create a temporary button and click it
-  const tempDiv = document.createElement('div');
-  document.body.appendChild(tempDiv);
-  
-  // Render the PDFDownloadLink to our temp div
-  ReactDOM.render(pdfLink, tempDiv);
-  
-  // Find the anchor tag and click it
-  setTimeout(() => {
-    const downloadLink = tempDiv.querySelector('a');
-    if (downloadLink) {
-      downloadLink.click();
-    }
-    document.body.removeChild(tempDiv);
-  }, 100);
-};
+    // Create a download link using the PDFDownloadLink component
+    const pdfLink = (
+      <PDFDownloadLink
+        document={<InvoicePDF invoice={invoice} />}
+        fileName={`invoice_${invoice.invoice_number}.pdf`}
+      >
+        {({ blob, url, loading, error }) =>
+          loading ? "Loading document..." : "Download now!"
+        }
+      </PDFDownloadLink>
+    );
+
+    // Programmatically trigger the download
+    // Since we can't directly access the download link in this way,
+    // we'll need to create a temporary button and click it
+    const tempDiv = document.createElement("div");
+    document.body.appendChild(tempDiv);
+
+    // Render the PDFDownloadLink to our temp div
+    ReactDOM.render(pdfLink, tempDiv);
+
+    // Find the anchor tag and click it
+    setTimeout(() => {
+      const downloadLink = tempDiv.querySelector("a");
+      if (downloadLink) {
+        downloadLink.click();
+      }
+      document.body.removeChild(tempDiv);
+    }, 100);
+  };
 
   const confirmDelete = (invoice) => {
     setInvoiceToDelete(invoice);
@@ -432,46 +429,51 @@ const Invoice_List_shirmila = () => {
   };
 
   const handleDeleteInvoice = async () => {
-  try {
-    setIsLoading(true);
-    
-    const emailResponse = await axios.post(
-      '/api/send-email',
-      {
-        to: 'nightvine121@gmail.com',
-        subject: `Invoice Cancellation: ${invoiceToDelete.invoice_number}`,
-        invoice_number: invoiceToDelete.invoice_number,
-        customer_name: invoiceToDelete.customer?.name || 'N/A',
-        currency: invoiceToDelete.currency,
-        amount: invoiceToDelete.total_amount,
-        date: formatDate(invoiceToDelete.issue_date),
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
+    try {
+      setIsLoading(true);
+
+      const emailResponse = await axios.post(
+        "/api/send-email",
+        {
+          to: "nightvine121@gmail.com",
+          subject: `Invoice Cancellation: ${invoiceToDelete.invoice_number}`,
+          invoice_number: invoiceToDelete.invoice_number,
+          customer_name: invoiceToDelete.customer?.name || "N/A",
+          currency: invoiceToDelete.currency,
+          amount: invoiceToDelete.total_amount,
+          date: formatDate(invoiceToDelete.issue_date),
         },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (emailResponse.status === 200) {
+        // Only delete if email sent successfully
+        await axios.delete(`/api/invoices/${invoiceToDelete.id}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
       }
-    );
 
-    if (emailResponse.status === 200) {
-      // Only delete if email sent successfully
-      await axios.delete(`/api/invoices/${invoiceToDelete.id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-    }  
-
-    fetchInvoices();
-    setShowDeleteModal(false);
-    setSuccess(`Invoice ${invoiceToDelete.invoice_number} cancelled successfully and notification sent.`);
-  } catch (error) {
-    console.error("Error cancelling invoice:", error);
-    setError(error.response?.data?.error || "Failed to cancel invoice. Please try again.");
-  } finally {
-    setIsLoading(false);
-  }
-};
+      fetchInvoices();
+      setShowDeleteModal(false);
+      setSuccess(
+        `Invoice ${invoiceToDelete.invoice_number} cancelled successfully and notification sent.`
+      );
+    } catch (error) {
+      console.error("Error cancelling invoice:", error);
+      setError(
+        error.response?.data?.error ||
+          "Failed to cancel invoice. Please try again."
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const ActionButton = ({
     icon,

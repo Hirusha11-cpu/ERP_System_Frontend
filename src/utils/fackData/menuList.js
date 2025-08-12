@@ -19,13 +19,13 @@ export const menuList = [
       },
       {
         id: 3,
-        name: "Account Payable",
-        path: "/dashboards/analytics",
+        name: "Account Receivable",
+        path: "/receivables/api_list",
         subdropdownMenu: false,
       },
       {
         id: 4,
-        name: "Account Receivable",
+        name: "Account Payable",
         path: "/dashboards/analytics",
         subdropdownMenu: false,
       },
@@ -79,7 +79,7 @@ export const menuList = [
       //   path: "/payment/view",
       //   subdropdownMenu: false,
       // },
-       
+
       // {
       //   id: 3,
       //   name: "Cancelled Invoice",
@@ -126,6 +126,20 @@ export const menuList = [
   },
   {
     id: 2,
+    name: "Accounts Receivable",
+    path: "/receivables/api_list",
+    icon: "feather-shopping-bag",
+    dropdownMenu: [
+      {
+        id: 1,
+        name: "API List",
+        path: "/receivables/api_list",
+        subdropdownMenu: true,
+      },
+    ],
+  },
+  {
+    id: 3,
     name: "Accounts Payable",
     path: "/payment/list",
     icon: "feather-award",
@@ -168,50 +182,7 @@ export const menuList = [
       },
     ],
   },
-  {
-    id: 3,
-    name: "Accounts Receivable",
-    path: "/payment/list",
-    icon: "feather-shopping-bag",
-    dropdownMenu: [
-      {
-        id: 1,
-        name: "Create Invoice",
-        path: "/payment/list",
-        subdropdownMenu: false,
-      },
-      {
-        id: 2,
-        name: "Edit Invoice",
-        path: "/payment/view",
-        subdropdownMenu: false,
-      },
-      {
-        id: 3,
-        name: "P&L Reports",
-        path: "/payment/view",
-        subdropdownMenu: false,
-      },
-      {
-        id: 4,
-        name: "Cancelled Invoice",
-        path: "/payment/list",
-        subdropdownMenu: false,
-      },
-      {
-        id: 5,
-        name: "Awaiting Payment Invoice",
-        path: "/payment/create",
-        subdropdownMenu: false,
-      },
-      {
-        id: 6,
-        name: "Summary invoice",
-        path: "/payment/list",
-        subdropdownMenu: false,
-      },
-    ],
-  },
+
   {
     id: 4,
     name: "Office Expense",
@@ -268,7 +239,6 @@ export const menuList = [
         path: "/reconciliation",
         subdropdownMenu: false,
       },
-      
     ],
   },
   {

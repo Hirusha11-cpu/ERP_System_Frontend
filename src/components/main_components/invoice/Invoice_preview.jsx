@@ -20,6 +20,7 @@ import Reconciliation_sharmila from '../reconciliation/sharmila/Reconciliation_s
 import Reconciliation_aahaas from '../reconciliation/aahaas/Reconciliation_aahaas';
 import Reconciliation from '../reconciliation/Reconciliation';
 import Upload_invoice from './upload_invoice/Upload_invoice';
+import Api from '../account_receivable/api/Api';
 
 const Invoice_preview = ({ target }) => {
     const { selectedCompany } = useContext(CompanyContext);
@@ -170,6 +171,18 @@ const Invoice_preview = ({ target }) => {
         return <Upload_invoice company={'aahaas'}/>;
       default:
         return <Upload_invoice company={'aahaas'}/>;
+    }
+  }
+  if (target === "receivables_api_list") {
+   switch (selectedCompany) {
+      case "appleholidays":
+        return <Api company={'appleholidays'}/>;
+      case "shirmila":
+        return <Api company={'shirmila'} />;
+      case "aahaas":
+        return <Api company={'aahaas'}/>;
+      default:
+        return <Api company={'aahaas'}/>;
     }
   }
 

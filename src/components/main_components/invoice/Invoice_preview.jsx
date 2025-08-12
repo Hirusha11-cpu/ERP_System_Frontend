@@ -9,7 +9,7 @@ import Invoice_List_appleholidays from './list_invoice/Invoice_List_appleholiday
 import Invoice_List_shirmila from './list_invoice/Invoice_List_shirmila';
 import Invoice_List_aahaas from './list_invoice/Invoice_List_aahaas';
 import Bank_accounts from '../bank_accounts/Bank_accounts';
-import Invoice_pnl from './pnl/invoice_pnl';
+import Invoice_pnl from './pnl/Invoice_pnl';
 import Invoice_summary from './summary_invoice/invoice_summary';
 import Invoice_refund from './refund_invoice/invoice_refund';
 import Invoice_create from './create_invoice/Invoice_create';

@@ -68,7 +68,8 @@ import WidgetsTables from "../pages/widgets-tables";
 import WidgetsCharts from "../pages/widgets-charts";
 import WidgetsStatistics from "../pages/widgets-statistics";
 import WidgetsMiscellaneous from "../pages/widgets-miscellaneous";
-import Invoice_preview from "@/components/main_components/invoice/invoice_preview";
+// import Invoice_preview from "@/components/main_components/invoice/invoice_preview";
+import Invoice_preview from "../components/main_components/invoice/Invoice_preview";
 
 export const router = createBrowserRouter([
     {

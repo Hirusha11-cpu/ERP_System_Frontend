@@ -1,3 +1,20 @@
+
+// import { useContext } from "react";
+// import { CompanyContext } from "../../contentApi/CompanyProvider";
+
+// const { selectedCompany } = useContext(CompanyContext);
+// const [companyNo, setCompanyNo] = useState(null);
+
+//   useEffect(() => {
+//     const companyMap = {
+//       appleholidays: 2,
+//       aahaas: 3,
+//       shirmila: 1,
+//     };
+
+//     setCompanyNo(companyMap[selectedCompany?.toLowerCase()] || null)
+//   }, [selectedCompany]);
+
 export const menuList = [
   {
     id: 0,
@@ -136,6 +153,29 @@ export const menuList = [
         path: "/receivables/api_list",
         subdropdownMenu: true,
       },
+      {
+        id: 2,
+        name: "Summary Reports",
+        path: "/receivables/summary_reports",
+        subdropdownMenu: true,
+      },
+      // ...(companyNo === 1
+      //   ? [
+      //       {
+      //         id: 3,
+      //         name: "Sales",
+      //         path: "/receivables/sales",
+      //         subdropdownMenu: true,
+      //       },
+      //     ]
+      //   : []),
+    
+      {
+        id: 3,
+        name: "Sales",
+        path: "/receivables/sales",
+        subdropdownMenu: true,
+      },
     ],
   },
   {
@@ -146,37 +186,7 @@ export const menuList = [
     dropdownMenu: [
       {
         id: 1,
-        name: "Create Invoice",
-        path: "/payment/list",
-        subdropdownMenu: false,
-      },
-      {
-        id: 2,
-        name: "Edit Invoice",
-        path: "/payment/view",
-        subdropdownMenu: false,
-      },
-      {
-        id: 3,
-        name: "P&L Reports",
-        path: "/payment/view",
-        subdropdownMenu: false,
-      },
-      {
-        id: 4,
-        name: "Cancelled Invoice",
-        path: "/payment/list",
-        subdropdownMenu: false,
-      },
-      {
-        id: 5,
-        name: "Awaiting Payment Invoice",
-        path: "/payment/create",
-        subdropdownMenu: false,
-      },
-      {
-        id: 6,
-        name: "Summary invoice",
+        name: "Payable List",
         path: "/payment/list",
         subdropdownMenu: false,
       },

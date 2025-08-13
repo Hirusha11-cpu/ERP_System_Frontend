@@ -21,6 +21,9 @@ import Reconciliation_aahaas from '../reconciliation/aahaas/Reconciliation_aahaa
 import Reconciliation from '../reconciliation/Reconciliation';
 import Upload_invoice from './upload_invoice/Upload_invoice';
 import Api from '../account_receivable/api/Api';
+import Summery_report from '../account_receivable/summary_report/Summery_report';
+import Sales from '../account_receivable/sales/Sales';
+import Account_Payable from '../account_payable/Account_Payable';
 
 const Invoice_preview = ({ target }) => {
     const { selectedCompany } = useContext(CompanyContext);
@@ -183,6 +186,42 @@ const Invoice_preview = ({ target }) => {
         return <Api company={'aahaas'}/>;
       default:
         return <Api company={'aahaas'}/>;
+    }
+  }
+  if (target === "receivables_summary_reports") {
+   switch (selectedCompany) {
+      case "appleholidays":
+        return <Summery_report company={'appleholidays'}/>;
+      case "shirmila":
+        return <Summery_report company={'shirmila'} />;
+      case "aahaas":
+        return <Summery_report company={'aahaas'}/>;
+      default:
+        return <Summery_report company={'aahaas'}/>;
+    }
+  }
+  if (target === "receivables_sales") {
+   switch (selectedCompany) {
+      case "appleholidays":
+        return <Sales company={'appleholidays'}/>;
+      case "shirmila":
+        return <Sales company={'shirmila'} />;
+      case "aahaas":
+        return <Sales company={'aahaas'}/>;
+      default:
+        return <Sales company={'aahaas'}/>;
+    }
+  }
+  if (target === "payable_list") {
+   switch (selectedCompany) {
+      case "appleholidays":
+        return <Account_Payable company={'appleholidays'}/>;
+      case "shirmila":
+        return <Account_Payable company={'shirmila'} />;
+      case "aahaas":
+        return <Account_Payable company={'aahaas'}/>;
+      default:
+        return <Account_Payable company={'aahaas'}/>;
     }
   }
 

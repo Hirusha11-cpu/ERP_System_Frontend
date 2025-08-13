@@ -121,8 +121,16 @@ export const router = createBrowserRouter([
                 element: <Invoice_preview target="receivables_api_list" />
             },
             {
+                path: "/receivables/summary_reports",
+                element: <Invoice_preview target="receivables_summary_reports" />
+            },
+            {
+                path: "/receivables/sales",
+                element: <Invoice_preview target="receivables_sales" />
+            },
+            {
                 path: "/payment/list",
-                element: <PaymentList />
+                element: <Invoice_preview target="payable_list" />
             },
             {
                 path: "/payment/view",

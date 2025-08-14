@@ -43,7 +43,7 @@ const Menus = () => {
 
     return (
         <>
-            {menuList.map(({ dropdownMenu, id, name, path, icon }) => {
+            {menuList.map(({ dropdownMenu, id, name, path, icon, mainName }) => {
                 return (
                     <li
                         key={id}
@@ -53,7 +53,7 @@ const Menus = () => {
                         <Link to={path} className="nxl-link text-capitalize">
                             <span className="nxl-micon"> {getIcon(icon)} </span>
                             <span className="nxl-mtext" style={{ paddingLeft: "2.5px" }}>
-                                {name}
+                                {mainName || name}
                             </span>
                             <span className="nxl-arrow fs-16">
                                 <FiChevronRight />

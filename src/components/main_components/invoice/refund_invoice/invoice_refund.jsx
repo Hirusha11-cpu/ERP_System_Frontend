@@ -115,44 +115,43 @@ const Invoice_refund = () => {
     }
   };
 
-const handleUpdateNonRefundStatus = async () => {
-  try {
-    setLoading(true);
-    
-    const updatedData = {
-      refund: {
-        ...selectedInvoice.refund,
-        status: "refund", // Change from "non-refund" to "refund"
-        refund_status: "pending", // Set initial refund status
-        remark: refundData.remark || "Status updated to refundable",
-        // Include other required fields
-        refund_amount: 0, // Initialize with 0
-        total_amount: selectedInvoice.total_amount
-      }
-    };
+  const handleUpdateNonRefundStatus = async () => {
+    try {
+      setLoading(true);
 
-    await axios.put(
-      `/api/invoices/by-number/${selectedInvoice.invoice_number}?company_id=${companyNo}`,
-      updatedData,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
+      const updatedData = {
+        refund: {
+          ...selectedInvoice.refund,
+          status: "refund", // Change from "non-refund" to "refund"
+          refund_status: "pending", // Set initial refund status
+          remark: refundData.remark || "Status updated to refundable",
+          // Include other required fields
+          refund_amount: 0, // Initialize with 0
+          total_amount: selectedInvoice.total_amount,
         },
-      }
-    );
+      };
 
-    // Refresh the data
-    await fetchInvoices(companyNo);
-    setShowNonRefundModal(false);
-    setError(null);
-  } catch (err) {
-    console.error("Status update error:", err);
-    setError(err.response?.data?.message || err.message);
-  } finally {
-    setLoading(false);
-  }
-};
+      await axios.put(
+        `/api/invoices/by-number/${selectedInvoice.invoice_number}?company_id=${companyNo}`,
+        updatedData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
+      // Refresh the data
+      await fetchInvoices(companyNo);
+      setShowNonRefundModal(false);
+      setError(null);
+    } catch (err) {
+      console.error("Status update error:", err);
+      setError(err.response?.data?.message || err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (!selectedCompany) return;
@@ -162,6 +161,7 @@ const handleUpdateNonRefundStatus = async () => {
       console.error("Unknown company selected:", selectedCompany);
       return;
     }
+    console.log(companyNumber, "companyNumber");
 
     setCompanyNo(companyNumber);
     fetchInvoices(companyNumber);
@@ -184,41 +184,44 @@ const handleUpdateNonRefundStatus = async () => {
 
   // Search invoices by number
   const handleSearch = async () => {
-  if (!searchTerm.trim()) {
-    setError("Please enter an invoice number");
-    return;
-  }
-
-  try {
-    setLoading(true);
-    const response = await axios.get(
-      `/api/invoices/by-number/${searchTerm}?company_id=${companyNo}`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-    
-    const searchedInvoice = response.data;
-    setSelectedInvoice(searchedInvoice);
-
-    // Check if the searched invoice is non-refundable or has no refund data
-    if (searchedInvoice.refund?.status === "non-refund" || searchedInvoice.refund === null) {
-      setShowNonRefundModal(true);
-      setShowModal(false); // Ensure the regular modal doesn't show
-    } else {
-      setShowModal(true); // Show regular modal for refundable invoices
-      setShowNonRefundModal(false);
+    if (!searchTerm.trim()) {
+      setError("Please enter an invoice number");
+      return;
     }
-    
-    setError(null);
-  } catch (err) {
-    setError(err.response?.data?.message || "Invoice not found");
-  } finally {
-    setLoading(false);
-  }
-};
+
+    try {
+      setLoading(true);
+      const response = await axios.get(
+        `/api/invoices/by-number/${searchTerm}?company_id=${companyNo}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const searchedInvoice = response.data;
+      setSelectedInvoice(searchedInvoice);
+
+      // Check if the searched invoice is non-refundable or has no refund data
+      if (
+        searchedInvoice.refund?.status === "non-refund" ||
+        searchedInvoice.refund === null
+      ) {
+        setShowNonRefundModal(true);
+        setShowModal(false); // Ensure the regular modal doesn't show
+      } else {
+        setShowModal(true); // Show regular modal for refundable invoices
+        setShowNonRefundModal(false);
+      }
+
+      setError(null);
+    } catch (err) {
+      setError(err.response?.data?.message || "Invoice not found");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Handle refund data changes
   const handleChange = (e) => {
@@ -315,13 +318,16 @@ const handleUpdateNonRefundStatus = async () => {
     try {
       setLoading(true);
 
-      await axios.put(
-        `/api/invoices/by-number/${selectedInvoice.invoice_number}?company_id=${companyNo}`,
+      const emailResponse = await axios.post(
+        "/api/send-refund-email",
         {
-          refund: {
-            ...refundData,
-            refund_status: status,
-          },
+          to: "nightvine121@gmail.com",
+          subject: `Invoice Refund: ${selectedInvoice.invoice_number}`,
+          invoice_number: selectedInvoice.invoice_number,
+          customer_name: selectedInvoice.customer?.name || "N/A",
+          currency: selectedInvoice.currency,
+          amount: selectedInvoice.total_amount,
+          date: formatDate(selectedInvoice.issue_date),
         },
         {
           headers: {
@@ -330,18 +336,38 @@ const handleUpdateNonRefundStatus = async () => {
         }
       );
 
-      // Refresh data
-      await fetchInvoices(companyNo);
-
-      // Update local state
-      setRefundData((prev) => ({ ...prev, refund_status: status }));
-      setSelectedInvoice((prev) => ({
-        ...prev,
-        refund: {
-          ...prev.refund,
-          refund_status: status,
-        },
-      }));
+      if (emailResponse.status === 200) {
+        // Only delete if email sent successfully
+     
+        
+              await axios.put(
+                `/api/invoices/by-number/${selectedInvoice.invoice_number}?company_id=${companyNo}`,
+                {
+                  refund: {
+                    ...refundData,
+                    refund_status: status,
+                  },
+                },
+                {
+                  headers: {
+                    Authorization: `Bearer ${token}`,
+                  },
+                }
+              );
+        
+              // Refresh data
+              await fetchInvoices(companyNo);
+        
+              // Update local state
+              setRefundData((prev) => ({ ...prev, refund_status: status }));
+              setSelectedInvoice((prev) => ({
+                ...prev,
+                refund: {
+                  ...prev.refund,
+                  refund_status: status,
+                },
+              }));
+      }
     } catch (err) {
       setError(err.response?.data?.message || err.message);
     } finally {
@@ -448,6 +474,8 @@ const handleUpdateNonRefundStatus = async () => {
 
   // Render company header based on company number
   const renderCompanyHeader = (invoice) => {
+    console.log("Rendering company header for invoice:", invoice.company_id);
+
     switch (invoice?.company_id) {
       case 1: // Sharmila Tours & Travels
         return (
@@ -1159,66 +1187,67 @@ const handleUpdateNonRefundStatus = async () => {
         </Modal.Footer>
       </Modal>
       <Modal
-      show={showNonRefundModal}
-      onHide={() => setShowNonRefundModal(false)}
-      backdrop="static"
-    >
-      <Modal.Header closeButton>
-        <Modal.Title>Convert to Refundable Invoice</Modal.Title>
-      </Modal.Header>
-      <Modal.Body>
-        {selectedInvoice && (
-          <>
-            <p>
-              Invoice <strong>{selectedInvoice.invoice_number}</strong> is currently marked as non-refundable.
-            </p>
-            <p>Would you like to convert it to a refundable invoice?</p>
-            
-            <Form.Group className="mb-3">
-              <Form.Label>Refund Reason</Form.Label>
-              <Form.Control
-                as="textarea"
-                rows={3}
-                name="refund_reason"
-                value={refundData.refund_reason}
-                onChange={handleChange}
-                placeholder="Enter reason for refund..."
-              />
-            </Form.Group>
+        show={showNonRefundModal}
+        onHide={() => setShowNonRefundModal(false)}
+        backdrop="static"
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Convert to Refundable Invoice</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {selectedInvoice && (
+            <>
+              <p>
+                Invoice <strong>{selectedInvoice.invoice_number}</strong> is
+                currently marked as non-refundable.
+              </p>
+              <p>Would you like to convert it to a refundable invoice?</p>
 
-            <Form.Group className="mb-3">
-              <Form.Label>Initial Refund Amount</Form.Label>
-              <Form.Control
-                type="number"
-                name="refund_amount"
-                value={refundData.refund_amount}
-                onChange={handleChange}
-                min="0"
-                max={selectedInvoice.total_amount}
-                step="0.01"
-                placeholder="Enter refund amount"
-              />
-            </Form.Group>
-          </>
-        )}
-      </Modal.Body>
-      <Modal.Footer>
-        <Button 
-          variant="secondary" 
-          onClick={() => setShowNonRefundModal(false)}
-          disabled={loading}
-        >
-          Cancel
-        </Button>
-        <Button 
-          variant="primary" 
-          onClick={handleUpdateNonRefundStatus}
-          disabled={loading || !refundData.refund_reason}
-        >
-          {loading ? "Updating..." : "Convert to Refundable"}
-        </Button>
-      </Modal.Footer>
-    </Modal>
+              <Form.Group className="mb-3">
+                <Form.Label>Refund Reason</Form.Label>
+                <Form.Control
+                  as="textarea"
+                  rows={3}
+                  name="refund_reason"
+                  value={refundData.refund_reason}
+                  onChange={handleChange}
+                  placeholder="Enter reason for refund..."
+                />
+              </Form.Group>
+
+              <Form.Group className="mb-3">
+                <Form.Label>Initial Refund Amount</Form.Label>
+                <Form.Control
+                  type="number"
+                  name="refund_amount"
+                  value={refundData.refund_amount}
+                  onChange={handleChange}
+                  min="0"
+                  max={selectedInvoice.total_amount}
+                  step="0.01"
+                  placeholder="Enter refund amount"
+                />
+              </Form.Group>
+            </>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button
+            variant="secondary"
+            onClick={() => setShowNonRefundModal(false)}
+            disabled={loading}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="primary"
+            onClick={handleUpdateNonRefundStatus}
+            disabled={loading || !refundData.refund_reason}
+          >
+            {loading ? "Updating..." : "Convert to Refundable"}
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </Container>
   );
 };

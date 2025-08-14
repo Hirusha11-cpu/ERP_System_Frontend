@@ -50,12 +50,21 @@ const Home = () => {
   const [activeSection, setActiveSection] = useState("overview");
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [companyNo, setCompanyNo] = useState(null);
   const [invoiceStats, setInvoiceStats] = useState({
     total: 0,
     paid: 0,
     overdue: 0,
     pending: 0,
   });
+  const [pnlSummary, setPnlSummary] = useState({
+    totalRevenue: 0,
+    totalCost: 0,
+    totalProfit: 0,
+    totalInvoicesWithPnl: 0,
+  });
+  const [nonCreditCount, setNonCreditCount] = useState(0);
+  const [creditCount, setCreditCount] = useState(0);
 
   const token =
     localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
@@ -67,7 +76,17 @@ const Home = () => {
     EUR: 0.011,
     MYR: 0.057,
     SGD: 0.016,
+    LKR: 3.2,
   });
+
+  useEffect(() => {
+    const companyMap = {
+      appleholidays: 2,
+      aahaas: 3,
+      shirmila: 1,
+    };
+    setCompanyNo(companyMap[selectedCompany?.toLowerCase()] || null);
+  }, [selectedCompany]);
 
   const convertCurrency = (amount) => {
     const rate = exchangeRates[currency] || 1;
@@ -85,6 +104,8 @@ const Home = () => {
         return "RM";
       case "SGD":
         return "S$";
+      case "LKR":
+        return "Rs";
       default:
         return "₹"; // Default to INR
     }
@@ -94,11 +115,19 @@ const Home = () => {
     const fetchInvoices = async () => {
       try {
         setLoading(true);
-        const response = await axios.get("/api/invoicess/all", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
+        const response = await axios.get(
+          `/api/invoices?company_id=${companyNo}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        //  const response = await axios.get("/api/invoicess/all", {
+        //           headers: {
+        //             Authorization: `Bearer ${token}`,
+        //           },
+        //         });
         const invoiceData = response.data.data;
         setInvoices(invoiceData);
 
@@ -110,9 +139,26 @@ const Home = () => {
           pending: 0,
         };
 
+        const pnl = {
+          totalRevenue: 0,
+          totalCost: 0,
+          totalProfit: 0,
+          totalInvoicesWithPnl: 0,
+        };
+
+        let nonCreditInvoices = 0;
+        let creditInvoices = 0;
+
         invoiceData.forEach((invoice) => {
           const amount = parseFloat(invoice.total_amount) || 0;
           stats.total += amount;
+
+          if (invoice.payment_type === "non-credit") {
+            nonCreditInvoices++;
+          }
+          if (invoice?.customer.name === "MMT" || invoice.payment_type === "credit") {
+            creditInvoices++;
+          }
 
           if (
             invoice.amount_received &&
@@ -124,9 +170,20 @@ const Home = () => {
           } else {
             stats.pending += amount;
           }
+
+          // PNL Summary
+          if (invoice.profit) {
+            pnl.totalRevenue += parseFloat(invoice.profit.total_revenue) || 0;
+            pnl.totalCost += parseFloat(invoice.profit.total_cost) || 0;
+            pnl.totalProfit += parseFloat(invoice.profit.profit) || 0;
+            pnl.totalInvoicesWithPnl++;
+          }
         });
 
         setInvoiceStats(stats);
+        setPnlSummary(pnl);
+        setNonCreditCount(nonCreditInvoices);
+        setCreditCount(creditInvoices);
         setLoading(false);
       } catch (error) {
         console.error("Error fetching invoices:", error);
@@ -134,8 +191,10 @@ const Home = () => {
       }
     };
 
-    fetchInvoices();
-  }, []);
+    if (companyNo) {
+      fetchInvoices();
+    }
+  }, [companyNo, token]);
 
   const getStatusBadge = (invoice) => {
     const amount = parseFloat(invoice.total_amount) || 0;
@@ -149,6 +208,10 @@ const Home = () => {
       return <Badge bg="warning">Pending</Badge>;
     }
   };
+
+  const nonCreditInvoices = invoices.filter(
+    (invoice) => invoice.payment_type === "non-credit"
+  );
 
   const renderCompanySpecificNav = () => {
     switch (selectedCompany) {
@@ -355,6 +418,9 @@ const Home = () => {
               <Dropdown.Item onClick={() => setCurrency("SGD")}>
                 SGD (S$)
               </Dropdown.Item>
+              <Dropdown.Item onClick={() => setCurrency("LKR")}>
+                LKR (Rs)
+              </Dropdown.Item>
             </Dropdown.Menu>
           </Dropdown>
           <Dropdown>
@@ -399,9 +465,6 @@ const Home = () => {
                     )}
                   </h3>
                 </div>
-                {/* <div className="bg-primary bg-opacity-10 p-3 rounded">
-                  <FaFileInvoiceDollar className="text-primary" size={24} />
-                </div> */}
               </div>
               <ProgressBar
                 now={(invoiceStats.paid / invoiceStats.total) * 100}
@@ -435,9 +498,6 @@ const Home = () => {
                     )}
                   </h3>
                 </div>
-                {/* <div className="bg-success bg-opacity-10 p-3 rounded">
-                  <FiTrendingUp className="text-success" size={24} />
-                </div> */}
               </div>
               <div className="mt-3">
                 <Badge bg="success" className="me-2">
@@ -465,9 +525,6 @@ const Home = () => {
                     )}
                   </h3>
                 </div>
-                {/* <div className="bg-warning bg-opacity-10 p-3 rounded">
-                  <FiFileText className="text-warning" size={24} />
-                </div> */}
               </div>
               <div className="mt-3">
                 <Badge bg="warning" className="me-2">
@@ -495,15 +552,86 @@ const Home = () => {
                     )}
                   </h3>
                 </div>
-                {/* <div className="bg-danger bg-opacity-10 p-3 rounded">
-                  <FiTrendingDown className="text-danger" size={24} />
-                </div> */}
               </div>
               <div className="mt-3">
                 <Badge bg="danger" className="me-2">
                   +8%
                 </Badge>
                 <small className="text-muted">vs last month</small>
+              </div>
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
+
+      {/* PNL Summary */}
+      <Row className="mb-4">
+        <Col>
+          <Card className="shadow-sm">
+            <Card.Body>
+              <h5 className="mb-3">
+                <FaChartLine className="me-2 text-info" />
+                Profit & Loss Summary
+              </h5>
+              <Row>
+                <Col md={4}>
+                  <Card className="bg-light">
+                    <Card.Body>
+                      <h6>Total Revenue</h6>
+                      <h4>
+                        {getCurrencySymbol()}
+                        {convertCurrency(pnlSummary.totalRevenue).toLocaleString(
+                          undefined,
+                          {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          }
+                        )}
+                      </h4>
+                    </Card.Body>
+                  </Card>
+                </Col>
+                <Col md={4}>
+                  <Card className="bg-light">
+                    <Card.Body>
+                      <h6>Total Cost</h6>
+                      <h4>
+                        {getCurrencySymbol()}
+                        {convertCurrency(pnlSummary.totalCost).toLocaleString(
+                          undefined,
+                          {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          }
+                        )}
+                      </h4>
+                    </Card.Body>
+                  </Card>
+                </Col>
+                <Col md={4}>
+                  <Card className="bg-light">
+                    <Card.Body>
+                      <h6>Total Profit</h6>
+                      <h4>
+                        {getCurrencySymbol()}
+                        {convertCurrency(pnlSummary.totalProfit).toLocaleString(
+                          undefined,
+                          {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          }
+                        )}
+                      </h4>
+                    </Card.Body>
+                  </Card>
+                </Col>
+              </Row>
+              <div className="mt-3">
+                <small className="text-muted">
+                  Based on {pnlSummary.totalInvoicesWithPnl} invoices with PNL data.
+                  {pnlSummary.totalInvoicesWithPnl < invoices.length &&
+                    ` (${invoices.length - pnlSummary.totalInvoicesWithPnl} invoices have no PNL data)`}
+                </small>
               </div>
             </Card.Body>
           </Card>
@@ -561,7 +689,7 @@ const Home = () => {
               <div className="d-flex justify-content-between align-items-center mb-3">
                 <h5 className="mb-0">
                   <FaReceipt className="me-2 text-primary" />
-                  Recent Invoices
+                  Recent Non-Credit Invoices ({nonCreditCount})
                 </h5>
                 <Form.Control
                   type="text"
@@ -590,8 +718,8 @@ const Home = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {invoices
-                        .slice(0, 10) // This will limit to first 10 invoices
+                      {nonCreditInvoices
+                        .slice(0, 10) // Limit to first 10 recent non-credit invoices
                         .map((invoice) => (
                           <tr key={invoice.id}>
                             <td>{invoice.invoice_number}</td>
@@ -602,10 +730,14 @@ const Home = () => {
                               ).toLocaleDateString()}
                             </td>
                             <td>
-                              ₹
-                              {parseFloat(
-                                invoice.total_amount || 0
-                              ).toLocaleString()}
+                              {getCurrencySymbol()}
+                              {convertCurrency(invoice.total_amount).toLocaleString(
+                                undefined,
+                                {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                }
+                              )}
                             </td>
                             <td>{getStatusBadge(invoice)}</td>
                             <td>
@@ -650,10 +782,14 @@ const Home = () => {
                         </small>
                         <div className="mt-2">
                           <span className="fw-bold">
-                            ₹
-                            {parseFloat(
-                              invoice.total_amount || 0
-                            ).toLocaleString()}
+                            {getCurrencySymbol()}
+                            {convertCurrency(invoice.total_amount).toLocaleString(
+                              undefined,
+                              {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              }
+                            )}
                           </span>
                           <small className="text-muted ms-2">
                             Current Balance

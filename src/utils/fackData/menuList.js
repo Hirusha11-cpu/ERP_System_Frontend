@@ -19,6 +19,7 @@ export const menuList = [
   {
     id: 0,
     name: "dashboards",
+    mainName:"Dashboards",
     path: "/",
     icon: "feather-airplay",
     dropdownMenu: [
@@ -76,6 +77,7 @@ export const menuList = [
     id: 1,
     name: "invoice",
     path: "/invoice",
+    mainName:"Invoice",
     icon: "feather-delete",
     dropdownMenu: [
       {
@@ -139,18 +141,25 @@ export const menuList = [
         path: "/invoice/upload",
         subdropdownMenu: false,
       },
+      {
+        id: 9,
+        name: "Actual Reconciliation",
+        path: "/invoice/reconciliation/actual",
+        subdropdownMenu: false,
+      },
     ],
   },
   {
     id: 2,
-    name: "Accounts Receivable",
-    path: "/receivables/api_list",
+    name: "receivables",
+    mainName:"Accounts Receivable",
+    path: "/receivables/api_list2",
     icon: "feather-shopping-bag",
     dropdownMenu: [
       {
         id: 1,
         name: "API List",
-        path: "/receivables/api_list",
+        path: "/receivables/api_list2",
         subdropdownMenu: true,
       },
       {
@@ -180,7 +189,8 @@ export const menuList = [
   },
   {
     id: 3,
-    name: "Accounts Payable",
+    name: "payment",
+    mainName:"Accounts Payable",
     path: "/payment/list",
     icon: "feather-award",
     dropdownMenu: [
@@ -679,142 +689,149 @@ export const menuList = [
   // },
   {
     id: 10,
-    name: "authentication",
-    path: "#",
+    name: "role_management",
+    mainName:"Access Management",
+    path: "/role_management",
     icon: "feather-power",
     dropdownMenu: [
       {
         id: 1,
-        name: "login",
-        path: "#",
-        subdropdownMenu: [
-          {
-            id: 1,
-            name: "Cover",
-            path: "/authentication/login/cover",
-          },
-          {
-            id: 2,
-            name: "Minimal",
-            path: "/authentication/login/minimal",
-          },
-          {
-            id: 3,
-            name: "Creative",
-            path: "/authentication/login/creative",
-          },
-        ],
+        name: "Role Management",
+        path: "/role_management",
+        subdropdownMenu: false,
       },
-      {
-        id: 2,
-        name: "register",
-        path: "#",
-        subdropdownMenu: [
-          {
-            id: 1,
-            name: "Cover",
-            path: "/authentication/register/cover",
-          },
-          {
-            id: 2,
-            name: "Minimal",
-            path: "/authentication/register/minimal",
-          },
-          {
-            id: 3,
-            name: "Creative",
-            path: "/authentication/register/creative",
-          },
-        ],
-      },
-      {
-        id: 3,
-        name: "Error 404",
-        path: "#",
-        subdropdownMenu: [
-          {
-            id: 1,
-            name: "Cover",
-            path: "/authentication/404/cover",
-          },
-          {
-            id: 2,
-            name: "Minimal",
-            path: "/authentication/404/minimal",
-          },
-          {
-            id: 3,
-            name: "Creative",
-            path: "/authentication/404/creative",
-          },
-        ],
-      },
-      {
-        id: 4,
-        name: "Reset Pass",
-        path: "#",
-        subdropdownMenu: [
-          {
-            id: 1,
-            name: "Cover",
-            path: "/authentication/reset/cover",
-          },
-          {
-            id: 2,
-            name: "Minimal",
-            path: "/authentication/reset/minimal",
-          },
-          {
-            id: 3,
-            name: "Creative",
-            path: "/authentication/reset/creative",
-          },
-        ],
-      },
-      {
-        id: 5,
-        name: "Verify OTP",
-        path: "#",
-        subdropdownMenu: [
-          {
-            id: 1,
-            name: "Cover",
-            path: "/authentication/verify/cover",
-          },
-          {
-            id: 2,
-            name: "Minimal",
-            path: "/authentication/verify/minimal",
-          },
-          {
-            id: 3,
-            name: "Creative",
-            path: "/authentication/verify/creative",
-          },
-        ],
-      },
-      {
-        id: 6,
-        name: "Maintenance",
-        path: "#",
-        subdropdownMenu: [
-          {
-            id: 1,
-            name: "Cover",
-            path: "/authentication/maintenance/cover",
-          },
-          {
-            id: 2,
-            name: "Minimal",
-            path: "/authentication/maintenance/minimal",
-          },
-          {
-            id: 3,
-            name: "Creative",
-            path: "/authentication/maintenance/creative",
-          },
-        ],
-      },
+      // {
+      //   id: 1,
+      //   name: "login",
+      //   path: "#",
+      //   subdropdownMenu: [
+      //     {
+      //       id: 1,
+      //       name: "Cover",
+      //       path: "/authentication/login/cover",
+      //     },
+      //     {
+      //       id: 2,
+      //       name: "Minimal",
+      //       path: "/authentication/login/minimal",
+      //     },
+      //     {
+      //       id: 3,
+      //       name: "Creative",
+      //       path: "/authentication/login/creative",
+      //     },
+      //   ],
+      // },
+      // {
+      //   id: 2,
+      //   name: "register",
+      //   path: "#",
+      //   subdropdownMenu: [
+      //     {
+      //       id: 1,
+      //       name: "Cover",
+      //       path: "/authentication/register/cover",
+      //     },
+      //     {
+      //       id: 2,
+      //       name: "Minimal",
+      //       path: "/authentication/register/minimal",
+      //     },
+      //     {
+      //       id: 3,
+      //       name: "Creative",
+      //       path: "/authentication/register/creative",
+      //     },
+      //   ],
+      // },
+      // {
+      //   id: 3,
+      //   name: "Error 404",
+      //   path: "#",
+      //   subdropdownMenu: [
+      //     {
+      //       id: 1,
+      //       name: "Cover",
+      //       path: "/authentication/404/cover",
+      //     },
+      //     {
+      //       id: 2,
+      //       name: "Minimal",
+      //       path: "/authentication/404/minimal",
+      //     },
+      //     {
+      //       id: 3,
+      //       name: "Creative",
+      //       path: "/authentication/404/creative",
+      //     },
+      //   ],
+      // },
+      // {
+      //   id: 4,
+      //   name: "Reset Pass",
+      //   path: "#",
+      //   subdropdownMenu: [
+      //     {
+      //       id: 1,
+      //       name: "Cover",
+      //       path: "/authentication/reset/cover",
+      //     },
+      //     {
+      //       id: 2,
+      //       name: "Minimal",
+      //       path: "/authentication/reset/minimal",
+      //     },
+      //     {
+      //       id: 3,
+      //       name: "Creative",
+      //       path: "/authentication/reset/creative",
+      //     },
+      //   ],
+      // },
+      // {
+      //   id: 5,
+      //   name: "Verify OTP",
+      //   path: "#",
+      //   subdropdownMenu: [
+      //     {
+      //       id: 1,
+      //       name: "Cover",
+      //       path: "/authentication/verify/cover",
+      //     },
+      //     {
+      //       id: 2,
+      //       name: "Minimal",
+      //       path: "/authentication/verify/minimal",
+      //     },
+      //     {
+      //       id: 3,
+      //       name: "Creative",
+      //       path: "/authentication/verify/creative",
+      //     },
+      //   ],
+      // },
+      // {
+      //   id: 6,
+      //   name: "Maintenance",
+      //   path: "#",
+      //   subdropdownMenu: [
+      //     {
+      //       id: 1,
+      //       name: "Cover",
+      //       path: "/authentication/maintenance/cover",
+      //     },
+      //     {
+      //       id: 2,
+      //       name: "Minimal",
+      //       path: "/authentication/maintenance/minimal",
+      //     },
+      //     {
+      //       id: 3,
+      //       name: "Creative",
+      //       path: "/authentication/maintenance/creative",
+      //     },
+      //   ],
+      // },
     ],
   },
   // {

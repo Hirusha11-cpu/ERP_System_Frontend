@@ -10,6 +10,8 @@ import {
   Dropdown,
   Form,
   Container,
+  Tab,
+  Nav,
 } from "react-bootstrap";
 import {
   FiDollarSign,
@@ -40,6 +42,7 @@ import {
   FaPlane,
   FaHotel,
   FaReceipt,
+  FaCreditCard,
 } from "react-icons/fa";
 import { CompanyContext } from "../contentApi/CompanyProvider";
 import { Link } from "react-router-dom";
@@ -211,6 +214,9 @@ const Home = () => {
 
   const nonCreditInvoices = invoices.filter(
     (invoice) => invoice.payment_type === "non-credit"
+  );
+  const creditInvoices = invoices.filter(
+    (invoice) => invoice?.customer.name === "MMT" || invoice.payment_type === "credit"
   );
 
   const renderCompanySpecificNav = () => {
@@ -685,79 +691,139 @@ const Home = () => {
         <Col md={8}>
           {/* Recent Invoices Table */}
           <Card className="mb-4 shadow-sm">
-            <Card.Body>
-              <div className="d-flex justify-content-between align-items-center mb-3">
-                <h5 className="mb-0">
-                  <FaReceipt className="me-2 text-primary" />
-                  Recent Non-Credit Invoices ({nonCreditCount})
-                </h5>
-                <Form.Control
-                  type="text"
-                  placeholder="Search invoices..."
-                  style={{ width: "200px" }}
-                  className="d-flex align-items-center"
-                />
-              </div>
-              {loading ? (
-                <div className="text-center py-4">
-                  <div className="spinner-border text-primary" role="status">
-                    <span className="visually-hidden">Loading...</span>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <Table hover responsive>
-                    <thead>
-                      <tr>
-                        <th>Invoice #</th>
-                        <th>Client</th>
-                        <th>Date</th>
-                        <th>Amount</th>
-                        <th>Status</th>
-                        <th>Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {nonCreditInvoices
-                        .slice(0, 10) // Limit to first 10 recent non-credit invoices
-                        .map((invoice) => (
-                          <tr key={invoice.id}>
-                            <td>{invoice.invoice_number}</td>
-                            <td>{invoice.customer?.name || "N/A"}</td>
-                            <td>
-                              {new Date(
-                                invoice.issue_date
-                              ).toLocaleDateString()}
-                            </td>
-                            <td>
-                              {getCurrencySymbol()}
-                              {convertCurrency(invoice.total_amount).toLocaleString(
-                                undefined,
-                                {
-                                  minimumFractionDigits: 2,
-                                  maximumFractionDigits: 2,
-                                }
-                              )}
-                            </td>
-                            <td>{getStatusBadge(invoice)}</td>
-                            <td>
-                              <Button variant="link" size="sm" className="p-0">
-                                View
-                              </Button>
-                            </td>
-                          </tr>
-                        ))}
-                    </tbody>
-                  </Table>
-                  <div className="d-flex justify-content-end">
-                    <Button variant="link" className="text-decoration-none">
-                      View All Invoices <FiChevronRight />
-                    </Button>
-                  </div>
-                </>
-              )}
-            </Card.Body>
-          </Card>
+  <Card.Body>
+    <Tab.Container defaultActiveKey="nonCredit">
+      <div className="d-flex justify-content-between align-items-center mb-3">
+        <Nav variant="tabs">
+          <Nav.Item>
+            <Nav.Link eventKey="nonCredit">
+              <FaReceipt className="me-2 text-primary" />
+              Non-Credit ({nonCreditCount})
+            </Nav.Link>
+          </Nav.Item>
+          <Nav.Item>
+            <Nav.Link eventKey="credit">
+              <FaCreditCard className="me-2 text-success" />
+              Credit ({creditCount})
+            </Nav.Link>
+          </Nav.Item>
+        </Nav>
+        <Form.Control
+          type="text"
+          placeholder="Search invoices..."
+          style={{ width: "200px" }}
+          className="d-flex align-items-center"
+        />
+      </div>
+
+      {loading ? (
+        <div className="text-center py-4">
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </div>
+        </div>
+      ) : (
+        <Tab.Content>
+          {/* Non-Credit Invoices Tab */}
+          <Tab.Pane eventKey="nonCredit">
+            <Table hover responsive>
+              <thead>
+                <tr>
+                  <th>Invoice #</th>
+                  <th>Client</th>
+                  <th>Date</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {nonCreditInvoices
+                  .slice(0, 10)
+                  .map((invoice) => (
+                    <tr key={`noncredit-${invoice.id}`}>
+                      <td>{invoice.invoice_number}</td>
+                      <td>{invoice.customer?.name || "N/A"}</td>
+                      <td>
+                        {new Date(invoice.issue_date).toLocaleDateString()}
+                      </td>
+                      <td>
+                        {getCurrencySymbol()}
+                        {convertCurrency(invoice.total_amount).toLocaleString(
+                          undefined,
+                          {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          }
+                        )}
+                      </td>
+                      <td>{getStatusBadge(invoice)}</td>
+                      <td>
+                        <Button variant="link" size="sm" className="p-0">
+                          View
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </Table>
+          </Tab.Pane>
+
+          {/* Credit Invoices Tab */}
+          <Tab.Pane eventKey="credit">
+            <Table hover responsive>
+              <thead>
+                <tr>
+                  <th>Invoice #</th>
+                  <th>Client</th>
+                  <th>Date</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {creditInvoices
+                  .slice(0, 10)
+                  .map((invoice) => (
+                    <tr key={`credit-${invoice.id}`}>
+                      <td>{invoice.invoice_number}</td>
+                      <td>{invoice.customer?.name || "N/A"}</td>
+                      <td>
+                        {new Date(invoice.issue_date).toLocaleDateString()}
+                      </td>
+                      <td>
+                        {getCurrencySymbol()}
+                        {convertCurrency(invoice.total_amount).toLocaleString(
+                          undefined,
+                          {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          }
+                        )}
+                      </td>
+                      <td>{getStatusBadge(invoice)}</td>
+                      <td>
+                        <Button variant="link" size="sm" className="p-0">
+                          View
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </Table>
+          </Tab.Pane>
+        </Tab.Content>
+      )}
+
+      <div className="d-flex justify-content-end mt-3">
+        <Button variant="link" className="text-decoration-none">
+          View All Invoices <FiChevronRight />
+        </Button>
+      </div>
+    </Tab.Container>
+  </Card.Body>
+</Card>
 
           {/* Bank Accounts & Reconciliation */}
           <Card className="shadow-sm">

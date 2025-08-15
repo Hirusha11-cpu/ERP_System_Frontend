@@ -78,24 +78,42 @@ const Account_receivable = () => {
     }
   }, [companyNo]);
 
-  const fetchInvoices = async () => {
-    setLoading(true);
-    try {
-      const response = await axios.get(
-        `/api/invoicesss/all?company_id=${companyNo}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-      setInvoices(response.data);
-      setFilteredInvoices(response.data);
-    } catch (err) {
-      setError("Failed to fetch invoices");
-      console.error(err);
-    } finally {
+const fetchInvoices = async () => {
+  setLoading(true);
+  try {
+    // Check if cached data exists
+    const cachedInvoices = localStorage.getItem(`invoices_${companyNo}`);
+    if (cachedInvoices) {
+      setInvoices(JSON.parse(cachedInvoices));
+      setFilteredInvoices(JSON.parse(cachedInvoices));
       setLoading(false);
+      return; // skip API call
     }
-  };
+
+    // Fetch from API if not in cache
+    const response = await axios.get(
+      `/api/invoicesss/all?company_id=${companyNo}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+
+    setInvoices(response.data);
+    setFilteredInvoices(response.data);
+
+    // Store in cache
+    localStorage.setItem(
+      `invoices_${companyNo}`,
+      JSON.stringify(response.data)
+    );
+  } catch (err) {
+    setError("Failed to fetch invoices");
+    console.error(err);
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   useEffect(() => {
     let result = [...invoices];

@@ -32,6 +32,7 @@ import {
   FaChevronUp,
   FaSearch,
   FaFilter,
+  FaCreditCard,
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -49,6 +50,7 @@ const Invoice_List_appleholidays = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [currentInvoice, setCurrentInvoice] = useState(null);
   const [invoiceToDelete, setInvoiceToDelete] = useState(null);
+  const [filterCreditType, setFilterCreditType] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [error, setError] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
@@ -64,20 +66,34 @@ const Invoice_List_appleholidays = () => {
   const fetchInvoices = async () => {
     try {
       setLoading(true);
-      const response = await axios.get("/api/invoices", {
-        params: {
-          company_id: 2,
-        },
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      const sortedInvoices = (response.data.data || []).sort(
-        (a, b) => new Date(b.created_at) - new Date(a.created_at)
-      );
 
-      setInvoices(sortedInvoices);
-      // setInvoices(response.data.data || []);
+      const cacheKey = `invoices_company_2`;
+      const cacheExpiryKey = `${cacheKey}_expiry`;
+
+      const cachedData = localStorage.getItem(cacheKey);
+      const cacheExpiry = localStorage.getItem(cacheExpiryKey);
+
+      // If we have cached data and it's not expired
+      if (cachedData && cacheExpiry && Date.now() < Number(cacheExpiry)) {
+        console.log("Loaded invoices from cache");
+        setInvoices(JSON.parse(cachedData));
+        setLoading(false);
+        return;
+      }
+
+      // Otherwise, fetch from API
+      const response = await axios.get("/api/invoices", {
+        params: { company_id: 2 },
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const invoicesData = response.data.data || [];
+
+      // Save to cache
+      localStorage.setItem(cacheKey, JSON.stringify(invoicesData));
+      localStorage.setItem(cacheExpiryKey, Date.now() + 10 * 60 * 1000); // 10 minutes expiry
+
+      setInvoices(invoicesData);
     } catch (error) {
       console.error("Error fetching invoices:", error);
     } finally {
@@ -94,8 +110,12 @@ const Invoice_List_appleholidays = () => {
 
     // const matchesStatus =
     //   filterStatus === "all" || invoice.status === filterStatus;
+    const matchesCreditType =
+      filterCreditType === "all" ||
+      (filterCreditType === "credit" && invoice.payment_type === "credit") ||
+      (filterCreditType === "non-credit" && invoice.payment_type !== "credit");
 
-    return matchesSearch;
+    return matchesSearch && matchesCreditType;
   });
 
   const handleViewInvoice = (invoice) => {
@@ -108,40 +128,40 @@ const Invoice_List_appleholidays = () => {
     setShowEditModal(true);
   };
 
- const handlePrintInvoice = (invoice) => {
-     // Set the current invoice to generate the PDF for
-     setCurrentInvoice(invoice);
- 
-     // Create a download link using the PDFDownloadLink component
-     const pdfLink = (
-       <PDFDownloadLink
-         document={<InvoicePDF invoice={invoice} />}
-         fileName={`invoice_${invoice.invoice_number}.pdf`}
-       >
-         {({ blob, url, loading, error }) =>
-           loading ? "Loading document..." : "Download now!"
-         }
-       </PDFDownloadLink>
-     );
- 
-     // Programmatically trigger the download
-     // Since we can't directly access the download link in this way,
-     // we'll need to create a temporary button and click it
-     const tempDiv = document.createElement("div");
-     document.body.appendChild(tempDiv);
- 
-     // Render the PDFDownloadLink to our temp div
-     ReactDOM.render(pdfLink, tempDiv);
- 
-     // Find the anchor tag and click it
-     setTimeout(() => {
-       const downloadLink = tempDiv.querySelector("a");
-       if (downloadLink) {
-         downloadLink.click();
-       }
-       document.body.removeChild(tempDiv);
-     }, 100);
-   };
+  const handlePrintInvoice = (invoice) => {
+    // Set the current invoice to generate the PDF for
+    setCurrentInvoice(invoice);
+
+    // Create a download link using the PDFDownloadLink component
+    const pdfLink = (
+      <PDFDownloadLink
+        document={<InvoicePDF invoice={invoice} />}
+        fileName={`invoice_${invoice.invoice_number}.pdf`}
+      >
+        {({ blob, url, loading, error }) =>
+          loading ? "Loading document..." : "Download now!"
+        }
+      </PDFDownloadLink>
+    );
+
+    // Programmatically trigger the download
+    // Since we can't directly access the download link in this way,
+    // we'll need to create a temporary button and click it
+    const tempDiv = document.createElement("div");
+    document.body.appendChild(tempDiv);
+
+    // Render the PDFDownloadLink to our temp div
+    ReactDOM.render(pdfLink, tempDiv);
+
+    // Find the anchor tag and click it
+    setTimeout(() => {
+      const downloadLink = tempDiv.querySelector("a");
+      if (downloadLink) {
+        downloadLink.click();
+      }
+      document.body.removeChild(tempDiv);
+    }, 100);
+  };
 
   const confirmDelete = (invoice) => {
     setInvoiceToDelete(invoice);
@@ -383,7 +403,7 @@ const Invoice_List_appleholidays = () => {
               />
             </div>
 
-            <div className="d-flex align-items-center me-3">
+            {/* <div className="d-flex align-items-center me-3">
               <span className="me-2">
                 <FaFilter />
               </span>
@@ -396,6 +416,21 @@ const Invoice_List_appleholidays = () => {
                 <option value="paid">Paid</option>
                 <option value="pending">Pending</option>
                 <option value="cancelled">Cancelled</option>
+              </Form.Select>
+            </div> */}
+
+            <div className="d-flex align-items-center me-3">
+              <span className="me-2">
+                <FaCreditCard />
+              </span>
+              <Form.Select
+                value={filterCreditType}
+                onChange={(e) => setFilterCreditType(e.target.value)}
+                style={{ width: "150px" }}
+              >
+                <option value="all">All Types</option>
+                <option value="credit">Credit</option>
+                <option value="non-credit">Non-Credit</option>
               </Form.Select>
             </div>
 
@@ -424,6 +459,7 @@ const Invoice_List_appleholidays = () => {
                     <th>Customer</th>
                     <th>Date</th>
                     <th>Total</th>
+                    <th>Credit/Non-Credit</th>
                     <th>Status</th>
                     <th className="text-end">Actions</th>
                   </tr>
@@ -477,6 +513,7 @@ const Invoice_List_appleholidays = () => {
                             {invoice.currency} {invoice.total_amount}
                           </div>
                         </td>
+                        <td>{invoice?.payment_type}</td>
                         <td>{invoice?.status}</td>
                         <td className="text-end">
                           <div className="d-flex justify-content-end">
@@ -1291,8 +1328,8 @@ const Invoice_List_appleholidays = () => {
             Close
           </Button>
           <Button variant="danger" onClick={handleDeleteInvoice}>
-                      Confirm Cancel
-                    </Button>
+            Confirm Cancel
+          </Button>
         </Modal.Footer>
       </Modal>
     </div>

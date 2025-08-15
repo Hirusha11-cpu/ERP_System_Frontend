@@ -80,21 +80,101 @@ const Invoice_refund = () => {
     return (item.price * (1 - item.discount / 100) * item.quantity).toFixed(2);
   };
 
+   const fetchInvoices1 = async (companyId) => {
+  try {
+    setLoading(true);
+
+    const cacheKey = `invoices_company_${companyId}`;
+    const cacheExpiryKey = `${cacheKey}_expiry`;
+
+    const cachedData = localStorage.getItem(cacheKey);
+    const cacheExpiry = localStorage.getItem(cacheExpiryKey);
+
+    // If cache exists and hasn't expired
+    if (cachedData && cacheExpiry && Date.now() < Number(cacheExpiry)) {
+      console.log("Loaded invoices from cache");
+
+      const data = JSON.parse(cachedData);
+      setInvoices(data);
+
+      // Separate into refund and non-refund
+      const refundInvoices = data.filter(
+        (invoice) => invoice.refund?.status === "refund"
+      );
+      setFilteredInvoices(refundInvoices);
+
+      const nonRefundInvoices = data.filter(
+        (invoice) =>
+          invoice.refund?.status === "non-refund" || invoice.refund === null
+      );
+      return; // skip API call
+    }
+
+    // Otherwise fetch from API
+    // const response = await axios.get(
+    //   `/api/invoicess/all?company_id=${companyId}`,
+    //   {
+    //     headers: {
+    //       Authorization: `Bearer ${token}`,
+    //     },
+    //   }
+    // );
+     const response = await axios.get("/api/invoices", {
+          params: { company_id: companyId },
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+    const data = response.data.data || [];
+    setInvoices(data);
+
+    // Separate invoices into refund and non-refund
+    const refundInvoices = data.filter(
+      (invoice) => invoice.refund?.status === "refund"
+    );
+    setFilteredInvoices(refundInvoices);
+
+    const nonRefundInvoices = data.filter(
+      (invoice) =>
+        invoice.refund?.status === "non-refund" || invoice.refund === null
+    );
+
+    // Store in cache
+    localStorage.setItem(cacheKey, JSON.stringify(data));
+    localStorage.setItem(cacheExpiryKey, Date.now() + 10 * 60 * 1000); // 10 mins
+
+  } catch (err) {
+    setError(err.message || "Failed to fetch invoices");
+  } finally {
+    setLoading(false);
+  }
+};
+
   const fetchInvoices = async (companyId) => {
     try {
       setLoading(true);
-      const response = await axios.get(
-        `/api/invoicess/all?company_id=${companyId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      setInvoices(response.data.data);
+  
+       const response = await axios.get(
+          `/api/invoicesss/all?company_id=${companyId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        console.log(response.data);
+        
+      //  const response = await axios.get(
+      //     `/api/invoices?company_id=${companyId}`,
+      //     {
+      //       headers: {
+      //         Authorization: `Bearer ${token}`,
+      //       },
+      //     }
+      //   );
+      setInvoices(response.data);
 
       // Separate invoices into refund and non-refund
-      const refundInvoices = response.data.data.filter(
+      const refundInvoices = response.data.filter(
         (invoice) => invoice.refund?.status === "refund"
       );
       setFilteredInvoices(refundInvoices);
@@ -180,7 +260,7 @@ const Invoice_refund = () => {
         refund_attachments: selectedInvoice.refund.attachments || [],
       });
     }
-  }, [selectedInvoice]);
+  }, [selectedInvoice,token]);
 
   // Search invoices by number
   const handleSearch = async () => {
@@ -536,7 +616,7 @@ const Invoice_refund = () => {
           </h2>
         </Card.Header>
         <Card.Body>
-          {error && <Alert variant="danger">{error}</Alert>}
+          {/* {error && <Alert variant="danger">{error}</Alert>} */}
 
           <Row className="mb-4">
             <Col md={8}>

@@ -78,42 +78,41 @@ const Account_receivable = () => {
     }
   }, [companyNo]);
 
-const fetchInvoices = async () => {
-  setLoading(true);
-  try {
-    // Check if cached data exists
-    const cachedInvoices = localStorage.getItem(`invoices_${companyNo}`);
-    if (cachedInvoices) {
-      setInvoices(JSON.parse(cachedInvoices));
-      setFilteredInvoices(JSON.parse(cachedInvoices));
+  const fetchInvoices = async () => {
+    setLoading(true);
+    try {
+      // Check if cached data exists
+      // const cachedInvoices = localStorage.getItem(`invoices_${companyNo}`);
+      // if (cachedInvoices) {
+      //   setInvoices(JSON.parse(cachedInvoices));
+      //   setFilteredInvoices(JSON.parse(cachedInvoices));
+      //   setLoading(false);
+      //   return; // skip API call
+      // }
+
+      // Fetch from API if not in cache
+      const response = await axios.get(
+        `/api/invoices?company_id=${companyNo}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      setInvoices(response.data.data);
+      setFilteredInvoices(response.data.data);
+
+      // Store in cache
+      // localStorage.setItem(
+      //   `invoices_${companyNo}`,
+      //   JSON.stringify(response.data)
+      // );
+    } catch (err) {
+      setError("Failed to fetch invoices");
+      console.error(err);
+    } finally {
       setLoading(false);
-      return; // skip API call
     }
-
-    // Fetch from API if not in cache
-    const response = await axios.get(
-      `/api/invoicesss/all?company_id=${companyNo}`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      }
-    );
-
-    setInvoices(response.data);
-    setFilteredInvoices(response.data);
-
-    // Store in cache
-    localStorage.setItem(
-      `invoices_${companyNo}`,
-      JSON.stringify(response.data)
-    );
-  } catch (err) {
-    setError("Failed to fetch invoices");
-    console.error(err);
-  } finally {
-    setLoading(false);
-  }
-};
-
+  };
 
   useEffect(() => {
     let result = [...invoices];
@@ -135,7 +134,6 @@ const fetchInvoices = async () => {
         (invoice) => !creditPartners.includes(invoice.customer?.name)
       );
       setIsNonCredit(true);
-
     }
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
@@ -233,20 +231,24 @@ const fetchInvoices = async () => {
           <div className="d-flex justify-content-between align-items-center">
             <h5>Account Receivable ({selectedCompany})</h5>
             <div>
-              {/* <Button 
-                variant="outline-primary" 
-                size="sm" 
-                className="me-2"
-                onClick={() => setShowUploadModal(true)}
-              >
-                <FaFileImport /> Upload
-              </Button>
-              <Button variant="outline-success" size="sm" className="me-2">
-                <FaFileExport /> Export
-              </Button>
-              <Button variant="primary" size="sm" onClick={fetchInvoices}>
-                <FaSyncAlt /> Refresh
-              </Button> */}
+              {activeTab === "credit" || activeTab === "non-credit" ? (
+                <>
+                  <Button
+                    variant="outline-primary"
+                    size="sm"
+                    className="me-2 ms-3 mb-1"
+                    onClick={() => setShowUploadModal(true)}
+                  >
+                    <FaFileImport /> Upload
+                  </Button>
+                  {/* <Button variant="outline-success" size="sm" className="me-2">
+                    <FaFileExport /> Export
+                  </Button>
+                  <Button variant="primary" size="sm" onClick={fetchInvoices}>
+                    <FaSyncAlt /> Refresh
+                  </Button> */}
+                </>
+              ) : null}
             </div>
           </div>
         </Card.Header>
@@ -350,19 +352,21 @@ const fetchInvoices = async () => {
                                       : "Non-Credit"}
                                   </Badge>
                                 </td>
-                                {activeTab !== "all" && <td>
-                                  <Button
-                                    variant="outline-primary"
-                                    size="sm"
-                                    className="me-2"
-                                    onClick={() => {
-                                      setSelectedInvoice(invoice);
-                                      setShowEditModal(true);
-                                    }}
-                                  >
-                                    <FaEdit /> Update
-                                  </Button>
-                                </td>}
+                                {activeTab !== "all" && (
+                                  <td>
+                                    <Button
+                                      variant="outline-primary"
+                                      size="sm"
+                                      className="me-2"
+                                      onClick={() => {
+                                        setSelectedInvoice(invoice);
+                                        setShowEditModal(true);
+                                      }}
+                                    >
+                                      <FaEdit /> Update
+                                    </Button>
+                                  </td>
+                                )}
                               </tr>
                             ))
                           ) : (
@@ -502,17 +506,19 @@ const fetchInvoices = async () => {
                     readOnly
                   />
                 </Form.Group>
-                {isNonCredit && <Form.Group>
-                  <Form.Label>Select Excel File</Form.Label>
-                  <Form.Control
-                    type="file"
-                    accept=".xlsx, .xls"
-                    onChange={(e) => setFile(e.target.files[0])}
-                  />
-                  <Form.Text className="text-muted">
-                    Only Excel files are accepted for non-credit invoices
-                  </Form.Text>
-                </Form.Group>}
+                {isNonCredit && (
+                  <Form.Group>
+                    <Form.Label>Select Excel File</Form.Label>
+                    <Form.Control
+                      type="file"
+                      accept=".xlsx, .xls"
+                      onChange={(e) => setFile(e.target.files[0])}
+                    />
+                    <Form.Text className="text-muted">
+                      Only Excel files are accepted for non-credit invoices
+                    </Form.Text>
+                  </Form.Group>
+                )}
               </Col>
             </Row>
           )}

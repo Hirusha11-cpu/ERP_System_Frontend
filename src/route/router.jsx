@@ -239,6 +239,10 @@ export const router = createBrowserRouter([
         path: "/role_management",
         element: <ProtectedRoute><Invoice_preview target="role_management" /></ProtectedRoute>,
       },
+      {
+        path: "/activity_management",
+        element: <ProtectedRoute><Invoice_preview target="activity_management" /></ProtectedRoute>,
+      },
             {
                 path: "/payment/view",
                 element: <PaymentView />

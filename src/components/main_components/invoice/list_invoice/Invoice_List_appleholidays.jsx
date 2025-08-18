@@ -55,6 +55,10 @@ const Invoice_List_appleholidays = () => {
   const [error, setError] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const { selectedCompany } = useContext(CompanyContext);
+  const [dateFilter, setDateFilter] = useState({
+    startDate: "",
+    endDate: "",
+  });
   const navigate = useNavigate();
   const token =
     localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
@@ -115,7 +119,13 @@ const Invoice_List_appleholidays = () => {
       (filterCreditType === "credit" && invoice.payment_type === "credit") ||
       (filterCreditType === "non-credit" && invoice.payment_type !== "credit");
 
-    return matchesSearch && matchesCreditType;
+    const matchesDate =
+      (!dateFilter.startDate ||
+        new Date(invoice.issue_date) >= new Date(dateFilter.startDate)) &&
+      (!dateFilter.endDate ||
+        new Date(invoice.issue_date) <= new Date(dateFilter.endDate));
+
+    return matchesSearch && matchesCreditType && matchesDate;
   });
 
   const handleViewInvoice = (invoice) => {
@@ -403,6 +413,34 @@ const Invoice_List_appleholidays = () => {
               />
             </div>
 
+            {/* Add this to your existing filter section */}
+            <div className="d-flex align-items-center me-3">
+              <span className="me-2">
+                <FaCalendarAlt />
+              </span>
+              <Form.Control
+                type="date"
+                placeholder="From"
+                name="startDate"
+                value={dateFilter.startDate}
+                onChange={(e) =>
+                  setDateFilter({ ...dateFilter, startDate: e.target.value })
+                }
+                style={{ width: "150px", marginRight: "10px" }}
+              />
+              <span className="me-2">to</span>
+              <Form.Control
+                type="date"
+                placeholder="To"
+                name="endDate"
+                value={dateFilter.endDate}
+                onChange={(e) =>
+                  setDateFilter({ ...dateFilter, endDate: e.target.value })
+                }
+                style={{ width: "150px" }}
+              />
+            </div>
+
             {/* <div className="d-flex align-items-center me-3">
               <span className="me-2">
                 <FaFilter />
@@ -441,6 +479,16 @@ const Invoice_List_appleholidays = () => {
             >
               Refresh
             </Button>
+            {dateFilter.startDate || dateFilter.endDate ? (
+              <Button
+                variant="outline-secondary"
+                onClick={() => setDateFilter({ startDate: "", endDate: "" })}
+                className="ms-2"
+                size="sm"
+              >
+                Clear Dates
+              </Button>
+            ) : null}
           </div>
 
           {loading ? (

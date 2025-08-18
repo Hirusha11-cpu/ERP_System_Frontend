@@ -700,6 +700,12 @@ export const menuList = [
         path: "/role_management",
         subdropdownMenu: false,
       },
+      {
+        id: 2,
+        name: "Activity Log Management",
+        path: "/activity_management",
+        subdropdownMenu: false,
+      },
       // {
       //   id: 1,
       //   name: "login",

@@ -179,12 +179,12 @@ export const menuList = [
       //     ]
       //   : []),
     
-      {
-        id: 3,
-        name: "Sales",
-        path: "/receivables/sales",
-        subdropdownMenu: true,
-      },
+      // {
+      //   id: 3,
+      //   name: "Sales",
+      //   path: "/receivables/sales",
+      //   subdropdownMenu: true,
+      // },
     ],
   },
   {

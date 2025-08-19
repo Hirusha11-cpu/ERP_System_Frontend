@@ -36,19 +36,24 @@ import {
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { CompanyContext } from "../../../../contentApi/CompanyProvider";
+import { useUser } from "../../../../contentApi/UserProvider";
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import { InvoicePDF } from "../upload_invoice/InvoicePDF";
 
 const Invoice_List_aahaas = () => {
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingDelete, setLoadingDelete] = useState(true);
+  const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [currentInvoice, setCurrentInvoice] = useState(null);
   const [invoiceToDelete, setInvoiceToDelete] = useState(null);
+  const [success, setSuccess] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
   const [filterStatus, setFilterStatus] = useState("all");
   const { selectedCompany } = useContext(CompanyContext);
   const [filterCreditType, setFilterCreditType] = useState("all");
@@ -59,6 +64,13 @@ const Invoice_List_aahaas = () => {
   const navigate = useNavigate();
   const token =
     localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+  const {
+    user,
+    company,
+    role,
+    loading: userLoading,
+    error: userError,
+  } = useUser();
 
   useEffect(() => {
     fetchInvoices();
@@ -67,6 +79,11 @@ const Invoice_List_aahaas = () => {
   const fetchInvoices = async () => {
     try {
       setLoading(true);
+      // console.log(refreshUser);
+      if (user) {
+        console.log(user.role.name);
+        setIsAdmin(user.role.name === "admin");
+      }
 
       const cacheKey = `invoices_company_3`;
       const cacheExpiryKey = `${cacheKey}_expiry`;
@@ -176,42 +193,22 @@ const Invoice_List_aahaas = () => {
     setShowDeleteModal(true);
   };
 
-  const handleDeleteInvoice = async () => {
+  const handleDeleteInvoiceAdmin = async () => {
     try {
       setIsLoading(true);
 
-      const emailResponse = await axios.post(
-        "/api/send-email",
-        {
-          to: "nightvine121@gmail.com",
-          subject: `Invoice Cancellation: ${invoiceToDelete.invoice_number}`,
-          invoice_number: invoiceToDelete.invoice_number,
-          customer_name: invoiceToDelete.customer?.name || "N/A",
-          currency: invoiceToDelete.currency,
-          amount: invoiceToDelete.total_amount,
-          date: formatDate(invoiceToDelete.issue_date),
+      await axios.delete(`/api/invoices/${invoiceToDelete.id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
         },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+      });
+
+      setSuccess(
+        `Invoice ${invoiceToDelete.invoice_number} cancelled successfully.`
       );
-
-      if (emailResponse.status === 200) {
-        // Only delete if email sent successfully
-        await axios.delete(`/api/invoices/${invoiceToDelete.id}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-      }
-
       fetchInvoices();
       setShowDeleteModal(false);
-      setSuccess(
-        `Invoice ${invoiceToDelete.invoice_number} cancelled successfully and notification sent.`
-      );
+      setSuccess("")
     } catch (error) {
       console.error("Error cancelling invoice:", error);
       setError(
@@ -222,7 +219,90 @@ const Invoice_List_aahaas = () => {
       setIsLoading(false);
     }
   };
+  // const handleDeleteInvoice = async () => {
+  //   try {
+  //     setIsLoading(true);
 
+  //     const emailResponse = await axios.post(
+  //       "/api/send-email",
+  //       {
+  //         to: "nightvine121@gmail.com",
+  //         subject: `Invoice Cancellation: ${invoiceToDelete.invoice_number}`,
+  //         invoice_number: invoiceToDelete.invoice_number,
+  //         customer_name: invoiceToDelete.customer?.name || "N/A",
+  //         currency: invoiceToDelete.currency,
+  //         amount: invoiceToDelete.total_amount,
+  //         date: formatDate(invoiceToDelete.issue_date),
+  //       },
+  //       {
+  //         headers: {
+  //           Authorization: `Bearer ${token}`,
+  //         },
+  //       }
+  //     );
+
+  //     if (emailResponse.status === 200) {
+  //       // Only delete if email sent successfully
+  //       await axios.delete(`/api/invoices/${invoiceToDelete.id}`, {
+  //         headers: {
+  //           Authorization: `Bearer ${token}`,
+  //         },
+  //       });
+  //     }
+
+  //     fetchInvoices();
+  //     setShowDeleteModal(false);
+  //     setSuccess(
+  //       `Invoice ${invoiceToDelete.invoice_number} cancelled successfully and notification sent.`
+  //     );
+  //   } catch (error) {
+  //     console.error("Error cancelling invoice:", error);
+  //     setError(
+  //       error.response?.data?.error ||
+  //         "Failed to cancel invoice. Please try again."
+  //     );
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
+
+  const handleDeleteInvoice = async () => {
+    try {
+      setIsLoading(true);
+
+      const emailResponse = await axios.post(
+        "/api/send-email",
+        {
+          to: "nightvine121@gmail.com", // Or get boss's email dynamically
+          subject: `Invoice Cancellation Request: ${invoiceToDelete.invoice_number}`,
+          invoice_number: invoiceToDelete.invoice_number,
+          customer_name: invoiceToDelete.customer?.name || "N/A",
+          currency: invoiceToDelete.currency,
+          amount: invoiceToDelete.total_amount,
+          date: formatDate(invoiceToDelete.issue_date),
+          invoice_id: invoiceToDelete.id, // Add this
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      setShowDeleteModal(false);
+      setSuccess(
+        `Cancellation request for invoice ${invoiceToDelete.invoice_number} has been sent for approval.`
+      );
+    } catch (error) {
+      console.error("Error requesting invoice cancellation:", error);
+      setError(
+        error.response?.data?.error ||
+          "Failed to request invoice cancellation. Please try again."
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
   const handleUpdateInvoice = async (formData) => {
     try {
       // Convert items from form data to array format
@@ -1360,9 +1440,15 @@ const Invoice_List_aahaas = () => {
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <div className="alert alert-danger">
+         {/* {success === "" ? <div className="alert alert-danger">
+            <strong>Warning:</strong> This action cannot be undone.
+          </div> :  <div className="alert alert-success">
+        {success}
+      </div> } */}
+ <div className="alert alert-danger">
             <strong>Warning:</strong> This action cannot be undone.
           </div>
+
           <p>
             Are you sure you want to cancel invoice #
             <strong>{invoiceToDelete?.invoice_number}</strong>?
@@ -1373,8 +1459,13 @@ const Invoice_List_aahaas = () => {
             Close
           </Button>
           <Button variant="danger" onClick={handleDeleteInvoice}>
-            Confirm Cancel
+            {loading  ? "Requestinng Cancel..." : "Request to Cancel"}
           </Button>
+          {isAdmin && (
+            <Button variant="danger" onClick={handleDeleteInvoiceAdmin}>
+              Confirm Cancel
+            </Button>
+          )}
         </Modal.Footer>
       </Modal>
     </div>

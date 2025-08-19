@@ -38,9 +38,7 @@ export const UserProvider = ({ children }) => {
     setCompany(null);
     setRole(null);
   };
-
-
-
+  
   useEffect(() => {
     fetchUser();
   }, []);

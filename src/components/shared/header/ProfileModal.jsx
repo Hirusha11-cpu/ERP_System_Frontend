@@ -1,10 +1,12 @@
 import React, { Fragment } from 'react'
 import { FiActivity, FiBell, FiChevronRight, FiDollarSign, FiLogOut, FiSettings, FiUser } from "react-icons/fi"
 import { useNavigate } from 'react-router-dom'
+import { useUser } from "../../../contentApi/UserProvider";
 
 const activePosition = ["Active", "Always", "Bussy", "Inactive", "Disabled", "Cutomization"]
 const subscriptionsList = ["Plan", "Billings", "Referrals", "Payments", "Statements", "Subscriptions"]
 const ProfileModal = () => {
+    const { user, company, role } = useUser();
     const navigate = useNavigate();
 
     const handleLogout = () => {
@@ -24,8 +26,8 @@ const ProfileModal = () => {
                     <div className="d-flex align-items-center">
                         <img src="/images/avatar/new_user.jpg" alt="user-image" className="img-fluid user-avtar" />
                         <div>
-                            <h6 className="text-dark mb-0">Alexandra Della <span className="badge bg-soft-success text-success ms-1"></span></h6>
-                            <span className="fs-12 fw-medium text-muted">alex.della@outlook.com</span>
+                            <h6 className="text-dark mb-0">{user?.name} <span className="badge bg-soft-success text-success ms-1"></span></h6>
+                            <span className="fs-12 fw-medium text-muted">{user?.email}</span>
                         </div>
                     </div>
                 </div>

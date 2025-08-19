@@ -1,4 +1,4 @@
-import { createBrowserRouter } from "react-router-dom";
+import { createBrowserRouter, Navigate } from "react-router-dom";
 import RootLayout from "../layout/root";
 import Home from "../pages/home";
 import Analytics from "../pages/analytics";
@@ -70,68 +70,179 @@ import WidgetsStatistics from "../pages/widgets-statistics";
 import WidgetsMiscellaneous from "../pages/widgets-miscellaneous";
 // import Invoice_preview from "@/components/main_components/invoice/invoice_preview";
 import Invoice_preview from "../components/main_components/invoice/Invoice_preview";
+import { useUser } from "../contentApi/UserProvider";
+
+// const ProtectedRoute = ({ children }) => {
+//   const token = localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+//   return token ? children : <Navigate to="/login" replace />;
+// };
+
+const ProtectedRoute = ({ children }) => {
+  const { user, loading } = useUser();
+  if (loading) {
+    return (
+      <div className="text-center py-5">
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </div>
+      </div>
+    );
+  }
+  return user ? children : <Navigate to="/login" replace />;
+};
+
+
 
 export const router = createBrowserRouter([
     {
         path: "/",
-        element: <RootLayout />,
+        // element: <RootLayout />,
+        element: <ProtectedRoute><RootLayout /></ProtectedRoute>,
         children: [
-            {
-                path: "/",
-                element: <Home />
-            },
-            {
-                path: "/invoice/upload",
-                element: <Invoice_preview target="invoice_upload"/>
-            },
-            {
-                path: "/invoice",
-                element: <Invoice_preview target="main_invoice_view"/>
-            },
-            {
-                path: "/invoice/create",
-                element: <Invoice_preview target="invoice_create" />
-            },
-            {
-                path: "/invoice/bank-accounts",
-                element: <Invoice_preview target="invoice_bank_accounts"/>
-            },
-            {
-                path: "/invoice/pnl",
-                element: <Invoice_preview target="invoice_pnl"/>
-            },
-            {
-                path: "/invoice/summary",
-                element: <Invoice_preview target="invoice_summary"/>
-            },
-            {
-                path: "/invoice/refund",
-                element: <Invoice_preview target="invoice_refund" />
-            },
-            {
-                path: "/invoice/reconciliation",
-                element: <Invoice_preview target="invoice_reconciliation" />
-            },
-            {
-                path: "/reconciliation",
-                element: <Invoice_preview target="reconciliation" />
-            },
-            {
-                path: "/receivables/api_list",
-                element: <Invoice_preview target="receivables_api_list" />
-            },
-            {
-                path: "/receivables/summary_reports",
-                element: <Invoice_preview target="receivables_summary_reports" />
-            },
-            {
-                path: "/receivables/sales",
-                element: <Invoice_preview target="receivables_sales" />
-            },
-            {
-                path: "/payment/list",
-                element: <Invoice_preview target="payable_list" />
-            },
+            // {
+            //     path: "/",
+            //     element: <Home />
+            // },
+            // {
+            //     path: "/invoice/upload",
+            //     element: <Invoice_preview target="invoice_upload"/>
+            // },
+            // {
+            //     path: "/invoice",
+            //     element: <Invoice_preview target="main_invoice_view"/>
+            // },
+            // {
+            //     path: "/invoice/create",
+            //     element: <Invoice_preview target="invoice_create" />
+            // },
+            // {
+            //     path: "/invoice/bank-accounts",
+            //     element: <Invoice_preview target="invoice_bank_accounts"/>
+            // },
+            // {
+            //     path: "/invoice/pnl",
+            //     element: <Invoice_preview target="invoice_pnl"/>
+            // },
+            // {
+            //     path: "/invoice/summary",
+            //     element: <Invoice_preview target="invoice_summary"/>
+            // },
+            // {
+            //     path: "/invoice/refund",
+            //     element: <Invoice_preview target="invoice_refund" />
+            // },
+            // {
+            //     path: "/invoice/reconciliation",
+            //     element: <Invoice_preview target="invoice_reconciliation" />
+            // },
+            // {
+            //     path: "/reconciliation",
+            //     element: <Invoice_preview target="reconciliation" />
+            // },
+            //   {
+            //     path: "/receivables",
+            //     element: <Invoice_preview target="receivables_api_list2" />
+            // },
+            // {
+            //     path: "/receivables/api_list",
+            //     element: <Invoice_preview target="receivables_api_list" />
+            // },
+            // {
+            //     path: "/receivables/api_list2",
+            //     element: <Invoice_preview target="receivables_api_list2" />
+            // },
+            // {
+            //     path: "/receivables/summary_reports",
+            //     element: <Invoice_preview target="receivables_summary_reports" />
+            // },
+            // {
+            //     path: "/receivables/sales",
+            //     element: <Invoice_preview target="receivables_sales" />
+            // },
+            // {
+            //     path: "/payment/list",
+            //     element: <Invoice_preview target="payable_list" />
+            // },
+            // {
+            //     path: "/invoice/reconciliation/actual",
+            //     element: <Invoice_preview target="invoice_reconciliation_actual" />
+            // },
+             {
+        path: "/",
+        element: <ProtectedRoute><Home /></ProtectedRoute>,
+      },
+      {
+        path: "/invoice/upload",
+        element: <ProtectedRoute><Invoice_preview target="invoice_upload" /></ProtectedRoute>,
+      },
+      {
+        path: "/invoice",
+        element: <ProtectedRoute><Invoice_preview target="main_invoice_view" /></ProtectedRoute>,
+      },
+      {
+        path: "/invoice/create",
+        element: <ProtectedRoute><Invoice_preview target="invoice_create" /></ProtectedRoute>,
+      },
+      {
+        path: "/invoice/bank-accounts",
+        element: <ProtectedRoute><Invoice_preview target="invoice_bank_accounts" /></ProtectedRoute>,
+      },
+      {
+        path: "/invoice/pnl",
+        element: <ProtectedRoute><Invoice_preview target="invoice_pnl" /></ProtectedRoute>,
+      },
+      {
+        path: "/invoice/summary",
+        element: <ProtectedRoute><Invoice_preview target="invoice_summary" /></ProtectedRoute>,
+      },
+      {
+        path: "/invoice/refund",
+        element: <ProtectedRoute><Invoice_preview target="invoice_refund" /></ProtectedRoute>,
+      },
+      {
+        path: "/invoice/reconciliation",
+        element: <ProtectedRoute><Invoice_preview target="invoice_reconciliation" /></ProtectedRoute>,
+      },
+      {
+        path: "/reconciliation",
+        element: <ProtectedRoute><Invoice_preview target="reconciliation" /></ProtectedRoute>,
+      },
+      {
+        path: "/receivables",
+        element: <ProtectedRoute><Invoice_preview target="receivables_api_list2" /></ProtectedRoute>,
+      },
+      {
+        path: "/receivables/api_list",
+        element: <ProtectedRoute><Invoice_preview target="receivables_api_list" /></ProtectedRoute>,
+      },
+      {
+        path: "/receivables/api_list2",
+        element: <ProtectedRoute><Invoice_preview target="receivables_api_list2" /></ProtectedRoute>,
+      },
+      {
+        path: "/receivables/summary_reports",
+        element: <ProtectedRoute><Invoice_preview target="receivables_summary_reports" /></ProtectedRoute>,
+      },
+      {
+        path: "/receivables/sales",
+        element: <ProtectedRoute><Invoice_preview target="receivables_sales" /></ProtectedRoute>,
+      },
+      {
+        path: "/payment/list",
+        element: <ProtectedRoute><Invoice_preview target="payable_list" /></ProtectedRoute>,
+      },
+      {
+        path: "/invoice/reconciliation/actual",
+        element: <ProtectedRoute><Invoice_preview target="invoice_reconciliation_actual" /></ProtectedRoute>,
+      },
+      {
+        path: "/role_management",
+        element: <ProtectedRoute><Invoice_preview target="role_management" /></ProtectedRoute>,
+      },
+      {
+        path: "/activity_management",
+        element: <ProtectedRoute><Invoice_preview target="activity_management" /></ProtectedRoute>,
+      },
             {
                 path: "/payment/view",
                 element: <PaymentView />

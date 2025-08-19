@@ -94,11 +94,19 @@ const Invoice_summary = () => {
     try {
       setLoading(true);
       const [invoicesRes, summaryRes] = await Promise.all([
-        axios.get(`/api/invoicesss/all?company_id=${companyNumber}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }),
+        // axios.get(`/api/invoicesss/all?company_id=${companyNumber}`, {
+        //   headers: {
+        //     Authorization: `Bearer ${token}`,
+        //   },
+        // }),
+        axios.get(
+                  `/api/invoices?company_id=${companyNumber}`,
+                  {
+                    headers: {
+                      Authorization: `Bearer ${token}`,
+                    },
+                  }
+                ),
         axios.get(`/api/invoicess/summary?company_id=${companyNumber}`, {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -113,7 +121,7 @@ const Invoice_summary = () => {
 
       console.log(invoicesRes.data, "Invoices xxxxx");
       console.log(summaryRes.data, "Summary xxxxx");
-      setFilteredInvoices(invoicesRes.data);
+      setFilteredInvoices(invoicesRes.data.data);
       setSummaryData(summaryRes.data);
     } catch (err) {
       setError(err.message);
@@ -125,6 +133,8 @@ const Invoice_summary = () => {
     console.log("Company No:", companyNo);
     if (companyNo){
       fetchData(companyNo);
+      console.log(filteredInvoices, "Filtered Invoices xxxxx");
+      
     }else{
       fetchData(3);
     }

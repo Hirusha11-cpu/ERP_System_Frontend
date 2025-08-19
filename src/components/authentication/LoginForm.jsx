@@ -3,6 +3,7 @@ import { FiFacebook, FiGithub, FiTwitter } from 'react-icons/fi'
 import { Link, useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { toast } from 'react-toastify'
+import { useUser } from '../../contentApi/UserProvider'
 
 const LoginForm = ({ registerPath, resetPath }) => {
   const [email, setEmail] = useState('')
@@ -10,6 +11,8 @@ const LoginForm = ({ registerPath, resetPath }) => {
   const [rememberMe, setRememberMe] = useState(true)
   const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
+  const { refreshUser } = useUser();
+
 
   const handleFormSubmit = async (e) => {
     e.preventDefault()
@@ -31,7 +34,7 @@ const LoginForm = ({ registerPath, resetPath }) => {
       
       // Store user data in context or state management
       // You might want to use a context provider for this
-      
+      await refreshUser(); // Fetch new user data after login
       toast.success('Login successful')
       navigate('/')
     } catch (error) {

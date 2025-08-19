@@ -26,7 +26,7 @@ import Sales from '../account_receivable/sales/Sales';
 import Account_Payable from '../account_payable/Account_Payable';
 import Actual_reconciliation from './actual_reconciliation/Actual_reconciliation';
 import Account_receivable from '../account_receivable/api/Account_receivable';
-import Role_management from '../role_management/role/role_management';
+import Role_management from '../role_management/role/Role_management';
 import Activity_management from '../role_management/activity_log/Activity_management';
 
 const Invoice_preview = ({ target }) => {

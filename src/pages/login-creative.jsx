@@ -18,7 +18,7 @@ const LoginCreative = () => {
                             </div>
                             <div className="col-lg-6 bg-white order-0 order-lg-1">
                                 <div className="h-100 d-flex align-items-center justify-content-center">
-                                    <img src="public/images/auth/erp.jpg" alt="img" className="img-fluid" />
+                                    <img src="/images/auth/erp.jpg" alt="img" className="img-fluid" />
                                 </div>
                             </div>
                         </div>

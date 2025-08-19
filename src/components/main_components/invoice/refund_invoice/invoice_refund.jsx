@@ -84,31 +84,31 @@ const Invoice_refund = () => {
   try {
     setLoading(true);
 
-    const cacheKey = `invoices_company_${companyId}`;
-    const cacheExpiryKey = `${cacheKey}_expiry`;
+    // const cacheKey = `invoices_company_${companyId}`;
+    // const cacheExpiryKey = `${cacheKey}_expiry`;
 
-    const cachedData = localStorage.getItem(cacheKey);
-    const cacheExpiry = localStorage.getItem(cacheExpiryKey);
+    // const cachedData = localStorage.getItem(cacheKey);
+    // const cacheExpiry = localStorage.getItem(cacheExpiryKey);
 
-    // If cache exists and hasn't expired
-    if (cachedData && cacheExpiry && Date.now() < Number(cacheExpiry)) {
-      console.log("Loaded invoices from cache");
+    // // If cache exists and hasn't expired
+    // if (cachedData && cacheExpiry && Date.now() < Number(cacheExpiry)) {
+    //   console.log("Loaded invoices from cache");
 
-      const data = JSON.parse(cachedData);
-      setInvoices(data);
+    //   const data = JSON.parse(cachedData);
+    //   setInvoices(data);
 
-      // Separate into refund and non-refund
-      const refundInvoices = data.filter(
-        (invoice) => invoice.refund?.status === "refund"
-      );
-      setFilteredInvoices(refundInvoices);
+    //   // Separate into refund and non-refund
+    //   const refundInvoices = data.filter(
+    //     (invoice) => invoice.refund?.status === "refund"
+    //   );
+    //   setFilteredInvoices(refundInvoices);
 
-      const nonRefundInvoices = data.filter(
-        (invoice) =>
-          invoice.refund?.status === "non-refund" || invoice.refund === null
-      );
-      return; // skip API call
-    }
+    //   const nonRefundInvoices = data.filter(
+    //     (invoice) =>
+    //       invoice.refund?.status === "non-refund" || invoice.refund === null
+    //   );
+    //   return; // skip API call
+    // }
 
     // Otherwise fetch from API
     // const response = await axios.get(
@@ -154,7 +154,8 @@ const Invoice_refund = () => {
       setLoading(true);
   
        const response = await axios.get(
-          `/api/invoicesss/all?company_id=${companyId}`,
+          // `/api/invoicesss/all?company_id=${companyId}`,
+          `/api/invoices?company_id=${companyId}`, 
           {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -171,13 +172,15 @@ const Invoice_refund = () => {
       //       },
       //     }
       //   );
-      setInvoices(response.data);
+      setInvoices(response.data.data);
+      console.log("my invoices", response.data.data);
 
       // Separate invoices into refund and non-refund
-      const refundInvoices = response.data.filter(
+      const refundInvoices = response.data.data.filter(
         (invoice) => invoice.refund?.status === "refund"
       );
       setFilteredInvoices(refundInvoices);
+      console.log("Filtered Refund Invoices:", refundInvoices);
 
       // Check for non-refund invoices that need updating
       const nonRefundInvoices = response.data.data.filter(

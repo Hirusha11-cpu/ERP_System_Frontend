@@ -208,7 +208,7 @@ const Invoice_List_aahaas = () => {
       );
       fetchInvoices();
       setShowDeleteModal(false);
-      setSuccess("")
+      setSuccess("");
     } catch (error) {
       console.error("Error cancelling invoice:", error);
       setError(
@@ -1440,12 +1440,12 @@ const Invoice_List_aahaas = () => {
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
-         {/* {success === "" ? <div className="alert alert-danger">
+          {/* {success === "" ? <div className="alert alert-danger">
             <strong>Warning:</strong> This action cannot be undone.
           </div> :  <div className="alert alert-success">
         {success}
       </div> } */}
- <div className="alert alert-danger">
+          <div className="alert alert-danger">
             <strong>Warning:</strong> This action cannot be undone.
           </div>
 
@@ -1459,7 +1459,7 @@ const Invoice_List_aahaas = () => {
             Close
           </Button>
           <Button variant="danger" onClick={handleDeleteInvoice}>
-            {loading  ? "Requestinng Cancel..." : "Request to Cancel"}
+            {loading ? "Requestinng Cancel..." : "Request to Cancel"}
           </Button>
           {isAdmin && (
             <Button variant="danger" onClick={handleDeleteInvoiceAdmin}>

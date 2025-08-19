@@ -121,7 +121,7 @@ const Invoice_summary = () => {
 
       console.log(invoicesRes.data, "Invoices xxxxx");
       console.log(summaryRes.data, "Summary xxxxx");
-      setFilteredInvoices(invoicesRes.data);
+      setFilteredInvoices(invoicesRes.data.data);
       setSummaryData(summaryRes.data);
     } catch (err) {
       setError(err.message);

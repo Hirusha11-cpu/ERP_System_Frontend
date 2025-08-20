@@ -36,6 +36,8 @@ const Account_receivable = () => {
   const { selectedCompany } = useContext(CompanyContext);
   const [invoices, setInvoices] = useState([]);
   const [filteredInvoices, setFilteredInvoices] = useState([]);
+  const [discrepancies, setDiscrepancies] = useState([]);
+  const [summary, setSummary] = useState(null);
   const [loading, setLoading] = useState(false);
   const [isNonCredit, setIsNonCredit] = useState(false);
   const [error, setError] = useState(null);
@@ -48,7 +50,6 @@ const Account_receivable = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [paymentAmount, setPaymentAmount] = useState(0);
 
-  // Credit partners list
   const creditPartners = [
     "MMT",
     "PYT",
@@ -71,7 +72,6 @@ const Account_receivable = () => {
     setCompanyNo(companyMap[selectedCompany?.toLowerCase()] || null);
   }, [selectedCompany]);
 
-  // Fetch invoices from API
   useEffect(() => {
     if (companyNo) {
       fetchInvoices();
@@ -81,16 +81,6 @@ const Account_receivable = () => {
   const fetchInvoices = async () => {
     setLoading(true);
     try {
-      // Check if cached data exists
-      // const cachedInvoices = localStorage.getItem(`invoices_${companyNo}`);
-      // if (cachedInvoices) {
-      //   setInvoices(JSON.parse(cachedInvoices));
-      //   setFilteredInvoices(JSON.parse(cachedInvoices));
-      //   setLoading(false);
-      //   return; // skip API call
-      // }
-
-      // Fetch from API if not in cache
       const response = await axios.get(
         `/api/invoices?company_id=${companyNo}`,
         {
@@ -100,12 +90,6 @@ const Account_receivable = () => {
 
       setInvoices(response.data.data);
       setFilteredInvoices(response.data.data);
-
-      // Store in cache
-      // localStorage.setItem(
-      //   `invoices_${companyNo}`,
-      //   JSON.stringify(response.data)
-      // );
     } catch (err) {
       setError("Failed to fetch invoices");
       console.error(err);
@@ -116,19 +100,12 @@ const Account_receivable = () => {
 
   useEffect(() => {
     let result = [...invoices];
-    console.log(result);
 
     if (activeTab === "credit") {
       result = result.filter((invoice) =>
         creditPartners.includes(invoice.customer?.name)
       );
       setIsNonCredit(false);
-      console.log(
-        "Credit invoices:",
-        result.filter((invoice) => {
-          console.log(invoice);
-        })
-      );
     } else if (activeTab === "non-credit") {
       result = result.filter(
         (invoice) => !creditPartners.includes(invoice.customer?.name)
@@ -155,9 +132,10 @@ const Account_receivable = () => {
     try {
       const formData = new FormData();
       formData.append("file", file);
+      formData.append("company_id", companyNo);
 
-      await axios.post(
-        `/api/invoices/import?company_id=${companyNo}`,
+      const response = await axios.post(
+        `/api/invoices/import-compare`,
         formData,
         {
           headers: {
@@ -167,11 +145,14 @@ const Account_receivable = () => {
         }
       );
 
+      setDiscrepancies(response.data.discrepancies);
+      setSummary(response.data.summary);
       setShowUploadModal(false);
       setFile(null);
+      setActiveTab("discrepancies");
       fetchInvoices();
     } catch (err) {
-      setError("Failed to upload file");
+      setError("Failed to upload and compare file");
       console.error(err);
     } finally {
       setLoading(false);
@@ -188,8 +169,8 @@ const Account_receivable = () => {
       const newBalance =
         parseFloat(selectedInvoice.total_amount) - updatedAmountReceived;
 
-      await axios.patch(
-        `/api/invoices/${selectedInvoice.invoice_number}`,
+      await axios.put(
+        `/api/invoices/by-number/${selectedInvoice.invoice_number}`,
         {
           amount_received: updatedAmountReceived,
           balance: newBalance > 0 ? newBalance : 0,
@@ -241,12 +222,9 @@ const Account_receivable = () => {
                   >
                     <FaFileImport /> Upload
                   </Button>
-                  {/* <Button variant="outline-success" size="sm" className="me-2">
-                    <FaFileExport /> Export
-                  </Button>
                   <Button variant="primary" size="sm" onClick={fetchInvoices}>
                     <FaSyncAlt /> Refresh
-                  </Button> */}
+                  </Button>
                 </>
               ) : null}
             </div>
@@ -269,6 +247,9 @@ const Account_receivable = () => {
                   <Nav.Item>
                     <Nav.Link eventKey="non-credit">Non-Credit</Nav.Link>
                   </Nav.Item>
+                  <Nav.Item>
+                    <Nav.Link eventKey="discrepancies">Discrepancies</Nav.Link>
+                  </Nav.Item>
                 </Nav>
 
                 <div className="mt-3 mb-3 d-flex">
@@ -284,11 +265,11 @@ const Account_receivable = () => {
                 {loading ? (
                   <div className="text-center py-5">
                     <Spinner animation="border" />
-                    <p>Loading invoices...</p>
+                    <p>Loading...</p>
                   </div>
                 ) : (
                   <Tab.Content>
-                    <Tab.Pane eventKey={activeTab}>
+                    <Tab.Pane eventKey="all">
                       <Table striped bordered hover responsive>
                         <thead>
                           <tr>
@@ -296,12 +277,12 @@ const Account_receivable = () => {
                             <th>Date</th>
                             <th>Customer</th>
                             <th>Booking #</th>
+                            <th>Customer PO #</th>
                             <th>Total Amount</th>
                             <th>Received</th>
                             <th>Balance</th>
                             <th>Status</th>
                             <th>Type</th>
-                            {activeTab !== "all" && <th>Actions</th>}
                           </tr>
                         </thead>
                         <tbody>
@@ -316,6 +297,7 @@ const Account_receivable = () => {
                                 </td>
                                 <td>{invoice.customer?.name || "N/A"}</td>
                                 <td>{invoice.booking_no}</td>
+                                <td>{invoice.customer_po_number || "N/A"}</td>
                                 <td>
                                   {invoice.currency}{" "}
                                   {parseFloat(invoice.total_amount).toFixed(2)}
@@ -352,27 +334,217 @@ const Account_receivable = () => {
                                       : "Non-Credit"}
                                   </Badge>
                                 </td>
-                                {activeTab !== "all" && (
-                                  <td>
-                                    <Button
-                                      variant="outline-primary"
-                                      size="sm"
-                                      className="me-2"
-                                      onClick={() => {
-                                        setSelectedInvoice(invoice);
-                                        setShowEditModal(true);
-                                      }}
-                                    >
-                                      <FaEdit /> Update
-                                    </Button>
-                                  </td>
-                                )}
                               </tr>
                             ))
                           ) : (
                             <tr>
                               <td colSpan="10" className="text-center">
                                 No invoices found
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </Table>
+                    </Tab.Pane>
+                    <Tab.Pane eventKey="credit">
+                      <Table striped bordered hover responsive>
+                        <thead>
+                          <tr>
+                            <th>Invoice #</th>
+                            <th>Date</th>
+                            <th>Customer</th>
+                            <th>Booking #</th>
+                            <th>Customer PO #</th>
+                            <th>Total Amount</th>
+                            <th>Received</th>
+                            <th>Balance</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredInvoices.length > 0 ? (
+                            filteredInvoices.map((invoice) => (
+                              <tr key={invoice.id}>
+                                <td>{invoice.invoice_number}</td>
+                                <td>
+                                  {new Date(
+                                    invoice.issue_date
+                                  ).toLocaleDateString()}
+                                </td>
+                                <td>{invoice.customer?.name || "N/A"}</td>
+                                <td>{invoice.booking_no}</td>
+                                <td>{invoice.customer_po_number || "N/A"}</td>
+                                <td>
+                                  {invoice.currency}{" "}
+                                  {parseFloat(invoice.total_amount).toFixed(2)}
+                                </td>
+                                <td>
+                                  {invoice.currency}{" "}
+                                  {parseFloat(invoice.amount_received).toFixed(
+                                    2
+                                  )}
+                                </td>
+                                <td>
+                                  {invoice.currency}{" "}
+                                  {parseFloat(invoice.balance).toFixed(2)}
+                                </td>
+                                <td>
+                                  <Badge bg={getStatusBadge(invoice.status)}>
+                                    {invoice.status}
+                                  </Badge>
+                                </td>
+                                <td>
+                                  <Button
+                                    variant="outline-primary"
+                                    size="sm"
+                                    className="me-2"
+                                    onClick={() => {
+                                      setSelectedInvoice(invoice);
+                                      setShowEditModal(true);
+                                    }}
+                                  >
+                                    <FaEdit /> Update
+                                  </Button>
+                                </td>
+                              </tr>
+                            ))
+                          ) : (
+                            <tr>
+                              <td colSpan="10" className="text-center">
+                                No credit invoices found
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </Table>
+                    </Tab.Pane>
+                    <Tab.Pane eventKey="non-credit">
+                      <Table striped bordered hover responsive>
+                        <thead>
+                          <tr>
+                            <th>Invoice #</th>
+                            <th>Date</th>
+                            <th>Customer</th>
+                            <th>Booking #</th>
+                            <th>Customer PO #</th>
+                            <th>Total Amount</th>
+                            <th>Received</th>
+                            <th>Balance</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {filteredInvoices.length > 0 ? (
+                            filteredInvoices.map((invoice) => (
+                              <tr key={invoice.id}>
+                                <td>{invoice.invoice_number}</td>
+                                <td>
+                                  {new Date(
+                                    invoice.issue_date
+                                  ).toLocaleDateString()}
+                                </td>
+                                <td>{invoice.customer?.name || "N/A"}</td>
+                                <td>{invoice.booking_no}</td>
+                                <td>{invoice.customer_po_number || "N/A"}</td>
+                                <td>
+                                  {invoice.currency}{" "}
+                                  {parseFloat(invoice.total_amount).toFixed(2)}
+                                </td>
+                                <td>
+                                  {invoice.currency}{" "}
+                                  {parseFloat(invoice.amount_received).toFixed(
+                                    2
+                                  )}
+                                </td>
+                                <td>
+                                  {invoice.currency}{" "}
+                                  {parseFloat(invoice.balance).toFixed(2)}
+                                </td>
+                                <td>
+                                  <Badge bg={getStatusBadge(invoice.status)}>
+                                    {invoice.status}
+                                  </Badge>
+                                </td>
+                                <td>
+                                  <Button
+                                    variant="outline-primary"
+                                    size="sm"
+                                    className="me-2"
+                                    onClick={() => {
+                                      setSelectedInvoice(invoice);
+                                      setShowEditModal(true);
+                                    }}
+                                  >
+                                    <FaEdit /> Update
+                                  </Button>
+                                </td>
+                              </tr>
+                            ))
+                          ) : (
+                            <tr>
+                              <td colSpan="10" className="text-center">
+                                No non-credit invoices found
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </Table>
+                    </Tab.Pane>
+                    <Tab.Pane eventKey="discrepancies">
+                      {summary && (
+                        <Card className="mb-3">
+                          <Card.Header>Summary</Card.Header>
+                          <Card.Body>
+                            <Row>
+                              <Col>
+                                <p><strong>Total Customers:</strong> {summary.total_customers}</p>
+                                <p><strong>Total Discrepancies:</strong> {summary.total_discrepancies}</p>
+                                <p><strong>Total OS Amount Paid:</strong> USD {summary.total_os_amount_paid.toFixed(2)}</p>
+                                <p><strong>Total Invoice Balance:</strong> USD {summary.total_invoice_balance.toFixed(2)}</p>
+                              </Col>
+                            </Row>
+                          </Card.Body>
+                        </Card>
+                      )}
+                      <Table striped bordered hover responsive>
+                        <thead>
+                          <tr>
+                            <th>Customer</th>
+                            <th>Invoice Balance (USD)</th>
+                            <th>OS Amount Paid (USD)</th>
+                            <th>Difference (USD)</th>
+                            <th>Details</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {discrepancies.length > 0 ? (
+                            discrepancies.map((discrepancy, index) => (
+                              <tr key={index}>
+                                <td>{discrepancy.customer_name}</td>
+                                <td>{discrepancy.invoice_balance.toFixed(2)}</td>
+                                <td>{discrepancy.os_amount_paid.toFixed(2)}</td>
+                                <td>{discrepancy.difference.toFixed(2)}</td>
+                                <td>
+                                  <Button
+                                    variant="outline-info"
+                                    size="sm"
+                                    onClick={() => {
+                                      // Could open a modal with detailed invoice lists
+                                      console.log('OS Invoices:', discrepancy.os_invoices);
+                                      console.log('DB Invoices:', discrepancy.db_invoices);
+                                    }}
+                                  >
+                                    <FaEye /> View Details
+                                  </Button>
+                                </td>
+                              </tr>
+                            ))
+                          ) : (
+                            <tr>
+                              <td colSpan="5" className="text-center">
+                                No discrepancies found
                               </td>
                             </tr>
                           )}
@@ -387,10 +559,9 @@ const Account_receivable = () => {
         </Card.Body>
       </Card>
 
-      {/* Upload Modal */}
       <Modal show={showUploadModal} onHide={() => setShowUploadModal(false)}>
         <Modal.Header closeButton>
-          <Modal.Title>Upload Invoices</Modal.Title>
+          <Modal.Title>Upload OS-Format Excel</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           <Form.Group>
@@ -401,7 +572,7 @@ const Account_receivable = () => {
               onChange={(e) => setFile(e.target.files[0])}
             />
             <Form.Text className="text-muted">
-              Only Excel files are accepted for non-credit invoices
+              Upload an Excel file in OS format (Date, Invoice #, Customer PO #, Customer Name, Amount (USD), Comment, Promised Date, Amount Paid, Final Due Amount in USD, Remark)
             </Form.Text>
           </Form.Group>
         </Modal.Body>
@@ -414,12 +585,11 @@ const Account_receivable = () => {
             onClick={handleUpload}
             disabled={!file || loading}
           >
-            {loading ? <Spinner size="sm" /> : "Upload"}
+            {loading ? <Spinner size="sm" /> : "Upload and Compare"}
           </Button>
         </Modal.Footer>
       </Modal>
 
-      {/* Edit/Update Modal */}
       <Modal
         show={showEditModal}
         onHide={() => setShowEditModal(false)}
@@ -443,6 +613,10 @@ const Account_receivable = () => {
                     <tr>
                       <th>Booking #</th>
                       <td>{selectedInvoice.booking_no}</td>
+                    </tr>
+                    <tr>
+                      <th>Customer PO #</th>
+                      <td>{selectedInvoice.customer_po_number || "N/A"}</td>
                     </tr>
                     <tr>
                       <th>Total Amount</th>

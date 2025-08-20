@@ -31,28 +31,51 @@ import {
   FaChevronUp,
   FaSearch,
   FaFilter,
+  FaCreditCard,
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { CompanyContext } from "../../../../contentApi/CompanyProvider";
-import Invoice_sharmila_modal from "./models/Invoice_sharmila_modal";
-import Invoice_appleholidays_modal from "./models/Invoice_appleholidays_modal";
-import Invoice_aahaas_modal from "./models/Invoice_aahaas_modal";
+import { useUser } from "../../../../contentApi/UserProvider";
+import { PDFDownloadLink } from "@react-pdf/renderer";
+import { InvoicePDF } from "../upload_invoice/InvoicePDF";
 
 const Invoice_list = () => {
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingDelete, setLoadingDelete] = useState(true);
+  const [error, setError] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [showPreviewModalAahaas, setShowPreviewModalAahaas] = useState(false);
+  const [showPreviewModalAppleholidays, setShowPreviewModalAppleholidays] =
+    useState(false);
+  const [showPreviewModalShirmila, setShowPreviewModalShirmila] =
+    useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [currentInvoice, setCurrentInvoice] = useState(null);
   const [invoiceToDelete, setInvoiceToDelete] = useState(null);
+  const [companyNo, setCompanyNo] = useState(null);
+  const [success, setSuccess] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
   const [filterStatus, setFilterStatus] = useState("all");
   const { selectedCompany } = useContext(CompanyContext);
-  const [companyNo, setCompanyNo] = useState(null);
-
+  const [filterCreditType, setFilterCreditType] = useState("all");
+  const [dateFilter, setDateFilter] = useState({
+    startDate: "",
+    endDate: "",
+  });
   const navigate = useNavigate();
+  const token =
+    localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+  const {
+    user,
+    company,
+    role,
+    loading: userLoading,
+    error: userError,
+  } = useUser();
 
   useEffect(() => {
     fetchInvoices();
@@ -64,19 +87,45 @@ const Invoice_list = () => {
       aahaas: 3,
       shirmila: 1,
     };
-
     setCompanyNo(companyMap[selectedCompany?.toLowerCase()] || null);
   }, [selectedCompany]);
 
   const fetchInvoices = async () => {
     try {
       setLoading(true);
+      // console.log(refreshUser);
+      if (user) {
+        console.log(user.role.name);
+        setIsAdmin(user.role.name === "admin");
+      }
+
+      const cacheKey = `invoices_company_${companyNo}`;
+      const cacheExpiryKey = `${cacheKey}_expiry`;
+
+      const cachedData = localStorage.getItem(cacheKey);
+      const cacheExpiry = localStorage.getItem(cacheExpiryKey);
+
+      // If we have cached data and it's not expired
+      if (cachedData && cacheExpiry && Date.now() < Number(cacheExpiry)) {
+        console.log("Loaded invoices from cache");
+        setInvoices(JSON.parse(cachedData));
+        setLoading(false);
+        return;
+      }
+
+      // Otherwise, fetch from API
       const response = await axios.get("/api/invoices", {
-        params: {
-          company_id: companyNo,
-        },
+        params: { company_id: companyNo },
+        headers: { Authorization: `Bearer ${token}` },
       });
-      setInvoices(response.data.data || []);
+
+      const invoicesData = response.data.data || [];
+
+      // Save to cache
+      localStorage.setItem(cacheKey, JSON.stringify(invoicesData));
+      localStorage.setItem(cacheExpiryKey, Date.now() + 10 * 60 * 1000); // 10 minutes expiry
+
+      setInvoices(invoicesData);
     } catch (error) {
       console.error("Error fetching invoices:", error);
     } finally {
@@ -91,38 +140,76 @@ const Invoice_list = () => {
         .toLowerCase()
         .includes(searchTerm.toLowerCase());
 
-    const matchesStatus =
-      filterStatus === "all" || invoice.status === filterStatus;
+    // const matchesStatus =
+    //   filterStatus === "all" || invoice.status === filterStatus;
+    const matchesCreditType =
+      filterCreditType === "all" ||
+      (filterCreditType === "credit" && invoice.payment_type === "credit") ||
+      (filterCreditType === "non-credit" && invoice.payment_type !== "credit");
 
-    return matchesSearch && matchesStatus;
+    // Date filtering logic
+    const matchesDate =
+      (!dateFilter.startDate ||
+        new Date(invoice.issue_date) >= new Date(dateFilter.startDate)) &&
+      (!dateFilter.endDate ||
+        new Date(invoice.issue_date) <= new Date(dateFilter.endDate));
+
+    return matchesSearch && matchesCreditType && matchesDate;
   });
 
   const handleViewInvoice = (invoice) => {
     setCurrentInvoice(invoice);
-    setShowPreviewModal(true);
+    if (companyNo === 2) {
+      setShowPreviewModalAppleholidays(true);
+    } else if (companyNo === 3) {
+      setShowPreviewModalAahaas(true);
+    } else if (companyNo === 1) {
+      setShowPreviewModalShirmila(true);
+    } else {
+      setShowPreviewModalAahaas(true);
+    }
+    // setShowPreviewModalAppleholidays(true);
+    // setShowPreviewModalShirmila(true);
   };
 
   const handleEditInvoice = (invoice) => {
-    console.log("Editing invoice:", invoice);
-
     setCurrentInvoice(invoice);
     setShowEditModal(true);
   };
 
-  const handlePrintInvoice = async (invoiceId) => {
-    try {
-      const response = await axios.get(`/api/invoices/${invoiceId}/print`, {
-        responseType: "blob",
-      });
-      const fileURL = window.URL.createObjectURL(new Blob([response.data]));
-      const fileLink = document.createElement("a");
-      fileLink.href = fileURL;
-      fileLink.setAttribute("download", `invoice_${invoiceId}.pdf`);
-      document.body.appendChild(fileLink);
-      fileLink.click();
-    } catch (error) {
-      console.error("Error printing invoice:", error);
-    }
+  const handlePrintInvoice = (invoice) => {
+    // Set the current invoice to generate the PDF for
+    setCurrentInvoice(invoice);
+
+    // Create a download link using the PDFDownloadLink component
+    const pdfLink = (
+      <PDFDownloadLink
+        document={<InvoicePDF invoice={invoice} />}
+        fileName={`invoice_${invoice.invoice_number}.pdf`}
+      >
+        {({ blob, url, loading, error }) =>
+          loading ? "Loading document..." : "Download now!"
+        }
+      </PDFDownloadLink>
+    );
+
+    // Programmatically trigger the download
+    // Since we can't directly access the download link in this way,
+    // we'll need to create a temporary button and click it
+    const tempDiv = document.createElement("div");
+    document.body.appendChild(tempDiv);
+
+    // Render the PDFDownloadLink to our temp div
+    ReactDOM.render(pdfLink, tempDiv);
+
+    // Find the anchor tag and click it
+    setTimeout(() => {
+      const downloadLink = tempDiv.querySelector("a");
+      if (downloadLink) {
+        downloadLink.click();
+      }
+      document.body.removeChild(tempDiv);
+    }, 100);
   };
 
   const confirmDelete = (invoice) => {
@@ -130,89 +217,119 @@ const Invoice_list = () => {
     setShowDeleteModal(true);
   };
 
-  const handleDeleteInvoice = async () => {
+  const handleDeleteInvoiceAdmin = async () => {
     try {
-      await axios.delete(`/api/invoices/${invoiceToDelete.id}`);
+      setIsLoading(true);
+
+      await axios.delete(`/api/invoices/${invoiceToDelete.id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      setSuccess(
+        `Invoice ${invoiceToDelete.invoice_number} cancelled successfully.`
+      );
       fetchInvoices();
       setShowDeleteModal(false);
+      setSuccess("");
     } catch (error) {
-      console.error("Error deleting invoice:", error);
+      console.error("Error cancelling invoice:", error);
+      setError(
+        error.response?.data?.error ||
+          "Failed to cancel invoice. Please try again."
+      );
+    } finally {
+      setIsLoading(false);
     }
   };
-
-  // const handleUpdateInvoice = async (formData) => {
+  // const handleDeleteInvoice = async () => {
   //   try {
-  //     // Convert items from form data to array format
-  //     const items = [];
-  //     for (let key in formData) {
-  //       if (key.startsWith("items[")) {
-  //         const matches = key.match(/items\[(\d+)\]\[(\w+)\]/);
-  //         if (matches) {
-  //           const index = matches[1];
-  //           const field = matches[2];
-  //           if (!items[index])
-  //             items[index] = { id: currentInvoice.items?.[index]?.id };
-  //           items[index][field] =
-  //             field === "quantity" || field === "price" || field === "discount"
-  //               ? parseFloat(formData[key])
-  //               : formData[key];
-  //         }
+  //     setIsLoading(true);
+
+  //     const emailResponse = await axios.post(
+  //       "/api/send-email",
+  //       {
+  //         to: "nightvine121@gmail.com",
+  //         subject: `Invoice Cancellation: ${invoiceToDelete.invoice_number}`,
+  //         invoice_number: invoiceToDelete.invoice_number,
+  //         customer_name: invoiceToDelete.customer?.name || "N/A",
+  //         currency: invoiceToDelete.currency,
+  //         amount: invoiceToDelete.total_amount,
+  //         date: formatDate(invoiceToDelete.issue_date),
+  //       },
+  //       {
+  //         headers: {
+  //           Authorization: `Bearer ${token}`,
+  //         },
   //       }
-  //     }
-
-  //     // Convert additional charges if present
-  //     const additionalCharges = [];
-  //     for (let key in formData) {
-  //       if (key.startsWith("additional_charges[")) {
-  //         const matches = key.match(/additional_charges\[(\d+)\]\[(\w+)\]/);
-  //         if (matches) {
-  //           const index = matches[1];
-  //           const field = matches[2];
-  //           if (!additionalCharges[index])
-  //             additionalCharges[index] = {
-  //               id: currentInvoice.additional_charges?.[index]?.id,
-  //             };
-  //           additionalCharges[index][field] =
-  //             field === "amount" ? parseFloat(formData[key]) : formData[key];
-  //         }
-  //       }
-  //     }
-
-  //     // Prepare the data for API
-  //     const updatedData = {
-  //       customer_id: currentInvoice.customer?.id,
-  //       country_code: formData.country_code || currentInvoice.country_code,
-  //       currency: formData.currency,
-  //       exchange_rate: parseFloat(formData.exchange_rate) || 1.0,
-  //       tax_treatment: formData.tax_treatment || "inclusive",
-  //       payment_type: formData.payment_type,
-  //       collection_date: formData.collection_date || null,
-  //       payment_instructions: formData.payment_instructions,
-  //       staff: formData.staff,
-  //       remarks: formData.remarks,
-  //       // payment_methods: formData.payment_methods
-  //       //   ? formData.payment_methods.split(",")
-  //       //   : currentInvoice.payment_methods,
-  //       items: items.filter((item) => item),
-  //       additional_charges: additionalCharges.filter((charge) => charge),
-  //       amount_received: parseFloat(formData.amount_received) || 0,
-  //     };
-
-  //     await axios.put(
-  //       `/api/invoices/by-number/${currentInvoice.invoice_number}`,
-  //       updatedData
   //     );
+
+  //     if (emailResponse.status === 200) {
+  //       // Only delete if email sent successfully
+  //       await axios.delete(`/api/invoices/${invoiceToDelete.id}`, {
+  //         headers: {
+  //           Authorization: `Bearer ${token}`,
+  //         },
+  //       });
+  //     }
+
   //     fetchInvoices();
-  //     setShowEditModal(false);
+  //     setShowDeleteModal(false);
+  //     setSuccess(
+  //       `Invoice ${invoiceToDelete.invoice_number} cancelled successfully and notification sent.`
+  //     );
   //   } catch (error) {
-  //     console.error("Error updating invoice:", error);
+  //     console.error("Error cancelling invoice:", error);
+  //     setError(
+  //       error.response?.data?.error ||
+  //         "Failed to cancel invoice. Please try again."
+  //     );
+  //   } finally {
+  //     setIsLoading(false);
   //   }
   // };
 
-  // In your handleUpdateInvoice function, modify to:
+  const handleDeleteInvoice = async () => {
+    try {
+      setIsLoading(true);
+
+      const emailResponse = await axios.post(
+        "/api/send-email",
+        {
+          to: "nightvine121@gmail.com", // Or get boss's email dynamically
+          subject: `Invoice Cancellation Request: ${invoiceToDelete.invoice_number}`,
+          invoice_number: invoiceToDelete.invoice_number,
+          customer_name: invoiceToDelete.customer?.name || "N/A",
+          currency: invoiceToDelete.currency,
+          amount: invoiceToDelete.total_amount,
+          date: formatDate(invoiceToDelete.issue_date),
+          invoice_id: invoiceToDelete.id, // Add this
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      setShowDeleteModal(false);
+      setSuccess(
+        `Cancellation request for invoice ${invoiceToDelete.invoice_number} has been sent for approval.`
+      );
+    } catch (error) {
+      console.error("Error requesting invoice cancellation:", error);
+      setError(
+        error.response?.data?.error ||
+          "Failed to request invoice cancellation. Please try again."
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
   const handleUpdateInvoice = async (formData) => {
     try {
-      // Prepare items array
+      // Convert items from form data to array format
       const items = [];
       for (let key in formData) {
         if (key.startsWith("items[")) {
@@ -220,17 +337,8 @@ const Invoice_list = () => {
           if (matches) {
             const index = matches[1];
             const field = matches[2];
-            if (!items[index]) {
-              items[index] = {
-                id: currentInvoice.items?.[index]?.id || null,
-                code: "",
-                type: "",
-                description: "",
-                quantity: 0,
-                price: 0,
-                discount: 0,
-              };
-            }
+            if (!items[index])
+              items[index] = { id: currentInvoice.items?.[index]?.id };
             items[index][field] =
               field === "quantity" || field === "price" || field === "discount"
                 ? parseFloat(formData[key])
@@ -239,7 +347,7 @@ const Invoice_list = () => {
         }
       }
 
-      // Prepare additional charges array
+      // Convert additional charges if present
       const additionalCharges = [];
       for (let key in formData) {
         if (key.startsWith("additional_charges[")) {
@@ -247,25 +355,17 @@ const Invoice_list = () => {
           if (matches) {
             const index = matches[1];
             const field = matches[2];
-            if (!additionalCharges[index]) {
+            if (!additionalCharges[index])
               additionalCharges[index] = {
-                id: currentInvoice.additional_charges?.[index]?.id || null,
-                description: "",
-                amount: 0,
-                taxable: false,
+                id: currentInvoice.additional_charges?.[index]?.id,
               };
-            }
             additionalCharges[index][field] =
-              field === "amount"
-                ? parseFloat(formData[key])
-                : field === "taxable"
-                ? formData[key] === "1"
-                : formData[key];
+              field === "amount" ? parseFloat(formData[key]) : formData[key];
           }
         }
       }
 
-      // Prepare the complete data for API
+      // Prepare the data for API
       const updatedData = {
         customer_id: currentInvoice.customer?.id,
         country_code: formData.country_code || currentInvoice.country_code,
@@ -273,86 +373,32 @@ const Invoice_list = () => {
         exchange_rate: parseFloat(formData.exchange_rate) || 1.0,
         tax_treatment: formData.tax_treatment || "inclusive",
         payment_type: formData.payment_type,
-        issue_date: formData.issue_date,
-        due_date: formData.due_date,
         collection_date: formData.collection_date || null,
         payment_instructions: formData.payment_instructions,
         staff: formData.staff,
         remarks: formData.remarks,
-        payment_methods: currentInvoice.payment_methods, // or handle from form if needed
+        payment_methods: formData.payment_methods
+          ? formData.payment_methods.split(",")
+          : currentInvoice.payment_methods,
         items: items.filter((item) => item),
         additional_charges: additionalCharges.filter((charge) => charge),
         amount_received: parseFloat(formData.amount_received) || 0,
-        account_id: currentInvoice.account_id,
-        booking_no: currentInvoice.booking_no,
       };
 
-      const response = await axios.put(
+      await axios.put(
         `/api/invoices/by-number/${currentInvoice.invoice_number}`,
         updatedData,
         {
           headers: {
-            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
           },
         }
       );
-
       fetchInvoices();
       setShowEditModal(false);
     } catch (error) {
       console.error("Error updating invoice:", error);
-      // Add error handling UI here
     }
-  };
-
-  // Add these helper functions for dynamic fields
-  const handleAddItem = () => {
-    setCurrentInvoice((prev) => ({
-      ...prev,
-      items: [
-        ...(prev.items || []),
-        {
-          id: null,
-          code: "",
-          type: "",
-          description: "",
-          quantity: 1,
-          price: 0,
-          discount: 0,
-        },
-      ],
-    }));
-  };
-
-  const handleRemoveItem = (index) => {
-    setCurrentInvoice((prev) => {
-      const newItems = [...prev.items];
-      newItems.splice(index, 1);
-      return { ...prev, items: newItems };
-    });
-  };
-
-  const handleAddCharge = () => {
-    setCurrentInvoice((prev) => ({
-      ...prev,
-      additional_charges: [
-        ...(prev.additional_charges || []),
-        {
-          id: null,
-          description: "",
-          amount: 0,
-          taxable: false,
-        },
-      ],
-    }));
-  };
-
-  const handleRemoveCharge = (index) => {
-    setCurrentInvoice((prev) => {
-      const newCharges = [...prev.additional_charges];
-      newCharges.splice(index, 1);
-      return { ...prev, additional_charges: newCharges };
-    });
   };
 
   const getStatusBadge = (status) => {
@@ -392,6 +438,15 @@ const Invoice_list = () => {
 
   const calculateItemTotal = (item) => {
     return item.price * (1 - item.discount / 100) * item.quantity;
+  };
+
+  const handleCancelInvoice = async (invoice) => {
+    try {
+      setInvoiceToDelete(invoice);
+      setShowDeleteModal(true);
+    } catch (error) {
+      console.error("Error preparing to cancel invoice:", error);
+    }
   };
 
   const ActionButton = ({
@@ -446,7 +501,35 @@ const Invoice_list = () => {
               />
             </div>
 
+            {/* Add this to your existing filter section */}
             <div className="d-flex align-items-center me-3">
+              <span className="me-2">
+                <FaCalendarAlt />
+              </span>
+              <Form.Control
+                type="date"
+                placeholder="From"
+                name="startDate"
+                value={dateFilter.startDate}
+                onChange={(e) =>
+                  setDateFilter({ ...dateFilter, startDate: e.target.value })
+                }
+                style={{ width: "150px", marginRight: "10px" }}
+              />
+              <span className="me-2">to</span>
+              <Form.Control
+                type="date"
+                placeholder="To"
+                name="endDate"
+                value={dateFilter.endDate}
+                onChange={(e) =>
+                  setDateFilter({ ...dateFilter, endDate: e.target.value })
+                }
+                style={{ width: "150px" }}
+              />
+            </div>
+
+            {/* <div className="d-flex align-items-center me-3">
               <span className="me-2">
                 <FaFilter />
               </span>
@@ -460,6 +543,21 @@ const Invoice_list = () => {
                 <option value="pending">Pending</option>
                 <option value="cancelled">Cancelled</option>
               </Form.Select>
+            </div> */}
+
+            <div className="d-flex align-items-center me-3">
+              <span className="me-2">
+                <FaCreditCard />
+              </span>
+              <Form.Select
+                value={filterCreditType}
+                onChange={(e) => setFilterCreditType(e.target.value)}
+                style={{ width: "150px" }}
+              >
+                <option value="all">All Types</option>
+                <option value="credit">Credit</option>
+                <option value="non-credit">Non-Credit</option>
+              </Form.Select>
             </div>
 
             <Button
@@ -469,6 +567,16 @@ const Invoice_list = () => {
             >
               Refresh
             </Button>
+            {dateFilter.startDate || dateFilter.endDate ? (
+              <Button
+                variant="outline-secondary"
+                onClick={() => setDateFilter({ startDate: "", endDate: "" })}
+                className="ms-2"
+                size="sm"
+              >
+                Clear Dates
+              </Button>
+            ) : null}
           </div>
 
           {loading ? (
@@ -487,6 +595,7 @@ const Invoice_list = () => {
                     <th>Customer</th>
                     <th>Date</th>
                     <th>Total</th>
+                    <th>Credit/Non-Credit</th>
                     <th>Status</th>
                     <th className="text-end">Actions</th>
                   </tr>
@@ -540,7 +649,8 @@ const Invoice_list = () => {
                             {invoice.currency} {invoice.total_amount}
                           </div>
                         </td>
-                        <td>{getStatusBadge(invoice.status)}</td>
+                        <td>{invoice?.payment_type}</td>
+                        <td>{invoice.status}</td>
                         <td className="text-end">
                           <div className="d-flex justify-content-end">
                             <ActionButton
@@ -565,7 +675,7 @@ const Invoice_list = () => {
                               icon={<FaTrash />}
                               label="Cancel"
                               variant="danger"
-                              onClick={() => confirmDelete(invoice)}
+                              onClick={() => handleCancelInvoice(invoice)}
                               disabled={invoice.status === "cancelled"}
                             />
                           </div>
@@ -619,41 +729,10 @@ const Invoice_list = () => {
         )}
       </Card>
 
-      {/* Invoice Preview Modal */}
-
-      {companyNo === 1 && (
-        <Invoice_sharmila_modal
-          show={showPreviewModal}
-          onHide={() => setShowPreviewModal(false)}
-          invoice={currentInvoice}
-          formatDate={formatDate}
-          calculateItemTotal={calculateItemTotal}
-          handlePrintInvoice={handlePrintInvoice}
-        />
-      )}
-      {companyNo === 2 && (
-        <Invoice_appleholidays_modal
-              show={showPreviewModal}
-          onHide={() => setShowPreviewModal(false)}
-          invoice={currentInvoice}
-          formatDate={formatDate}
-          calculateItemTotal={calculateItemTotal}
-          handlePrintInvoice={handlePrintInvoice}
-        />
-      )}
-      {companyNo === 3 && (
-        <Invoice_aahaas_modal
-          show={showPreviewModal}
-          onHide={() => setShowPreviewModal(false)}
-          invoice={currentInvoice}
-          formatDate={formatDate}
-          calculateItemTotal={calculateItemTotal}
-          handlePrintInvoice={handlePrintInvoice}
-        />
-      )}
-      {/* <Modal
-        show={showPreviewModal}
-        onHide={() => setShowPreviewModal(false)}
+      {/* Invoice Preview Modal Aahaas*/}
+      <Modal
+        show={showPreviewModalAahaas}
+        onHide={() => setShowPreviewModalAahaas(false)}
         size="lg"
         fullscreen="lg-down"
       >
@@ -666,16 +745,36 @@ const Invoice_list = () => {
         <Modal.Body className="p-0">
           {currentInvoice && (
             <div className="invoice-preview p-4">
+              {/* Company Header */}
               <div className="text-center mb-3">
-                <h4 className="mb-1 fw-bold">Sharmila Tours & Travels</h4>
-                <div className="mb-1">
-                  No: 148, Aluthmawatha Road, Colombo - 15, Sri Lanka
+                <div className="company-header text-center mb-4">
+                  <img
+                    src="https://s3-aahaas-prod-assets.s3.ap-southeast-1.amazonaws.com/images/aahaas.png"
+                    alt="Aahaas Logo"
+                    className="receipt-logo"
+                    style={{ width: "200px" }}
+                  />
+                  <div>
+                    One Galle Face Tower, 2208, 1A Centre Road, Colombo 002
+                  </div>
+                  <div>Tel: 011 2352 400 | Web: www.appleholidaysds.com</div>
                 </div>
-                <div className="mb-1">Tel:011 23 52 400 | 011 23 45 800</div>
-            
+
+                {/* <div className="notice-box p-2 mb-3 text-start bg-warning bg-opacity-10 border-start border-warning border-4">
+                  <strong>STRICTLY TO BE NOTED:</strong> Finance bill 2017
+                  proposes to insert Section 269ST in the Income tax Act that
+                  restricts receiving an amount of Rs 2,00,000/- or more.
+                  Sharmila Travels will not accept any cash deposit effective
+                  1st April 2017. If trade partners make cash deposit, then the
+                  amount will be ignored and use other payment modes such as
+                  Cheque deposit, RTGS & NEFT for all your future bookings with
+                  Sharmila Travels.
+                </div> */}
+
                 <h5 className="fw-bold mb-3">INVOICE </h5>
               </div>
 
+              {/* Invoice Meta and Customer Info */}
               <div className="d-flex justify-content-between mb-4">
                 <div>
                   <div>
@@ -683,6 +782,7 @@ const Invoice_list = () => {
                     {currentInvoice.customer?.name || "N/A"}
                   </div>
                   <div>{currentInvoice.customer?.address || "N/A"}</div>
+                  {/* <div>GST NO: {currentInvoice.customer?.gst_no || "N/A"}</div> */}
                 </div>
                 <div className="text-end">
                   <div>
@@ -703,9 +803,14 @@ const Invoice_list = () => {
                     <strong>Printed By</strong>{" "}
                     {currentInvoice.printed_by || "N/A"}
                   </div>
+                  <div>
+                    <strong>Booking ID</strong>{" "}
+                    {currentInvoice.booking_id || "N/A"}
+                  </div>
                 </div>
               </div>
 
+              {/* Items Table */}
               <table className="table table-bordered mb-3">
                 <thead>
                   <tr style={{ backgroundColor: "#343a40", color: "white" }}>
@@ -734,9 +839,10 @@ const Invoice_list = () => {
                 </tbody>
               </table>
 
+              {/* Payment Instructions */}
               <div className="mb-3">{currentInvoice.payment_instructions}</div>
 
-          
+              {/* Totals */}
               <div className="row mb-4">
                 <div className="col-md-6 offset-md-6">
                   <table style={{ width: "100%" }}>
@@ -780,9 +886,11 @@ const Invoice_list = () => {
                 </div>
               </div>
 
+              {/* Bottom left: Staff and Remark */}
               <div className="row">
                 <div className="col-md-6">
                   <div>
+                    {/* <strong>Staff:</strong> {currentInvoice.staff} */}
                   </div>
                   <div>
                     <strong>Remark:</strong> {currentInvoice.remarks}
@@ -795,7 +903,7 @@ const Invoice_list = () => {
         <Modal.Footer>
           <Button
             variant="secondary"
-            onClick={() => setShowPreviewModal(false)}
+            onClick={() => setShowPreviewModalAahaas(false)}
           >
             Close
           </Button>
@@ -814,7 +922,383 @@ const Invoice_list = () => {
             <FaDownload className="me-1" /> Download PDF
           </Button>
         </Modal.Footer>
-      </Modal> */}
+      </Modal>
+
+      {/* Invoice Preview Modal Appleholidays*/}
+      <Modal
+        show={showPreviewModalAppleholidays}
+        onHide={() => setShowPreviewModalAppleholidays(false)}
+        size="lg"
+        fullscreen="lg-down"
+      >
+        <Modal.Header closeButton className="bg-primary text-white">
+          <Modal.Title className="d-flex align-items-center">
+            <FaFileInvoiceDollar className="me-2" />
+            Invoice Preview - {currentInvoice?.invoice_number}
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="p-0">
+          {currentInvoice && (
+            <div className="invoice-preview p-4">
+              {/* Company Header */}
+              <div className="text-center mb-3">
+                <img
+                  src="/images/logo/appleholidays_extend.png"
+                  alt="Apple Holidays Destination Services"
+                  className="img-fluid mb-3"
+                  style={{ width: "400px" }}
+                />
+                <div>
+                  One Galle Face Tower, 2208, 1A Centre Road, Colombo 002
+                </div>
+                <div>Tel: 011 2352 400 | Web: www.appleholidaysds.com</div>
+
+                <h5 className="fw-bold mb-3 mt-3">INVOICE </h5>
+              </div>
+
+              {/* Invoice Meta and Customer Info */}
+              <div className="d-flex justify-content-between mb-4">
+                <div>
+                  <div>
+                    <strong>To:</strong>{" "}
+                    {currentInvoice.customer?.name || "N/A"}
+                  </div>
+                  <div>{currentInvoice.customer?.address || "N/A"}</div>
+                  {/* <div>GST NO: {currentInvoice.customer?.gst_no || "N/A"}</div> */}
+                </div>
+                <div className="text-end">
+                  <div>
+                    <strong>No.</strong> {currentInvoice.invoice_number}
+                  </div>
+                  <div>
+                    <strong>Date</strong>{" "}
+                    {formatDate(currentInvoice.issue_date)}
+                  </div>
+                  <div>
+                    <strong>Your Ref.</strong>{" "}
+                    {currentInvoice.your_ref || "N/A"}
+                  </div>
+                  <div>
+                    <strong>Sales ID</strong> {currentInvoice.sales_id || "N/A"}
+                  </div>
+                  <div>
+                    <strong>Printed By</strong>{" "}
+                    {currentInvoice.printed_by || "N/A"}
+                  </div>
+                  <div>
+                    <strong>Booking ID</strong>{" "}
+                    {currentInvoice.booking_id || "N/A"}
+                  </div>
+                </div>
+              </div>
+
+              {/* Items Table */}
+              <table className="table table-bordered mb-3">
+                <thead>
+                  <tr style={{ backgroundColor: "#343a40", color: "white" }}>
+                    <th>Description</th>
+                    <th style={{ textAlign: "right" }}>Unit Fare</th>
+                    <th style={{ textAlign: "right" }}>Discount</th>
+                    <th style={{ textAlign: "right" }}>Qty</th>
+                    <th style={{ textAlign: "right" }}>Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {currentInvoice.items?.map((item, index) => (
+                    <tr key={index}>
+                      <td>{item.description}</td>
+                      <td style={{ textAlign: "right" }}>
+                        {currentInvoice.currency} {item.price}
+                      </td>
+                      <td style={{ textAlign: "right" }}>{item.discount}%</td>
+                      <td style={{ textAlign: "right" }}>{item.quantity}</td>
+                      <td style={{ textAlign: "right" }}>
+                        {currentInvoice.currency}{" "}
+                        {calculateItemTotal(item).toFixed(2)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {/* Payment Instructions */}
+              <div className="mb-3">{currentInvoice.payment_instructions}</div>
+
+              {/* Totals */}
+              <div className="row mb-4">
+                <div className="col-md-6 offset-md-6">
+                  <table style={{ width: "100%" }}>
+                    <tbody>
+                      <tr>
+                        <td style={{ padding: "4px", textAlign: "right" }}>
+                          <strong>Sub Total:</strong>
+                        </td>
+                        <td style={{ padding: "4px", textAlign: "right" }}>
+                          {currentInvoice.currency} {currentInvoice.sub_total}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style={{ padding: "4px", textAlign: "right" }}>
+                          <strong>Total:</strong>
+                        </td>
+                        <td style={{ padding: "4px", textAlign: "right" }}>
+                          {currentInvoice.currency}{" "}
+                          {currentInvoice.total_amount}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style={{ padding: "4px", textAlign: "right" }}>
+                          <strong>Amount Received:</strong>
+                        </td>
+                        <td style={{ padding: "4px", textAlign: "right" }}>
+                          {currentInvoice.currency}{" "}
+                          {currentInvoice.amount_received}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style={{ padding: "4px", textAlign: "right" }}>
+                          <strong>Balance:</strong>
+                        </td>
+                        <td style={{ padding: "4px", textAlign: "right" }}>
+                          {currentInvoice.currency} {currentInvoice.balance}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Bottom left: Staff and Remark */}
+              <div className="row">
+                <div className="col-md-6">
+                  <div>
+                    {/* <strong>Staff:</strong> {currentInvoice.staff} */}
+                  </div>
+                  <div>
+                    <strong>Remark:</strong> {currentInvoice.remarks}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button
+            variant="secondary"
+            onClick={() => setShowPreviewModalAppleholidays(false)}
+          >
+            Close
+          </Button>
+          <Button
+            variant="primary"
+            onClick={() => handlePrintInvoice(currentInvoice?.id)}
+            className="d-flex align-items-center"
+          >
+            <FaPrint className="me-1" /> Print Invoice
+          </Button>
+          <Button
+            variant="success"
+            onClick={() => alert("PDF download would be implemented here")}
+            className="d-flex align-items-center"
+          >
+            <FaDownload className="me-1" /> Download PDF
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Invoice Preview Modal Shirmila*/}
+      <Modal
+        show={showPreviewModalShirmila}
+        onHide={() => setShowPreviewModalShirmila(false)}
+        size="lg"
+        fullscreen="lg-down"
+      >
+        <Modal.Header closeButton className="bg-primary text-white">
+          <Modal.Title className="d-flex align-items-center">
+            <FaFileInvoiceDollar className="me-2" />
+            Invoice Preview - {currentInvoice?.invoice_number}
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="p-0">
+          {currentInvoice && (
+            <div className="invoice-preview p-4">
+              {/* Company Header */}
+              <div className="text-center mb-3">
+                <h4 className="mb-1 fw-bold">Sharmila Tours & Travels</h4>
+                <div className="mb-1">
+                  No: 148, Aluthmawatha Road, Colombo - 15, Sri Lanka
+                </div>
+                {/* <div className="mb-1">Chinna Chokkikulam, Madurai - 625002</div> */}
+                <div className="mb-1">Tel:011 23 52 400 | 011 23 45 800</div>
+                {/* <div className="mb-1">E-mail: chennai@Sharmilatravels.com</div> */}
+                {/* <div className="mb-1">
+                        Service Tax Registration No.: ADVT544290
+                      </div> */}
+                {/* <div className="mb-3">GSTIN: 33ADVT544290TZV</div> */}
+
+                {/* <div className="notice-box p-2 mb-3 text-start bg-warning bg-opacity-10 border-start border-warning border-4">
+                        <strong>STRICTLY TO BE NOTED:</strong> Finance bill 2017
+                        proposes to insert Section 269ST in the Income tax Act that
+                        restricts receiving an amount of Rs 2,00,000/- or more.
+                        Sharmila Travels will not accept any cash deposit effective
+                        1st April 2017. If trade partners make cash deposit, then the
+                        amount will be ignored and use other payment modes such as
+                        Cheque deposit, RTGS & NEFT for all your future bookings with
+                        Sharmila Travels.
+                      </div> */}
+
+                <h5 className="fw-bold mb-3">INVOICE </h5>
+              </div>
+
+              {/* Invoice Meta and Customer Info */}
+              <div className="d-flex justify-content-between mb-4">
+                <div>
+                  <div>
+                    <strong>To:</strong>{" "}
+                    {currentInvoice.customer?.name || "N/A"}
+                  </div>
+                  <div>{currentInvoice.customer?.address || "N/A"}</div>
+                  {/* <div>GST NO: {currentInvoice.customer?.gst_no || "N/A"}</div> */}
+                </div>
+                <div className="text-end">
+                  <div>
+                    <strong>No.</strong> {currentInvoice.invoice_number}
+                  </div>
+                  <div>
+                    <strong>Date</strong>{" "}
+                    {formatDate(currentInvoice.issue_date)}
+                  </div>
+                  <div>
+                    <strong>Your Ref.</strong>{" "}
+                    {currentInvoice.your_ref || "N/A"}
+                  </div>
+                  <div>
+                    <strong>Sales ID</strong> {currentInvoice.sales_id || "N/A"}
+                  </div>
+                  <div>
+                    <strong>Printed By</strong>{" "}
+                    {currentInvoice.printed_by || "N/A"}
+                  </div>
+                  <div>
+                    <strong>Booking ID</strong>{" "}
+                    {currentInvoice.booking_id || "N/A"}
+                  </div>
+                </div>
+              </div>
+
+              {/* Items Table */}
+              <table className="table table-bordered mb-3">
+                <thead>
+                  <tr style={{ backgroundColor: "#343a40", color: "white" }}>
+                    <th>Description</th>
+                    <th style={{ textAlign: "right" }}>Unit Fare</th>
+                    <th style={{ textAlign: "right" }}>Discount</th>
+                    <th style={{ textAlign: "right" }}>Qty</th>
+                    <th style={{ textAlign: "right" }}>Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {currentInvoice.items?.map((item, index) => (
+                    <tr key={index}>
+                      <td>{item.description}</td>
+                      <td style={{ textAlign: "right" }}>
+                        {currentInvoice.currency} {item.price}
+                      </td>
+                      <td style={{ textAlign: "right" }}>{item.discount}%</td>
+                      <td style={{ textAlign: "right" }}>{item.quantity}</td>
+                      <td style={{ textAlign: "right" }}>
+                        {currentInvoice.currency}{" "}
+                        {calculateItemTotal(item).toFixed(2)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {/* Payment Instructions */}
+              <div className="mb-3">{currentInvoice.payment_instructions}</div>
+
+              {/* Totals */}
+              <div className="row mb-4">
+                <div className="col-md-6 offset-md-6">
+                  <table style={{ width: "100%" }}>
+                    <tbody>
+                      <tr>
+                        <td style={{ padding: "4px", textAlign: "right" }}>
+                          <strong>Sub Total:</strong>
+                        </td>
+                        <td style={{ padding: "4px", textAlign: "right" }}>
+                          {currentInvoice.currency} {currentInvoice.sub_total}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style={{ padding: "4px", textAlign: "right" }}>
+                          <strong>Total:</strong>
+                        </td>
+                        <td style={{ padding: "4px", textAlign: "right" }}>
+                          {currentInvoice.currency}{" "}
+                          {currentInvoice.total_amount}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style={{ padding: "4px", textAlign: "right" }}>
+                          <strong>Amount Received:</strong>
+                        </td>
+                        <td style={{ padding: "4px", textAlign: "right" }}>
+                          {currentInvoice.currency}{" "}
+                          {currentInvoice.amount_received}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style={{ padding: "4px", textAlign: "right" }}>
+                          <strong>Balance:</strong>
+                        </td>
+                        <td style={{ padding: "4px", textAlign: "right" }}>
+                          {currentInvoice.currency} {currentInvoice.balance}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Bottom left: Staff and Remark */}
+              <div className="row">
+                <div className="col-md-6">
+                  <div>
+                    {/* <strong>Staff:</strong> {currentInvoice.staff} */}
+                  </div>
+                  <div>
+                    <strong>Remark:</strong> {currentInvoice.remarks}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button
+            variant="secondary"
+            onClick={() => setShowPreviewModalShirmila(false)}
+          >
+            Close
+          </Button>
+          <Button
+            variant="primary"
+            onClick={() => handlePrintInvoice(currentInvoice?.id)}
+            className="d-flex align-items-center"
+          >
+            <FaPrint className="me-1" /> Print Invoice
+          </Button>
+          <Button
+            variant="success"
+            onClick={() => alert("PDF download would be implemented here")}
+            className="d-flex align-items-center"
+          >
+            <FaDownload className="me-1" /> Download PDF
+          </Button>
+        </Modal.Footer>
+      </Modal>
 
       {/* Edit Invoice Modal */}
       <Modal
@@ -843,7 +1327,7 @@ const Invoice_list = () => {
                 alwaysOpen
               >
                 {/* Customer Information */}
-                <Accordion.Item eventKey="customer">
+                {/* <Accordion.Item eventKey="customer">
                   <Accordion.Header>
                     <div className="d-flex align-items-center">
                       <FaUser className="me-2" />
@@ -868,6 +1352,111 @@ const Invoice_list = () => {
                             <option value="MY">Malaysia</option>
                             <option value="IN">India</option>
                             <option value="US">United States</option>
+                          </Form.Select>
+                        </FloatingLabel>
+                      </Col>
+                    </Row>
+                  </Accordion.Body>
+                </Accordion.Item> */}
+                <Accordion.Item eventKey="customer">
+                  <Accordion.Header>
+                    <div className="d-flex align-items-center">
+                      <FaUser className="me-2" />
+                      <span>Customer Information</span>
+                    </div>
+                  </Accordion.Header>
+                  <Accordion.Body>
+                    <input
+                      type="hidden"
+                      name="customer_id"
+                      value={currentInvoice.customer?.id}
+                    />
+
+                    <Row>
+                      <Col md={6}>
+                        <FloatingLabel label="Customer Name" className="mb-3">
+                          <Form.Control
+                            type="text"
+                            name="customer_name"
+                            defaultValue={currentInvoice.customer?.name}
+                            required
+                          />
+                        </FloatingLabel>
+                      </Col>
+                      <Col md={6}>
+                        <FloatingLabel label="Mobile Number" className="mb-3">
+                          <Form.Control
+                            type="text"
+                            name="customer_mobile"
+                            defaultValue={currentInvoice.customer?.mobile}
+                            required
+                          />
+                        </FloatingLabel>
+                      </Col>
+                    </Row>
+
+                    <Row>
+                      <Col md={6}>
+                        <FloatingLabel label="Customer Code" className="mb-3">
+                          <Form.Control
+                            type="text"
+                            name="customer_code"
+                            defaultValue={currentInvoice.customer?.code}
+                            required
+                          />
+                        </FloatingLabel>
+                      </Col>
+                      <Col md={6}>
+                        <FloatingLabel label="GST Number" className="mb-3">
+                          <Form.Control
+                            type="text"
+                            name="customer_gst_no"
+                            defaultValue={currentInvoice.customer?.gst_no}
+                          />
+                        </FloatingLabel>
+                      </Col>
+                    </Row>
+
+                    <FloatingLabel label="Customer Address" className="mb-3">
+                      <Form.Control
+                        as="textarea"
+                        name="customer_address"
+                        style={{ height: "80px" }}
+                        defaultValue={currentInvoice.customer?.address}
+                        required
+                      />
+                    </FloatingLabel>
+
+                    <Row>
+                      <Col md={6}>
+                        <FloatingLabel label="Country Code" className="mb-3">
+                          <Form.Select
+                            name="country_code"
+                            defaultValue={currentInvoice.country_code}
+                            required
+                          >
+                            <option value="LK">Sri Lanka</option>
+                            <option value="IN">India</option>
+                            <option value="SG">Singapore</option>
+                            <option value="MY">Malaysia</option>
+                            <option value="US">United States</option>
+                            <option value="UK">United Kingdom</option>
+                          </Form.Select>
+                        </FloatingLabel>
+                      </Col>
+                      <Col md={6}>
+                        <FloatingLabel label="Currency" className="mb-3">
+                          <Form.Select
+                            name="currency"
+                            defaultValue={currentInvoice.currency}
+                            required
+                          >
+                            <option value="LKR">LKR (Sri Lankan Rupee)</option>
+                            <option value="INR">INR (Indian Rupee)</option>
+                            <option value="SGD">SGD (Singapore Dollar)</option>
+                            <option value="MYR">MYR (Malaysian Ringgit)</option>
+                            <option value="USD">USD (US Dollar)</option>
+                            <option value="EUR">EUR (Euro)</option>
                           </Form.Select>
                         </FloatingLabel>
                       </Col>
@@ -999,11 +1588,13 @@ const Invoice_list = () => {
                           label="Payment Methods (comma separated)"
                           className="mb-3"
                         >
-                          {/* <Form.Control
+                          <Form.Control
                             type="text"
                             name="payment_methods"
-                            defaultValue={currentInvoice.payment_methods?.join(",")}
-                          /> */}
+                            defaultValue={currentInvoice.payment_methods?.join(
+                              ","
+                            )}
+                          />
                         </FloatingLabel>
                       </Col>
                     </Row>
@@ -1043,7 +1634,7 @@ const Invoice_list = () => {
                   </Accordion.Body>
                 </Accordion.Item>
 
-                {/* Invoice Items Section */}
+                {/* Invoice Items */}
                 <Accordion.Item eventKey="items">
                   <Accordion.Header>
                     <div className="d-flex align-items-center">
@@ -1065,7 +1656,6 @@ const Invoice_list = () => {
                           <th>Discount %</th>
                           <th>Quantity</th>
                           <th>Total</th>
-                          <th></th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1134,33 +1724,20 @@ const Invoice_list = () => {
                               {currentInvoice.currency}{" "}
                               {calculateItemTotal(item).toFixed(2)}
                             </td>
-                            <td>
-                              <Button
-                                variant="outline-danger"
-                                size="sm"
-                                onClick={() => handleRemoveItem(index)}
-                              >
-                                <FaTrash />
-                              </Button>
-                            </td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
 
-                    <div className="d-flex justify-content-between mt-2">
-                      <Button
-                        variant="outline-primary"
-                        size="sm"
-                        onClick={handleAddItem}
-                      >
+                    <div className="d-flex justify-content-end mt-2">
+                      <Button variant="outline-primary" size="sm">
                         <FaPlus className="me-1" /> Add Item
                       </Button>
                     </div>
                   </Accordion.Body>
                 </Accordion.Item>
 
-                {/* Additional Charges Section */}
+                {/* Additional Charges */}
                 <Accordion.Item eventKey="charges">
                   <Accordion.Header>
                     <div className="d-flex align-items-center">
@@ -1213,12 +1790,8 @@ const Invoice_list = () => {
                                   <option value="0">No</option>
                                 </Form.Select>
                               </td>
-                              <td>
-                                <Button
-                                  variant="outline-danger"
-                                  size="sm"
-                                  onClick={() => handleRemoveCharge(index)}
-                                >
+                              <td className="text-end">
+                                <Button variant="outline-danger" size="sm">
                                   <FaTrash />
                                 </Button>
                               </td>
@@ -1229,11 +1802,7 @@ const Invoice_list = () => {
                     </table>
 
                     <div className="d-flex justify-content-end mt-2">
-                      <Button
-                        variant="outline-primary"
-                        size="sm"
-                        onClick={handleAddCharge}
-                      >
+                      <Button variant="outline-primary" size="sm">
                         <FaPlus className="me-1" /> Add Charge
                       </Button>
                     </div>
@@ -1271,9 +1840,15 @@ const Invoice_list = () => {
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
+          {/* {success === "" ? <div className="alert alert-danger">
+            <strong>Warning:</strong> This action cannot be undone.
+          </div> :  <div className="alert alert-success">
+        {success}
+      </div> } */}
           <div className="alert alert-danger">
             <strong>Warning:</strong> This action cannot be undone.
           </div>
+
           <p>
             Are you sure you want to cancel invoice #
             <strong>{invoiceToDelete?.invoice_number}</strong>?
@@ -1283,9 +1858,16 @@ const Invoice_list = () => {
           <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
             Close
           </Button>
-          <Button variant="danger" onClick={handleDeleteInvoice}>
-            Confirm Cancel
-          </Button>
+          {!isAdmin && (
+            <Button variant="danger" onClick={handleDeleteInvoice}>
+              {loading ? "Requestinng Cancel..." : "Request to Cancel"}
+            </Button>
+          )}
+          {isAdmin && (
+            <Button variant="danger" onClick={handleDeleteInvoiceAdmin}>
+              Confirm Cancel
+            </Button>
+          )}
         </Modal.Footer>
       </Modal>
     </div>

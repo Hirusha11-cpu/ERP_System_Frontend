@@ -38,8 +38,8 @@ const SetFavicon = () => {
   return null;
 };
 
-// axios.defaults.baseURL = "http://localhost:8000";
-axios.defaults.baseURL = 'https://dev-erp-api.aahaas.com';
+axios.defaults.baseURL = "http://localhost:8000";
+// axios.defaults.baseURL = 'https://dev-erp-api.aahaas.com';
 
 const App = () => {
   return (

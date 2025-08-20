@@ -47,13 +47,14 @@ const Invoice_preview = ({ target }) => {
   if (target === "main_invoice_view") {
     switch (selectedCompany) {
       case "appleholidays":
-        return <Invoice_List_appleholidays />;
+        // return <Invoice_List_appleholidays />;
+        return <Invoice_list />;
       case "shirmila":
-        return <Invoice_List_shirmila />;
+        return <Invoice_list />;
       case "aahaas":
-        return <Invoice_List_aahaas />;
+        return <Invoice_list />;
       default:
-        return <Invoice_List_aahaas />;
+        return <Invoice_list />;
     }
   }
 

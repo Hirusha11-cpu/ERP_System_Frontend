@@ -41,6 +41,7 @@ import { PDFDownloadLink } from "@react-pdf/renderer";
 import { InvoicePDF } from "../upload_invoice/InvoicePDF";
 
 const Invoice_List_aahaas = () => {
+
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingDelete, setLoadingDelete] = useState(true);
@@ -51,6 +52,7 @@ const Invoice_List_aahaas = () => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [currentInvoice, setCurrentInvoice] = useState(null);
   const [invoiceToDelete, setInvoiceToDelete] = useState(null);
+  const [companyNo, setCompanyNo] = useState(null);
   const [success, setSuccess] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
@@ -76,6 +78,16 @@ const Invoice_List_aahaas = () => {
     fetchInvoices();
   }, []);
 
+  useEffect(() => {
+      const companyMap = {
+        appleholidays: 2,
+        aahaas: 3,
+        shirmila: 1,
+      };
+      setCompanyNo(companyMap[selectedCompany?.toLowerCase()] || null);
+    }, [selectedCompany]);
+  
+
   const fetchInvoices = async () => {
     try {
       setLoading(true);
@@ -84,32 +96,32 @@ const Invoice_List_aahaas = () => {
         console.log(user.role.name);
         setIsAdmin(user.role.name === "admin");
       }
+     
+      // const cacheKey = `invoices_company_${companyNo}`;
+      // const cacheExpiryKey = `${cacheKey}_expiry`;
 
-      const cacheKey = `invoices_company_3`;
-      const cacheExpiryKey = `${cacheKey}_expiry`;
+      // const cachedData = localStorage.getItem(cacheKey);
+      // const cacheExpiry = localStorage.getItem(cacheExpiryKey);
 
-      const cachedData = localStorage.getItem(cacheKey);
-      const cacheExpiry = localStorage.getItem(cacheExpiryKey);
-
-      // If we have cached data and it's not expired
-      if (cachedData && cacheExpiry && Date.now() < Number(cacheExpiry)) {
-        console.log("Loaded invoices from cache");
-        setInvoices(JSON.parse(cachedData));
-        setLoading(false);
-        return;
-      }
+      // // If we have cached data and it's not expired
+      // if (cachedData && cacheExpiry && Date.now() < Number(cacheExpiry)) {
+      //   console.log("Loaded invoices from cache");
+      //   setInvoices(JSON.parse(cachedData));
+      //   setLoading(false);
+      //   return;
+      // }
 
       // Otherwise, fetch from API
       const response = await axios.get("/api/invoices", {
-        params: { company_id: 3 },
+        params: { company_id: companyNo },
         headers: { Authorization: `Bearer ${token}` },
       });
 
       const invoicesData = response.data.data || [];
 
       // Save to cache
-      localStorage.setItem(cacheKey, JSON.stringify(invoicesData));
-      localStorage.setItem(cacheExpiryKey, Date.now() + 10 * 60 * 1000); // 10 minutes expiry
+      // localStorage.setItem(cacheKey, JSON.stringify(invoicesData));
+      // localStorage.setItem(cacheExpiryKey, Date.now() + 10 * 60 * 1000); // 10 minutes expiry
 
       setInvoices(invoicesData);
     } catch (error) {
@@ -1458,9 +1470,9 @@ const Invoice_List_aahaas = () => {
           <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
             Close
           </Button>
-          <Button variant="danger" onClick={handleDeleteInvoice}>
+        {!isAdmin &&   <Button variant="danger" onClick={handleDeleteInvoice}>
             {loading ? "Requestinng Cancel..." : "Request to Cancel"}
-          </Button>
+          </Button>}
           {isAdmin && (
             <Button variant="danger" onClick={handleDeleteInvoiceAdmin}>
               Confirm Cancel

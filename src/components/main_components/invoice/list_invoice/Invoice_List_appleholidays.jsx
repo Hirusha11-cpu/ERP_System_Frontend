@@ -39,12 +39,13 @@ import axios from "axios";
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import { CompanyContext } from "../../../../contentApi/CompanyProvider";
 import { InvoicePDF } from "../upload_invoice/InvoicePDF";
+import { useUser } from "../../../../contentApi/UserProvider";
 
 const Invoice_List_appleholidays = () => {
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
-
+  const [success, setSuccess] = useState("");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -55,6 +56,7 @@ const Invoice_List_appleholidays = () => {
   const [error, setError] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
   const { selectedCompany } = useContext(CompanyContext);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [dateFilter, setDateFilter] = useState({
     startDate: "",
     endDate: "",
@@ -62,6 +64,14 @@ const Invoice_List_appleholidays = () => {
   const navigate = useNavigate();
   const token =
     localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+
+  const {
+    user,
+    company,
+    role,
+    loading: userLoading,
+    error: userError,
+  } = useUser();
 
   useEffect(() => {
     fetchInvoices();
@@ -71,6 +81,10 @@ const Invoice_List_appleholidays = () => {
     try {
       setLoading(true);
 
+      if (user) {
+        console.log(user.role.name);
+        setIsAdmin(user.role.name === "admin");
+      }
       const cacheKey = `invoices_company_2`;
       const cacheExpiryKey = `${cacheKey}_expiry`;
 
@@ -189,6 +203,32 @@ const Invoice_List_appleholidays = () => {
       setShowDeleteModal(false);
     } catch (error) {
       console.error("Error deleting invoice:", error);
+    }
+  };
+  const handleDeleteInvoiceAdmin = async () => {
+    try {
+      setIsLoading(true);
+
+      await axios.delete(`/api/invoices/${invoiceToDelete.id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      setSuccess(
+        `Invoice ${invoiceToDelete.invoice_number} cancelled successfully.`
+      );
+      fetchInvoices();
+      setShowDeleteModal(false);
+      setSuccess("");
+    } catch (error) {
+      console.error("Error cancelling invoice:", error);
+      setError(
+        error.response?.data?.error ||
+          "Failed to cancel invoice. Please try again."
+      );
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -313,7 +353,6 @@ const Invoice_List_appleholidays = () => {
       console.error("Error preparing to cancel invoice:", error);
     }
   };
-
   const handleDeleteInvoice = async () => {
     try {
       setIsLoading(true);
@@ -321,13 +360,14 @@ const Invoice_List_appleholidays = () => {
       const emailResponse = await axios.post(
         "/api/send-email",
         {
-          to: "nightvine121@gmail.com",
-          subject: `Invoice Cancellation: ${invoiceToDelete.invoice_number}`,
+          to: "nightvine121@gmail.com", // Or get boss's email dynamically
+          subject: `Invoice Cancellation Request: ${invoiceToDelete.invoice_number}`,
           invoice_number: invoiceToDelete.invoice_number,
           customer_name: invoiceToDelete.customer?.name || "N/A",
           currency: invoiceToDelete.currency,
           amount: invoiceToDelete.total_amount,
           date: formatDate(invoiceToDelete.issue_date),
+          invoice_id: invoiceToDelete.id, // Add this
         },
         {
           headers: {
@@ -336,25 +376,15 @@ const Invoice_List_appleholidays = () => {
         }
       );
 
-      if (emailResponse.status === 200) {
-        // Only delete if email sent successfully
-        await axios.delete(`/api/invoices/${invoiceToDelete.id}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-      }
-
-      fetchInvoices();
       setShowDeleteModal(false);
       setSuccess(
-        `Invoice ${invoiceToDelete.invoice_number} cancelled successfully and notification sent.`
+        `Cancellation request for invoice ${invoiceToDelete.invoice_number} has been sent for approval.`
       );
     } catch (error) {
-      console.error("Error cancelling invoice:", error);
+      console.error("Error requesting invoice cancellation:", error);
       setError(
         error.response?.data?.error ||
-          "Failed to cancel invoice. Please try again."
+          "Failed to request invoice cancellation. Please try again."
       );
     } finally {
       setIsLoading(false);
@@ -1363,9 +1393,15 @@ const Invoice_List_appleholidays = () => {
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
+          {/* {success === "" ? <div className="alert alert-danger">
+                  <strong>Warning:</strong> This action cannot be undone.
+                </div> :  <div className="alert alert-success">
+              {success}
+            </div> } */}
           <div className="alert alert-danger">
             <strong>Warning:</strong> This action cannot be undone.
           </div>
+
           <p>
             Are you sure you want to cancel invoice #
             <strong>{invoiceToDelete?.invoice_number}</strong>?
@@ -1375,9 +1411,14 @@ const Invoice_List_appleholidays = () => {
           <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
             Close
           </Button>
-          <Button variant="danger" onClick={handleDeleteInvoice}>
-            Confirm Cancel
-          </Button>
+            {!isAdmin &&   <Button variant="danger" onClick={handleDeleteInvoice}>
+                      {loading ? "Requestinng Cancel..." : "Request to Cancel"}
+                    </Button>}
+          {isAdmin && (
+            <Button variant="danger" onClick={handleDeleteInvoiceAdmin}>
+              Confirm Cancel
+            </Button>
+          )}
         </Modal.Footer>
       </Modal>
     </div>

@@ -39,10 +39,12 @@ import axios from "axios";
 import { CompanyContext } from "../../../../contentApi/CompanyProvider";
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import { InvoicePDF } from "../upload_invoice/InvoicePDF";
+import { useUser } from "../../../../contentApi/UserProvider";
 
 const Invoice_List_shirmila = () => {
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
@@ -51,16 +53,25 @@ const Invoice_List_shirmila = () => {
   const [filterCreditType, setFilterCreditType] = useState("all");
   const [invoiceToDelete, setInvoiceToDelete] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
   const [filterStatus, setFilterStatus] = useState("all");
   const { selectedCompany } = useContext(CompanyContext);
-    const [dateFilter, setDateFilter] = useState({
-      startDate: "",
-      endDate: "",
-    });
+  const [dateFilter, setDateFilter] = useState({
+    startDate: "",
+    endDate: "",
+  });
   const navigate = useNavigate();
 
   const token =
     localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+
+  const {
+    user,
+    company,
+    role,
+    loading: userLoading,
+    error: userError,
+  } = useUser();
 
   useEffect(() => {
     fetchInvoices();
@@ -70,6 +81,11 @@ const Invoice_List_shirmila = () => {
   const fetchInvoices = async () => {
     try {
       setLoading(true);
+
+      if (user) {
+        console.log(user.role.name);
+        setIsAdmin(user.role.name === "admin");
+      }
 
       const cacheKey = `invoices_company_1`;
       const cacheExpiryKey = `${cacheKey}_expiry`;
@@ -195,6 +211,33 @@ const Invoice_List_shirmila = () => {
     }
   };
 
+  const handleDeleteInvoiceAdmin = async () => {
+    try {
+      setIsLoading(true);
+
+      await axios.delete(`/api/invoices/${invoiceToDelete.id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      setSuccess(
+        `Invoice ${invoiceToDelete.invoice_number} cancelled successfully.`
+      );
+      fetchInvoices();
+      setShowDeleteModal(false);
+      setSuccess("");
+    } catch (error) {
+      console.error("Error cancelling invoice:", error);
+      setError(
+        error.response?.data?.error ||
+          "Failed to cancel invoice. Please try again."
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // const handleUpdateInvoice = async (formData) => {
   //   try {
   //     // Convert items from form data to array format
@@ -267,7 +310,7 @@ const Invoice_List_shirmila = () => {
   // In your handleUpdateInvoice function, modify to:
   const handleUpdateInvoice = async (formData) => {
     try {
-      // Prepare items array
+      // Convert items from form data to array format
       const items = [];
       for (let key in formData) {
         if (key.startsWith("items[")) {
@@ -275,17 +318,8 @@ const Invoice_List_shirmila = () => {
           if (matches) {
             const index = matches[1];
             const field = matches[2];
-            if (!items[index]) {
-              items[index] = {
-                id: currentInvoice.items?.[index]?.id || null,
-                code: "",
-                type: "",
-                description: "",
-                quantity: 0,
-                price: 0,
-                discount: 0,
-              };
-            }
+            if (!items[index])
+              items[index] = { id: currentInvoice.items?.[index]?.id };
             items[index][field] =
               field === "quantity" || field === "price" || field === "discount"
                 ? parseFloat(formData[key])
@@ -294,7 +328,7 @@ const Invoice_List_shirmila = () => {
         }
       }
 
-      // Prepare additional charges array
+      // Convert additional charges if present
       const additionalCharges = [];
       for (let key in formData) {
         if (key.startsWith("additional_charges[")) {
@@ -302,25 +336,17 @@ const Invoice_List_shirmila = () => {
           if (matches) {
             const index = matches[1];
             const field = matches[2];
-            if (!additionalCharges[index]) {
+            if (!additionalCharges[index])
               additionalCharges[index] = {
-                id: currentInvoice.additional_charges?.[index]?.id || null,
-                description: "",
-                amount: 0,
-                taxable: false,
+                id: currentInvoice.additional_charges?.[index]?.id,
               };
-            }
             additionalCharges[index][field] =
-              field === "amount"
-                ? parseFloat(formData[key])
-                : field === "taxable"
-                ? formData[key] === "1"
-                : formData[key];
+              field === "amount" ? parseFloat(formData[key]) : formData[key];
           }
         }
       }
 
-      // Prepare the complete data for API
+      // Prepare the data for API
       const updatedData = {
         customer_id: currentInvoice.customer?.id,
         country_code: formData.country_code || currentInvoice.country_code,
@@ -328,36 +354,31 @@ const Invoice_List_shirmila = () => {
         exchange_rate: parseFloat(formData.exchange_rate) || 1.0,
         tax_treatment: formData.tax_treatment || "inclusive",
         payment_type: formData.payment_type,
-        issue_date: formData.issue_date,
-        due_date: formData.due_date,
         collection_date: formData.collection_date || null,
         payment_instructions: formData.payment_instructions,
         staff: formData.staff,
         remarks: formData.remarks,
-        payment_methods: currentInvoice.payment_methods, // or handle from form if needed
+        payment_methods: formData.payment_methods
+          ? formData.payment_methods.split(",")
+          : currentInvoice.payment_methods,
         items: items.filter((item) => item),
         additional_charges: additionalCharges.filter((charge) => charge),
         amount_received: parseFloat(formData.amount_received) || 0,
-        account_id: currentInvoice.account_id,
-        booking_no: currentInvoice.booking_no,
       };
 
-      const response = await axios.put(
+      await axios.put(
         `/api/invoices/by-number/${currentInvoice.invoice_number}`,
         updatedData,
         {
           headers: {
-            "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
         }
       );
-
       fetchInvoices();
       setShowEditModal(false);
     } catch (error) {
       console.error("Error updating invoice:", error);
-      // Add error handling UI here
     }
   };
 
@@ -465,13 +486,14 @@ const Invoice_List_shirmila = () => {
       const emailResponse = await axios.post(
         "/api/send-email",
         {
-          to: "nightvine121@gmail.com",
-          subject: `Invoice Cancellation: ${invoiceToDelete.invoice_number}`,
+          to: "nightvine121@gmail.com", // Or get boss's email dynamically
+          subject: `Invoice Cancellation Request: ${invoiceToDelete.invoice_number}`,
           invoice_number: invoiceToDelete.invoice_number,
           customer_name: invoiceToDelete.customer?.name || "N/A",
           currency: invoiceToDelete.currency,
           amount: invoiceToDelete.total_amount,
           date: formatDate(invoiceToDelete.issue_date),
+          invoice_id: invoiceToDelete.id, // Add this
         },
         {
           headers: {
@@ -480,25 +502,15 @@ const Invoice_List_shirmila = () => {
         }
       );
 
-      if (emailResponse.status === 200) {
-        // Only delete if email sent successfully
-        await axios.delete(`/api/invoices/${invoiceToDelete.id}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-      }
-
-      fetchInvoices();
       setShowDeleteModal(false);
       setSuccess(
-        `Invoice ${invoiceToDelete.invoice_number} cancelled successfully and notification sent.`
+        `Cancellation request for invoice ${invoiceToDelete.invoice_number} has been sent for approval.`
       );
     } catch (error) {
-      console.error("Error cancelling invoice:", error);
+      console.error("Error requesting invoice cancellation:", error);
       setError(
         error.response?.data?.error ||
-          "Failed to cancel invoice. Please try again."
+          "Failed to request invoice cancellation. Please try again."
       );
     } finally {
       setIsLoading(false);
@@ -574,32 +586,32 @@ const Invoice_List_shirmila = () => {
             </div> */}
 
             {/* Add this to your existing filter section */}
-                        <div className="d-flex align-items-center me-3">
-                          <span className="me-2">
-                            <FaCalendarAlt />
-                          </span>
-                          <Form.Control
-                            type="date"
-                            placeholder="From"
-                            name="startDate"
-                            value={dateFilter.startDate}
-                            onChange={(e) =>
-                              setDateFilter({ ...dateFilter, startDate: e.target.value })
-                            }
-                            style={{ width: "150px", marginRight: "10px" }}
-                          />
-                          <span className="me-2">to</span>
-                          <Form.Control
-                            type="date"
-                            placeholder="To"
-                            name="endDate"
-                            value={dateFilter.endDate}
-                            onChange={(e) =>
-                              setDateFilter({ ...dateFilter, endDate: e.target.value })
-                            }
-                            style={{ width: "150px" }}
-                          />
-                        </div>
+            <div className="d-flex align-items-center me-3">
+              <span className="me-2">
+                <FaCalendarAlt />
+              </span>
+              <Form.Control
+                type="date"
+                placeholder="From"
+                name="startDate"
+                value={dateFilter.startDate}
+                onChange={(e) =>
+                  setDateFilter({ ...dateFilter, startDate: e.target.value })
+                }
+                style={{ width: "150px", marginRight: "10px" }}
+              />
+              <span className="me-2">to</span>
+              <Form.Control
+                type="date"
+                placeholder="To"
+                name="endDate"
+                value={dateFilter.endDate}
+                onChange={(e) =>
+                  setDateFilter({ ...dateFilter, endDate: e.target.value })
+                }
+                style={{ width: "150px" }}
+              />
+            </div>
 
             <div className="d-flex align-items-center me-3">
               <span className="me-2">
@@ -623,16 +635,16 @@ const Invoice_List_shirmila = () => {
             >
               Refresh
             </Button>
-              {dateFilter.startDate || dateFilter.endDate ? (
-                          <Button
-                            variant="outline-secondary"
-                            onClick={() => setDateFilter({ startDate: "", endDate: "" })}
-                            className="ms-2"
-                            size="sm"
-                          >
-                            Clear Dates
-                          </Button>
-                        ) : null}
+            {dateFilter.startDate || dateFilter.endDate ? (
+              <Button
+                variant="outline-secondary"
+                onClick={() => setDateFilter({ startDate: "", endDate: "" })}
+                className="ms-2"
+                size="sm"
+              >
+                Clear Dates
+              </Button>
+            ) : null}
           </div>
 
           {loading ? (
@@ -1509,9 +1521,15 @@ const Invoice_List_shirmila = () => {
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
+          {/* {success === "" ? <div className="alert alert-danger">
+                  <strong>Warning:</strong> This action cannot be undone.
+                </div> :  <div className="alert alert-success">
+              {success}
+            </div> } */}
           <div className="alert alert-danger">
             <strong>Warning:</strong> This action cannot be undone.
           </div>
+
           <p>
             Are you sure you want to cancel invoice #
             <strong>{invoiceToDelete?.invoice_number}</strong>?
@@ -1521,9 +1539,16 @@ const Invoice_List_shirmila = () => {
           <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
             Close
           </Button>
-          <Button variant="danger" onClick={handleDeleteInvoice}>
-            Confirm Cancel
-          </Button>
+          {!isAdmin && (
+            <Button variant="danger" onClick={handleDeleteInvoice}>
+              {loading ? "Requestinng Cancel..." : "Request to Cancel"}
+            </Button>
+          )}
+          {isAdmin && (
+            <Button variant="danger" onClick={handleDeleteInvoiceAdmin}>
+              Confirm Cancel
+            </Button>
+          )}
         </Modal.Footer>
       </Modal>
     </div>

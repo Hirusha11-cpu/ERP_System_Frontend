@@ -21,20 +21,20 @@ const Invoice_appleholidays_modal = ({
     return diffDays > 0 ? diffDays : 0;
   };
 
-    const receiptRef = useRef(); // Reference to modal body
-  
-    const downloadPDF = () => {
-      const element = receiptRef.current;
-      const opt = {
-        margin:       0.3,
-        filename:     `receipt_${formData.invoice.number || "order"}.pdf`,
-        image:        { type: 'jpeg', quality: 0.98 },
-        html2canvas:  { scale: 2 },
-        jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
-      };
-  
-      html2pdf().set(opt).from(element).save();
+  const receiptRef = useRef(); // Reference to modal body
+
+  const downloadPDF = () => {
+    const element = receiptRef.current;
+    const opt = {
+      margin: 0.3,
+      filename: `receipt_${formData.invoice.number || "order"}.pdf`,
+      image: { type: "jpeg", quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: "in", format: "letter", orientation: "portrait" },
     };
+
+    html2pdf().set(opt).from(element).save();
+  };
 
   return (
     <Modal show={show} onHide={onHide} size="xl" fullscreen="lg-down">
@@ -112,13 +112,13 @@ const Invoice_appleholidays_modal = ({
               {formData.serviceItems.map((item) => (
                 <tr key={item.id}>
                   <td>{item.description}</td>
-                  <td >
+                  <td>
                     {currencySymbols[formData.currencyDetails.currency] || "$"}
                     {item.price.toFixed(2)}
                   </td>
-                  <td >{item.discount}%</td>
-                  <td >{item.qty}</td>
-                  <td >
+                  <td>{item.discount}%</td>
+                  <td>{item.qty}</td>
+                  <td>
                     {currencySymbols[formData.currencyDetails.currency] || "$"}
                     {item.total.toFixed(2)}
                   </td>
@@ -130,98 +130,103 @@ const Invoice_appleholidays_modal = ({
           {/* Totals */}
           <div className="row mb-4">
             <div className="row mb-4">
-  {/* Totals First (Right Side) */}
-  <div className="col-md-6 offset-md-6">
-    <table className="invoice-totals w-100">
-      <tbody>
-        <tr>
-          <td style={{ textAlign: "right" }}>
-            <strong>SUB TOTAL:</strong>
-          </td>
-          <td style={{ textAlign: "right" }}>
-            {currencySymbols[formData.currencyDetails.currency] || "$"}
-            {formData.totals.subTotal.toFixed(2)}
-          </td>
-        </tr>
-        <tr>
-          <td style={{ textAlign: "right" }}>
-            <strong>BANK CHARGES:</strong>
-          </td>
-          <td style={{ textAlign: "right" }}>
-            {currencySymbols[formData.currencyDetails.currency] || "$"}
-            {formData.totals.bankCharges.toFixed(2)}
-          </td>
-        </tr>
-        <tr>
-          <td style={{ textAlign: "right" }}>
-            <strong>TOTAL:</strong>
-          </td>
-          <td style={{ textAlign: "right" }}>
-            {currencySymbols[formData.currencyDetails.currency] || "$"}
-            {formData.totals.total.toFixed(2)}
-          </td>
-        </tr>
-        <tr>
-          <td style={{ textAlign: "right" }}>
-            <strong>AMOUNT RECEIVED:</strong>
-          </td>
-          <td style={{ textAlign: "right" }}>
-            {currencySymbols[formData.currencyDetails.currency] || "$"}
-            {formData.totals.amountReceived.toFixed(2)}
-          </td>
-        </tr>
-        <tr>
-          <td style={{ textAlign: "right" }}>
-            <strong>BALANCE DUE:</strong>
-          </td>
-          <td style={{ textAlign: "right" }}>
-            {currencySymbols[formData.currencyDetails.currency] || "$"}
-            {formData.totals.balance.toFixed(2)}
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-</div>
+              {/* Totals First (Right Side) */}
+              <div className="col-md-6 offset-md-6">
+                <table className="invoice-totals w-100">
+                  <tbody>
+                    <tr>
+                      <td style={{ textAlign: "right" }}>
+                        <strong>SUB TOTAL:</strong>
+                      </td>
+                      <td style={{ textAlign: "right" }}>
+                        {currencySymbols[formData.currencyDetails.currency] ||
+                          "$"}
+                        {formData.totals.subTotal.toFixed(2)}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style={{ textAlign: "right" }}>
+                        <strong>BANK CHARGES:</strong>
+                      </td>
+                      <td style={{ textAlign: "right" }}>
+                        {currencySymbols[formData.currencyDetails.currency] ||
+                          "$"}
+                        {formData.totals.bankCharges.toFixed(2)}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style={{ textAlign: "right" }}>
+                        <strong>TOTAL:</strong>
+                      </td>
+                      <td style={{ textAlign: "right" }}>
+                        {currencySymbols[formData.currencyDetails.currency] ||
+                          "$"}
+                        {formData.totals.total.toFixed(2)}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style={{ textAlign: "right" }}>
+                        <strong>AMOUNT RECEIVED:</strong>
+                      </td>
+                      <td style={{ textAlign: "right" }}>
+                        {currencySymbols[formData.currencyDetails.currency] ||
+                          "$"}
+                        {formData.totals.amountReceived.toFixed(2)}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td style={{ textAlign: "right" }}>
+                        <strong>BALANCE DUE:</strong>
+                      </td>
+                      <td style={{ textAlign: "right" }}>
+                        {currencySymbols[formData.currencyDetails.currency] ||
+                          "$"}
+                        {formData.totals.balance.toFixed(2)}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
 
-<div className="row">
-  {/* ACCOUNT DETAILS moved below */}
-  <div className="col-md-6">
-    <div className="mb-3">
-      <p className="mb-0">
-        {formData.payment.type === "credit" ? (
-          <span></span>
-        ) : (
-          <span>
-            Please settle the invoice on or before{" "}
-            {formatDate(formData.payment.collectionDate)}
-          </span>
-        )}
-      </p>
-    </div>
+            <div className="row">
+              {/* ACCOUNT DETAILS moved below */}
+              <div className="col-md-6">
+                <div className="mb-3">
+                  <p className="mb-0">
+                    {formData.payment.type === "credit" ? (
+                      <span></span>
+                    ) : (
+                      <span>
+                        Please settle the invoice on or before{" "}
+                        {formatDate(formData.payment.collectionDate)}
+                      </span>
+                    )}
+                  </p>
+                </div>
 
-    <h6 className="fw-bold">ACCOUNT DETAILS</h6>
-    <div>
-      <strong>ACCOUNT NAME:</strong> {formData.accountDetails.name}
-    </div>
-    <div>
-      <strong>ACCOUNT NO:</strong> {formData.accountDetails.number}
-    </div>
-    <div>
-      <strong>BANK:</strong> {formData.accountDetails.bank}
-    </div>
-    <div>
-      <strong>BRANCH:</strong> {formData.accountDetails.branch}
-    </div>
-    <div>
-      <strong>IFSC CODE:</strong> {formData.accountDetails.ifsc}
-    </div>
-    <div>
-      <strong>Bank Address:</strong> {formData.accountDetails.address}
-    </div>
-  </div>
-</div>
-
+                <h6 className="fw-bold">ACCOUNT DETAILS</h6>
+                <div>
+                  <strong>ACCOUNT NAME:</strong> {formData.accountDetails.name}
+                </div>
+                <div>
+                  <strong>ACCOUNT NO:</strong> {formData.accountDetails.number}
+                </div>
+                <div>
+                  <strong>BANK:</strong> {formData.accountDetails.bank}
+                </div>
+                <div>
+                  <strong>BRANCH:</strong> {formData.accountDetails.branch}
+                </div>
+                <div>
+                  <strong>IFSC CODE:</strong> {formData.accountDetails.ifsc}
+                </div>
+                <div>
+                  <strong>Bank Address:</strong>{" "}
+                  {formData.accountDetails.address}
+                </div>
+              </div>
+            </div>
           </div>
 
           <div className="row">
@@ -253,8 +258,8 @@ const Invoice_appleholidays_modal = ({
           <FaPrint /> Print Invoice
         </Button> */}
         <Button variant="success" onClick={downloadPDF}>
-                    <FaDownload /> Download PDF
-                  </Button>
+          <FaDownload /> Download PDF
+        </Button>
       </Modal.Footer>
     </Modal>
   );

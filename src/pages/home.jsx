@@ -988,27 +988,27 @@ const Home = () => {
               </h5>
               <Link
                 to="/invoice/create"
-                className="btn btn-outline-primary w-100 mb-2 d-flex align-items-center"
+                className="btn btn-outline-primary w-50 mb-2 d-flex align-items-center"
               >
                 <FiPlus className="me-2" />
                 Create New Invoice
               </Link>
               <Link
                 to="/invoice/pnl"
-                className="btn btn-outline-success w-100 mb-2 d-flex align-items-center"
+                className="btn btn-outline-success w-50 mb-2 d-flex align-items-center"
               >
                 <FiPlus className="me-2" />P & L reports
               </Link>
               <Link
                 to="/invoice/summary"
-                className="btn btn-outline-secondary w-100 mb-2 d-flex align-items-center"
+                className="btn btn-outline-secondary w-50 mb-2 d-flex align-items-center"
               >
                 <FiPlus className="me-2" />
                 Summary reports
               </Link>
               <Link
                 to="/invoice/bank-accounts"
-                className="btn btn-outline-info w-100 mb-2 d-flex align-items-center"
+                className="btn btn-outline-info w-50 mb-2 d-flex align-items-center"
               >
                 <FiPlus className="me-2" />
                 Bank Accounts
@@ -1164,7 +1164,7 @@ const Home = () => {
           </Card>
 
           {/* Bank Accounts & Reconciliation */}
-          <Card className="shadow-sm">
+          {/* <Card className="shadow-sm">
             <Card.Body>
               <h5 className="mb-3">
                 <FiCreditCard className="me-2 text-info" />
@@ -1216,7 +1216,7 @@ const Home = () => {
                 </Button>
               </div>
             </Card.Body>
-          </Card>
+          </Card> */}
         </Col>
       </Row>
     </Container>

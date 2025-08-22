@@ -39,7 +39,7 @@ const Invoice_pnl = () => {
   const [selectedInvoice, setSelectedInvoice] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const { selectedCompany } = useContext(CompanyContext);
-      const token =
+  const token =
     localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
 
   useEffect(() => {
@@ -52,7 +52,7 @@ const Invoice_pnl = () => {
 
   // const focus = useFocus
 
-    useEffect(() => {
+  useEffect(() => {
     if (!selectedCompany) return;
 
     // You can map it to company_id here
@@ -62,7 +62,7 @@ const Invoice_pnl = () => {
       aahaas: 3,
     };
 
-    const company_id = companyMap[selectedCompany.toLowerCase()] || null;
+    const company_id = companyMap[selectedCompany.toLowerCase()] || 3;
 
     if (company_id) {
       // Call API or any action here
@@ -73,11 +73,14 @@ const Invoice_pnl = () => {
   const fetchInvoices = async (company_id) => {
     setLoading(true);
     try {
-      const response = await axios.get(`/api/invoices?company_id=${company_id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await axios.get(
+        `/api/invoices?company_id=${company_id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
       setInvoices(response.data.data || []);
       setFilteredInvoices(response.data.data || []);
     } catch (error) {
@@ -87,37 +90,36 @@ const Invoice_pnl = () => {
     }
   };
 
+  //   const fetchInvoices = async () => {
+  //     try {
+  //       setLoading(true);
+  //       let company_id;
 
-//   const fetchInvoices = async () => {
-//     try {
-//       setLoading(true);
-//       let company_id;
+  //       switch (selectedCompany) {
+  //         case "appleholidays":
+  //           company_id = 2;
+  //           break;
+  //         case "shirmila":
+  //           company_id = 1;
+  //           break;
+  //         case "aahaas":
+  //           company_id = 3;
+  //           break;
+  //         default:
+  //           company_id = 1; // or any fallback
+  //       }
+  //       console.log(company_id);
 
-//       switch (selectedCompany) {
-//         case "appleholidays":
-//           company_id = 2;
-//           break;
-//         case "shirmila":
-//           company_id = 1;
-//           break;
-//         case "aahaas":
-//           company_id = 3;
-//           break;
-//         default:
-//           company_id = 1; // or any fallback
-//       }
-//       console.log(company_id);
-      
-//       const response = await axios.get("/api/invoices", {
-//         params: { company_id},
-//       });
-//       setInvoices(response.data.data || []);
-//     } catch (error) {
-//       console.error("Error fetching invoices:", error);
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
+  //       const response = await axios.get("/api/invoices", {
+  //         params: { company_id},
+  //       });
+  //       setInvoices(response.data.data || []);
+  //     } catch (error) {
+  //       console.error("Error fetching invoices:", error);
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
 
   const applyFilters = () => {
     let result = [...invoices];
@@ -193,6 +195,7 @@ const Invoice_pnl = () => {
   };
 
   const handleViewDetails = (invoice) => {
+    console.log("Selected Invoice:", invoice);
     setSelectedInvoice(invoice);
     setShowModal(true);
   };
@@ -494,100 +497,320 @@ const Invoice_pnl = () => {
             <div>
               <Row className="mb-3">
                 <Col md={6}>
-                  <h6>Customer</h6>
-                  <p>{selectedInvoice.customer?.name || "N/A"}</p>
-                </Col>
-                <Col md={6} className="text-end">
-                  <h6>Date</h6>
                   <p>
-                    {new Date(selectedInvoice.issue_date).toLocaleDateString()}
+                    <strong>Client Name:</strong>{" "}
+                    {selectedInvoice.customer?.code || "N/A"}
+                  </p>
+                  <p>
+                    <strong>Agent:</strong> {selectedInvoice.sales_id || "N/A"}
+                  </p>
+                  <p>
+                    <strong>Client Name:</strong>{" "}
+                    {selectedInvoice.customer?.name || "N/A"}
+                  </p>
+                  <p>
+                    <strong>Travel Date:</strong>{" "}
+                    {selectedInvoice.start_date || "N/A"} -{" "}
+                    {selectedInvoice.end_date !== "1970-01-01"
+                      ? selectedInvoice.end_date
+                      : "N/A"}
+                  </p>
+                </Col>
+                <Col md={6}>
+                  <p>
+                    <strong>Agent Type:</strong>{" "}
+                    {selectedInvoice.payment_type || "N/A"}
+                  </p>
+                  <p>
+                    <strong>Invoice Received Currency:</strong>{" "}
+                    {selectedInvoice.currency || "N/A"}
                   </p>
                 </Col>
               </Row>
 
-              <h6 className="mt-4">Items</h6>
+              <Row className="mb-3">
+                <Col md={4}>
+                  <Card className="border-primary">
+                    <Card.Body className="py-2">
+                      <p className="mb-0">
+                        <strong>Total Invoice Value</strong>
+                      </p>
+                      <h5 className="mb-0">
+                        {selectedInvoice.currency}{" "}
+                        {parseFloat(
+                          selectedInvoice.total_amount || 0
+                        ).toLocaleString("en-US", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </h5>
+                    </Card.Body>
+                  </Card>
+                </Col>
+                <Col md={4}>
+                  <Card className="border-success">
+                    <Card.Body className="py-2">
+                      <p className="mb-0">
+                        <strong>Amount Received</strong>
+                      </p>
+                      <h5 className="mb-0 text-success">
+                        {selectedInvoice.currency}{" "}
+                        {parseFloat(
+                          selectedInvoice.amount_received || 0
+                        ).toLocaleString("en-US", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </h5>
+                    </Card.Body>
+                  </Card>
+                </Col>
+                <Col md={4}>
+                  <Card
+                    className={
+                      selectedInvoice.balance >= 0
+                        ? "border-warning"
+                        : "border-danger"
+                    }
+                  >
+                    <Card.Body className="py-2">
+                      <p className="mb-0">
+                        <strong>Balance</strong>
+                      </p>
+                      <h5 className="mb-0">
+                        {selectedInvoice.currency}{" "}
+                        {parseFloat(
+                          selectedInvoice.balance || 0
+                        ).toLocaleString("en-US", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </h5>
+                    </Card.Body>
+                  </Card>
+                </Col>
+              </Row>
+
+              <h6 className="mt-4">Cost Breakdown</h6>
               <Table bordered>
-                <thead>
+                <thead className="table-light">
                   <tr>
                     <th>Description</th>
-                    <th>Price</th>
-                    <th>Qty</th>
-                    <th>Total</th>
+                    <th>USD</th>
+                    <th>Exchange Rate</th>
+                    <th>LKR</th>
                   </tr>
                 </thead>
                 <tbody>
+                  {/* Invoice Items */}
                   {selectedInvoice.items?.map((item, index) => (
-                    <tr key={index}>
+                    <tr key={`item-${index}`}>
                       <td>{item.description}</td>
                       <td>
-                        {selectedInvoice.currency} {item.price}
+                        {parseFloat(item.price || 0).toLocaleString("en-US", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
                       </td>
-                      <td>{item.quantity}</td>
                       <td>
-                        {selectedInvoice.currency}{" "}
-                        {(item.price * item.quantity).toFixed(2)}
+                        {parseFloat(
+                          selectedInvoice.exchange_rate || 0
+                        ).toLocaleString("en-US", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </td>
+                      <td>
+                        {(
+                          parseFloat(item.price || 0) *
+                          parseFloat(selectedInvoice.exchange_rate || 1)
+                        ).toLocaleString("en-US", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
                       </td>
                     </tr>
                   ))}
+
+                  {/* Additional Charges */}
+                  {selectedInvoice.additional_charges?.map((charge, index) => (
+                    <tr key={`charge-${index}`}>
+                      <td>{charge.description}</td>
+                      <td>
+                        {parseFloat(charge.amount || 0).toLocaleString(
+                          "en-US",
+                          {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          }
+                        )}
+                      </td>
+                      <td>
+                        {parseFloat(
+                          selectedInvoice.exchange_rate || 0
+                        ).toLocaleString("en-US", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </td>
+                      <td>
+                        {(
+                          parseFloat(charge.amount || 0) *
+                          parseFloat(selectedInvoice.exchange_rate || 1)
+                        ).toLocaleString("en-US", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </td>
+                    </tr>
+                  ))}
+
+                  {/* Cost Breakdown */}
+                  {selectedInvoice.costs?.length > 0 && (
+                    <>
+                      <tr>
+                        <td>Ticket Cost</td>
+                        <td>
+                          {parseFloat(
+                            selectedInvoice.costs[0].ticket_cost || 0
+                          ).toLocaleString("en-US", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </td>
+                        <td>
+                          {parseFloat(
+                            selectedInvoice.exchange_rate || 0
+                          ).toLocaleString("en-US", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </td>
+                        <td>
+                          {(
+                            parseFloat(
+                              selectedInvoice.costs[0].ticket_cost || 0
+                            ) * parseFloat(selectedInvoice.exchange_rate || 1)
+                          ).toLocaleString("en-US", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td>Hotel Cost</td>
+                        <td>
+                          {parseFloat(
+                            selectedInvoice.costs[0].hotel_cost || 0
+                          ).toLocaleString("en-US", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </td>
+                        <td>
+                          {parseFloat(
+                            selectedInvoice.exchange_rate || 0
+                          ).toLocaleString("en-US", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </td>
+                        <td>
+                          {(
+                            parseFloat(
+                              selectedInvoice.costs[0].hotel_cost || 0
+                            ) * parseFloat(selectedInvoice.exchange_rate || 1)
+                          ).toLocaleString("en-US", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td>Transport Cost</td>
+                        <td>
+                          {parseFloat(
+                            selectedInvoice.costs[0].transport_cost || 0
+                          ).toLocaleString("en-US", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </td>
+                        <td>
+                          {parseFloat(
+                            selectedInvoice.exchange_rate || 0
+                          ).toLocaleString("en-US", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </td>
+                        <td>
+                          {(
+                            parseFloat(
+                              selectedInvoice.costs[0].transport_cost || 0
+                            ) * parseFloat(selectedInvoice.exchange_rate || 1)
+                          ).toLocaleString("en-US", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </td>
+                      </tr>
+                    </>
+                  )}
                 </tbody>
               </Table>
 
-              <h6 className="mt-4">Profit Analysis</h6>
-              <Table bordered>
-                <tbody>
-                  <tr>
-                    <td>
-                      <strong>Total Revenue</strong>
-                    </td>
-                    <td className="text-end">
-                      {selectedInvoice.currency}{" "}
-                      {selectedInvoice.profit?.total_revenue || "0.00"}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>
-                      <strong>Total Cost</strong>
-                    </td>
-                    <td className="text-end">
-                      {selectedInvoice.currency}{" "}
-                      {selectedInvoice.profit?.total_cost || "0.00"}
-                    </td>
-                  </tr>
-                  <tr
-                    className={
-                      selectedInvoice.profit?.profit > 0
-                        ? "table-success"
-                        : selectedInvoice.profit?.profit < 0
-                        ? "table-danger"
-                        : "table-secondary"
-                    }
-                  >
-                    <td>
-                      <strong>Profit/Loss</strong>
-                    </td>
-                    <td className="text-end">
-                      {selectedInvoice.currency}{" "}
-                      {selectedInvoice.profit?.profit || "0.00"}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>
-                      <strong>Profit Margin</strong>
-                    </td>
-                    <td className="text-end">
-                      {selectedInvoice.profit?.profit_margin || "0.00"}%
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>
-                      <strong>Profit Markup</strong>
-                    </td>
-                    <td className="text-end">
-                      {selectedInvoice.profit?.profit_markup || "0.00"}%
-                    </td>
-                  </tr>
-                </tbody>
-              </Table>
+              <Row className="mt-4">
+                <Col md={6}></Col>
+                <Col md={6}>
+                  <Table bordered>
+                    <tbody>
+                      <tr className="table-success">
+                        <td>
+                          <strong>Profit</strong>
+                        </td>
+                        <td className="text-end">
+                          {selectedInvoice.currency}{" "}
+                          {parseFloat(
+                            selectedInvoice.profit?.profit || 0
+                          ).toLocaleString("en-US", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td>
+                          <strong>Profit % (Margin)</strong>
+                        </td>
+                        <td className="text-end">
+                          {parseFloat(
+                            selectedInvoice.profit?.profit_margin || 0
+                          ).toLocaleString("en-US", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                          %
+                        </td>
+                      </tr>
+                      <tr>
+                        <td>
+                          <strong>Profit % (Markup)</strong>
+                        </td>
+                        <td className="text-end">
+                          {parseFloat(
+                            selectedInvoice.profit?.profit_markup || 0
+                          ).toLocaleString("en-US", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                          %
+                        </td>
+                      </tr>
+                    </tbody>
+                  </Table>
+                </Col>
+              </Row>
             </div>
           )}
         </Modal.Body>

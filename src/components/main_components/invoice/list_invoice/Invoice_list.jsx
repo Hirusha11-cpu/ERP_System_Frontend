@@ -77,18 +77,29 @@ const Invoice_list = () => {
     error: userError,
   } = useUser();
 
-  useEffect(() => {
-    fetchInvoices();
-  }, []);
+  // useEffect(() => {
+  //   fetchInvoices();
+  // }, []);
 
   useEffect(() => {
+    // Map selected company to ID
     const companyMap = {
       appleholidays: 2,
       aahaas: 3,
       shirmila: 1,
     };
-    setCompanyNo(companyMap[selectedCompany?.toLowerCase()] || null);
+
+    // Default to 3 (aahaas) if selectedCompany is not set
+    const defaultCompanyNo = companyMap[selectedCompany?.toLowerCase()] || 3;
+
+    setCompanyNo(defaultCompanyNo);
   }, [selectedCompany]);
+
+  useEffect(() => {
+    if (companyNo) {
+      fetchInvoices(companyNo);
+    }
+  }, [companyNo]);
 
   const fetchInvoices = async () => {
     try {
@@ -99,31 +110,40 @@ const Invoice_list = () => {
         setIsAdmin(user.role.name === "admin");
       }
 
-      const cacheKey = `invoices_company_${companyNo}`;
-      const cacheExpiryKey = `${cacheKey}_expiry`;
+      // const cacheKey = `invoices_company_${companyNo}`;
+      // const cacheExpiryKey = `${cacheKey}_expiry`;
 
-      const cachedData = localStorage.getItem(cacheKey);
-      const cacheExpiry = localStorage.getItem(cacheExpiryKey);
+      // const cachedData = localStorage.getItem(cacheKey);
+      // const cacheExpiry = localStorage.getItem(cacheExpiryKey);
 
-      // If we have cached data and it's not expired
-      if (cachedData && cacheExpiry && Date.now() < Number(cacheExpiry)) {
-        console.log("Loaded invoices from cache");
-        setInvoices(JSON.parse(cachedData));
-        setLoading(false);
-        return;
-      }
+      // // If we have cached data and it's not expired
+      // if (cachedData && cacheExpiry && Date.now() < Number(cacheExpiry)) {
+      //   console.log("Loaded invoices from cache");
+      //   setInvoices(JSON.parse(cachedData));
+      //   setLoading(false);
+      //   return;
+      // }
 
       // Otherwise, fetch from API
-      const response = await axios.get("/api/invoices", {
-        params: { company_id: companyNo },
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      // const response = await axios.get("/api/invoices", {
+      //   params: { company_id: companyNo },
+      //   headers: { Authorization: `Bearer ${token}` },
+      // });
+
+      const response = await axios.get(
+        `/api/invoices?company_id=${companyNo}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
       const invoicesData = response.data.data || [];
 
       // Save to cache
-      localStorage.setItem(cacheKey, JSON.stringify(invoicesData));
-      localStorage.setItem(cacheExpiryKey, Date.now() + 10 * 60 * 1000); // 10 minutes expiry
+      // localStorage.setItem(cacheKey, JSON.stringify(invoicesData));
+      // localStorage.setItem(cacheExpiryKey, Date.now() + 10 * 60 * 1000); // 10 minutes expiry
 
       setInvoices(invoicesData);
     } catch (error) {
@@ -158,6 +178,8 @@ const Invoice_list = () => {
   });
 
   const handleViewInvoice = (invoice) => {
+    console.log("Viewing invoice:", invoice);
+
     setCurrentInvoice(invoice);
     if (companyNo === 2) {
       setShowPreviewModalAppleholidays(true);
@@ -210,6 +232,121 @@ const Invoice_list = () => {
       }
       document.body.removeChild(tempDiv);
     }, 100);
+  };
+  const handleDownloadInvoiceAahaas = (invoice) => {
+    // Set the current invoice to generate the PDF for
+    setCurrentInvoice(invoice);
+    console.log("Printing invoice for Aahaas:", invoice);
+
+    // Create a download link using the PDFDownloadLink component
+    const pdfLink = (
+      <PDFDownloadLink
+        document={<InvoicePDF invoice={invoice} company="aahaas" />}
+        fileName={`aahaas_invoice_${invoice.invoice_number}.pdf`}
+      >
+        {({ loading }) => (loading ? "Loading document..." : "Download now!")}
+      </PDFDownloadLink>
+    );
+
+    // Programmatically trigger the download
+    // Since we can't directly access the download link in this way,
+    // we'll need to create a temporary button and click it
+    const tempDiv = document.createElement("div");
+    document.body.appendChild(tempDiv);
+
+    // Render the PDFDownloadLink to our temp div
+    ReactDOM.render(pdfLink, tempDiv);
+
+    // Find the anchor tag and click it
+    setTimeout(() => {
+      const downloadLink = tempDiv.querySelector("a");
+      if (downloadLink) {
+        downloadLink.click();
+      }
+      document.body.removeChild(tempDiv);
+    }, 100);
+  };
+  const handleDownloadInvoiceAppleHolidays = (invoice) => {
+    // Set the current invoice to generate the PDF for
+    setCurrentInvoice(invoice);
+
+    // Create a download link using the PDFDownloadLink component
+    const pdfLink = (
+      <PDFDownloadLink
+        document={<InvoicePDF invoice={invoice} company="appleholidays" />}
+        fileName={`appleholidays_invoice_${invoice.invoice_number}.pdf`}
+      >
+        {({ loading }) => (loading ? "Loading document..." : "Download now!")}
+      </PDFDownloadLink>
+    );
+
+    // Programmatically trigger the download
+    // Since we can't directly access the download link in this way,
+    // we'll need to create a temporary button and click it
+    const tempDiv = document.createElement("div");
+    document.body.appendChild(tempDiv);
+
+    // Render the PDFDownloadLink to our temp div
+    ReactDOM.render(pdfLink, tempDiv);
+
+    // Find the anchor tag and click it
+    setTimeout(() => {
+      const downloadLink = tempDiv.querySelector("a");
+      if (downloadLink) {
+        downloadLink.click();
+      }
+      document.body.removeChild(tempDiv);
+    }, 100);
+  };
+  const handleDownloadInvoiceSharmila = (invoice) => {
+    // Set the current invoice to generate the PDF for
+    setCurrentInvoice(invoice);
+
+    // Create a download link using the PDFDownloadLink component
+    const pdfLink = (
+      <PDFDownloadLink
+        document={<InvoicePDF invoice={invoice} company="sharmila" />}
+        fileName={`sharmila_invoice_${invoice.invoice_number}.pdf`}
+      >
+        {({ loading }) => (loading ? "Loading document..." : "Download now!")}
+      </PDFDownloadLink>
+    );
+
+    // Programmatically trigger the download
+    // Since we can't directly access the download link in this way,
+    // we'll need to create a temporary button and click it
+    const tempDiv = document.createElement("div");
+    document.body.appendChild(tempDiv);
+
+    // Render the PDFDownloadLink to our temp div
+    ReactDOM.render(pdfLink, tempDiv);
+
+    // Find the anchor tag and click it
+    setTimeout(() => {
+      const downloadLink = tempDiv.querySelector("a");
+      if (downloadLink) {
+        downloadLink.click();
+      }
+      document.body.removeChild(tempDiv);
+    }, 100);
+  };
+
+  const handlePrintInvoiceAahaas = (invoice) => {
+    setCurrentInvoice(invoice);
+    console.log("Printing invoice for Aahaas:", invoice);
+
+    // Create a modal or component that shows the PDF with print button
+    setShowPreviewModalAahaas(true);
+  };
+
+  const handlePrintInvoiceAppleHolidays = (invoice) => {
+    setCurrentInvoice(invoice);
+    setShowPreviewModalAppleholidays(true);
+  };
+
+  const handlePrintInvoiceSharmila = (invoice) => {
+    setCurrentInvoice(invoice);
+    setShowPreviewModalSharmila(true);
   };
 
   const confirmDelete = (invoice) => {
@@ -592,10 +729,13 @@ const Invoice_list = () => {
                 <thead className="table-light">
                   <tr>
                     <th>Invoice No.</th>
+                    <th>Tour Ref No.</th>
                     <th>Customer</th>
                     <th>Date</th>
-                    <th>Total</th>
+                    <th>Travel Period</th>
                     <th>Credit/Non-Credit</th>
+                    <th>Balance</th>
+                    <th>Total</th>
                     <th>Status</th>
                     <th className="text-end">Actions</th>
                   </tr>
@@ -615,6 +755,7 @@ const Invoice_list = () => {
                             : ""
                         }
                       >
+                        <td>{invoice?.id}</td>
                         <td>
                           <strong>{invoice.invoice_number}</strong>
                         </td>
@@ -644,36 +785,43 @@ const Invoice_list = () => {
                           </small>
                         </td>
                         <td>
+                          {formatDate(invoice.due_date)} -{" "}
+                          {formatDate(invoice.end_date)}
+                        </td>
+                        <td>{invoice?.payment_type}</td>
+                        <td>
+                          {invoice.currency} {invoice?.balance}
+                        </td>
+                        <td>
                           <div className="d-flex align-items-center">
-                            <FaReceipt className="me-2 text-muted" />
+                            {/* <FaReceipt className="me-2 text-muted" /> */}
                             {invoice.currency} {invoice.total_amount}
                           </div>
                         </td>
-                        <td>{invoice?.payment_type}</td>
                         <td>{invoice.status}</td>
-                        <td className="text-end">
-                          <div className="d-flex justify-content-end">
+                        <td className="text-start">
+                          <div className="d-flex justify-content-start">
                             <ActionButton
                               icon={<FaEye />}
-                              label="View"
+                              // label="View"
                               variant="info"
                               onClick={() => handleViewInvoice(invoice)}
                             />
                             <ActionButton
                               icon={<FaEdit />}
-                              label="Edit"
+                              // label="Edit"
                               variant="primary"
                               onClick={() => handleEditInvoice(invoice)}
                             />
                             <ActionButton
                               icon={<FaPrint />}
-                              label="Print"
+                              // label="Print"
                               variant="secondary"
                               onClick={() => handlePrintInvoice(invoice.id)}
                             />
                             <ActionButton
                               icon={<FaTrash />}
-                              label="Cancel"
+                              // label="Cancel"
                               variant="danger"
                               onClick={() => handleCancelInvoice(invoice)}
                               disabled={invoice.status === "cancelled"}
@@ -747,73 +895,82 @@ const Invoice_list = () => {
             <div className="invoice-preview p-4">
               {/* Company Header */}
               <div className="text-center mb-3">
-                <div className="company-header text-center mb-4">
-                  <img
-                    src="https://s3-aahaas-prod-assets.s3.ap-southeast-1.amazonaws.com/images/aahaas.png"
-                    alt="Aahaas Logo"
-                    className="receipt-logo"
-                    style={{ width: "200px" }}
-                  />
-                  <div>
-                    One Galle Face Tower, 2208, 1A Centre Road, Colombo 002
-                  </div>
-                  <div>Tel: 011 2352 400 | Web: www.appleholidaysds.com</div>
-                </div>
-
-                {/* <div className="notice-box p-2 mb-3 text-start bg-warning bg-opacity-10 border-start border-warning border-4">
-                  <strong>STRICTLY TO BE NOTED:</strong> Finance bill 2017
-                  proposes to insert Section 269ST in the Income tax Act that
-                  restricts receiving an amount of Rs 2,00,000/- or more.
-                  Sharmila Travels will not accept any cash deposit effective
-                  1st April 2017. If trade partners make cash deposit, then the
-                  amount will be ignored and use other payment modes such as
-                  Cheque deposit, RTGS & NEFT for all your future bookings with
-                  Sharmila Travels.
-                </div> */}
-
-                <h5 className="fw-bold mb-3">INVOICE </h5>
-              </div>
-
-              {/* Invoice Meta and Customer Info */}
-              <div className="d-flex justify-content-between mb-4">
+                <img
+                  src="/images/logo/aahaas.png"
+                  alt="Aahaas Logo"
+                  className="receipt-logo"
+                  style={{ width: "200px" }}
+                />
                 <div>
-                  <div>
-                    <strong>To:</strong>{" "}
-                    {currentInvoice.customer?.name || "N/A"}
-                  </div>
-                  <div>{currentInvoice.customer?.address || "N/A"}</div>
-                  {/* <div>GST NO: {currentInvoice.customer?.gst_no || "N/A"}</div> */}
+                  One Galle Face Tower, 2208, 1A Centre Road, Colombo 002
                 </div>
-                <div className="text-end">
-                  <div>
-                    <strong>No.</strong> {currentInvoice.invoice_number}
-                  </div>
-                  <div>
-                    <strong>Date</strong>{" "}
-                    {formatDate(currentInvoice.issue_date)}
-                  </div>
-                  <div>
-                    <strong>Your Ref.</strong>{" "}
-                    {currentInvoice.your_ref || "N/A"}
-                  </div>
-                  <div>
-                    <strong>Sales ID</strong> {currentInvoice.sales_id || "N/A"}
-                  </div>
-                  <div>
-                    <strong>Printed By</strong>{" "}
-                    {currentInvoice.printed_by || "N/A"}
-                  </div>
-                  <div>
-                    <strong>Booking ID</strong>{" "}
-                    {currentInvoice.booking_id || "N/A"}
-                  </div>
+                <div>Tel: +9411 2352 400 | Web: www.appleholidaysds.com</div>
+              </div>
+
+              {/* Greeting + Notice */}
+              <div className="thank-you mb-2">
+                Dear {currentInvoice.customer?.name || "Customer"}, Thank you
+                for your order
+              </div>
+              <p>Please find below the receipt for your order</p>
+
+              {/* Order Meta Info */}
+              <div className="order-meta mb-3">
+                <div>
+                  <strong>Invoice No:</strong> {currentInvoice.id}
+                </div>
+                <div>
+                  <strong>Order No:</strong> {currentInvoice.invoice_number}
+                </div>
+                <div>
+                  <strong>Order Date:</strong>{" "}
+                  {formatDate(currentInvoice.issue_date)} |{" "}
+                  {new Date().toLocaleTimeString()}
+                </div>
+                <div>
+                  <strong>Payment Type:</strong>{" "}
+                  {currentInvoice.payment_type === "credit"
+                    ? "Credit"
+                    : "Non-Credit"}{" "}
+                  |{" "}
+                  {Number(currentInvoice.balance) <= 0
+                    ? "Full Payment"
+                    : "Partial Payment"}
+                  {currentInvoice.payment_type === "non-credit" && (
+                    <span>
+                      {" "}
+                      &nbsp; {formatDate(currentInvoice.collection_date)}
+                    </span>
+                  )}
                 </div>
               </div>
 
-              {/* Items Table */}
-              <table className="table table-bordered mb-3">
+              {/* Customer Details */}
+              <h5>Customer Details</h5>
+              <table className="table table-bordered mb-4">
                 <thead>
-                  <tr style={{ backgroundColor: "#343a40", color: "white" }}>
+                  <tr>
+                    <th>Name</th>
+                    <th>Address</th>
+                    <th>Email</th>
+                    <th>Contact</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>{currentInvoice.customer?.name || "-"}</td>
+                    <td>{currentInvoice.customer?.address || "-"}</td>
+                    <td>{currentInvoice.customer?.email || "-"}</td>
+                    <td>{currentInvoice.customer?.phone || "-"}</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              {/* Services / Items */}
+              <h5>Services</h5>
+              <table className="table table-bordered mb-4">
+                <thead style={{ backgroundColor: "#343a40", color: "white" }}>
+                  <tr>
                     <th>Description</th>
                     <th style={{ textAlign: "right" }}>Unit Fare</th>
                     <th style={{ textAlign: "right" }}>Discount</th>
@@ -839,67 +996,99 @@ const Invoice_list = () => {
                 </tbody>
               </table>
 
-              {/* Payment Instructions */}
-              <div className="mb-3">{currentInvoice.payment_instructions}</div>
-
               {/* Totals */}
-              <div className="row mb-4">
-                <div className="col-md-6 offset-md-6">
-                  <table style={{ width: "100%" }}>
-                    <tbody>
-                      <tr>
-                        <td style={{ padding: "4px", textAlign: "right" }}>
-                          <strong>Sub Total:</strong>
-                        </td>
-                        <td style={{ padding: "4px", textAlign: "right" }}>
-                          {currentInvoice.currency} {currentInvoice.sub_total}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td style={{ padding: "4px", textAlign: "right" }}>
-                          <strong>Total:</strong>
-                        </td>
-                        <td style={{ padding: "4px", textAlign: "right" }}>
-                          {currentInvoice.currency}{" "}
-                          {currentInvoice.total_amount}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td style={{ padding: "4px", textAlign: "right" }}>
-                          <strong>Amount Received:</strong>
-                        </td>
-                        <td style={{ padding: "4px", textAlign: "right" }}>
-                          {currentInvoice.currency}{" "}
-                          {currentInvoice.amount_received}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td style={{ padding: "4px", textAlign: "right" }}>
-                          <strong>Balance:</strong>
-                        </td>
-                        <td style={{ padding: "4px", textAlign: "right" }}>
-                          {currentInvoice.currency} {currentInvoice.balance}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
+              <table className="table totals-table mb-4">
+                <tbody>
+                  <tr>
+                    <td>
+                      <strong>Sub Total:</strong>
+                    </td>
+                    <td style={{ textAlign: "right" }}>
+                      {currentInvoice.currency} {currentInvoice.sub_total}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <strong>Total:</strong>
+                    </td>
+                    <td style={{ textAlign: "right" }}>
+                      {currentInvoice.currency} {currentInvoice.total_amount}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <strong>Amount Received:</strong>
+                    </td>
+                    <td style={{ textAlign: "right" }}>
+                      {currentInvoice.currency} {currentInvoice.amount_received}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>
+                      <strong>Balance:</strong>
+                    </td>
+                    <td style={{ textAlign: "right" }}>
+                      {currentInvoice.currency} {currentInvoice.balance}
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <div className="mb-4">
+                <h6 className="fw-bold">ACCOUNT DETAILS</h6>
+                <div>
+                  <strong>ACCOUNT NAME:</strong>{" "}
+                  {currentInvoice.account?.account_name || "N/A"}
+                </div>
+                <div>
+                  <strong>ACCOUNT NO:</strong>{" "}
+                  {currentInvoice.account?.account_no || "N/A"}
+                </div>
+                <div>
+                  <strong>BANK:</strong> {currentInvoice.account?.bank || "N/A"}
+                </div>
+                <div>
+                  <strong>BRANCH:</strong>{" "}
+                  {currentInvoice.account?.branch || "N/A"}
+                </div>
+                <div>
+                  <strong>IFSC CODE:</strong>{" "}
+                  {currentInvoice.account?.ifsc_code || "N/A"}
+                </div>
+                <div>
+                  <strong>Bank Address:</strong>{" "}
+                  {currentInvoice.account?.bank_address || "N/A"}
                 </div>
               </div>
 
-              {/* Bottom left: Staff and Remark */}
-              <div className="row">
-                <div className="col-md-6">
-                  <div>
-                    {/* <strong>Staff:</strong> {currentInvoice.staff} */}
-                  </div>
-                  <div>
-                    <strong>Remark:</strong> {currentInvoice.remarks}
-                  </div>
-                </div>
+              {/* Travel Period */}
+              <p>
+                <strong>Start Date:</strong> {currentInvoice.start_date || "-"}{" "}
+                &nbsp;|&nbsp;
+                <strong>End Date:</strong> {currentInvoice.end_date || "-"}{" "}
+                &nbsp;|&nbsp;
+                <strong>Travel Period:</strong>{" "}
+                {/* {calculateTravelDays(
+                  currentInvoice.start_date,
+                  currentInvoice.end_date
+                )}{" "} */}
+                days
+              </p>
+
+              {/* Contact Info */}
+              <div className="contact-info mt-4">
+                <p>
+                  Should you have any questions regarding your order, please
+                  send an email to <strong>info@aahaas.com</strong>.
+                </p>
+                <p>
+                  Or contact us at <strong>+94 70 722 4227</strong>
+                </p>
               </div>
             </div>
           )}
         </Modal.Body>
+
         <Modal.Footer>
           <Button
             variant="secondary"
@@ -907,19 +1096,24 @@ const Invoice_list = () => {
           >
             Close
           </Button>
+          <PDFDownloadLink
+            document={<InvoicePDF invoice={currentInvoice} company="aahaas" />}
+            fileName={`aahaas_invoice_${currentInvoice?.invoice_number}.pdf`}
+            className="btn btn-success me-2"
+          >
+            {({ loading }) => (
+              <>
+                <FaDownload className="me-1" />
+                {loading ? "Generating..." : "Download PDF"}
+              </>
+            )}
+          </PDFDownloadLink>
           <Button
             variant="primary"
-            onClick={() => handlePrintInvoice(currentInvoice?.id)}
+            onClick={() => window.print()}
             className="d-flex align-items-center"
           >
             <FaPrint className="me-1" /> Print Invoice
-          </Button>
-          <Button
-            variant="success"
-            onClick={() => alert("PDF download would be implemented here")}
-            className="d-flex align-items-center"
-          >
-            <FaDownload className="me-1" /> Download PDF
           </Button>
         </Modal.Footer>
       </Modal>
@@ -941,7 +1135,7 @@ const Invoice_list = () => {
           {currentInvoice && (
             <div className="invoice-preview p-4">
               {/* Company Header */}
-              <div className="text-center mb-3">
+              <div className="company-header text-center mb-4">
                 <img
                   src="/images/logo/appleholidays_extend.png"
                   alt="Apple Holidays Destination Services"
@@ -952,8 +1146,11 @@ const Invoice_list = () => {
                   One Galle Face Tower, 2208, 1A Centre Road, Colombo 002
                 </div>
                 <div>Tel: 011 2352 400 | Web: www.appleholidaysds.com</div>
+              </div>
 
-                <h5 className="fw-bold mb-3 mt-3">INVOICE </h5>
+              {/* Invoice Title */}
+              <div className="text-center mb-3">
+                <h5 className="fw-bold">INVOICE - {currentInvoice.id}</h5>
               </div>
 
               {/* Invoice Meta and Customer Info */}
@@ -964,11 +1161,13 @@ const Invoice_list = () => {
                     {currentInvoice.customer?.name || "N/A"}
                   </div>
                   <div>{currentInvoice.customer?.address || "N/A"}</div>
-                  {/* <div>GST NO: {currentInvoice.customer?.gst_no || "N/A"}</div> */}
                 </div>
-                <div className="text-end">
+                <div className="text-start">
                   <div>
-                    <strong>No.</strong> {currentInvoice.invoice_number}
+                    <strong>Tour confirmation No.</strong> {currentInvoice.invoice_number}
+                  </div>
+                  <div>
+                    <strong>Invoice No.</strong> {currentInvoice.id}
                   </div>
                   <div>
                     <strong>Date</strong>{" "}
@@ -986,16 +1185,16 @@ const Invoice_list = () => {
                     {currentInvoice.printed_by || "N/A"}
                   </div>
                   <div>
-                    <strong>Booking ID</strong>{" "}
-                    {currentInvoice.booking_id || "N/A"}
+                    <strong>Booking No</strong>{" "}
+                    {currentInvoice.booking_no || "N/A"}
                   </div>
                 </div>
               </div>
 
               {/* Items Table */}
-              <table className="table table-bordered mb-3">
+              <table className="invoice-table mb-3">
                 <thead>
-                  <tr style={{ backgroundColor: "#343a40", color: "white" }}>
+                  <tr>
                     <th>Description</th>
                     <th style={{ textAlign: "right" }}>Unit Fare</th>
                     <th style={{ textAlign: "right" }}>Discount</th>
@@ -1006,7 +1205,8 @@ const Invoice_list = () => {
                 <tbody>
                   {currentInvoice.items?.map((item, index) => (
                     <tr key={index}>
-                      <td>{item.description}</td>
+                      {/* <td>{item.description}</td> */}
+                      <td>Cost per Adult</td>
                       <td style={{ textAlign: "right" }}>
                         {currentInvoice.currency} {item.price}
                       </td>
@@ -1018,48 +1218,50 @@ const Invoice_list = () => {
                       </td>
                     </tr>
                   ))}
+                  {/* <td>Handling Fee</td>
+                  <td style={{ textAlign: "right" }}></td>
+                  <td style={{ textAlign: "right" }}></td>
+                  <td style={{ textAlign: "right" }}></td>
+                  <td style={{ textAlign: "right" }}>USD 100.00</td> */}
                 </tbody>
               </table>
-
-              {/* Payment Instructions */}
-              <div className="mb-3">{currentInvoice.payment_instructions}</div>
 
               {/* Totals */}
               <div className="row mb-4">
                 <div className="col-md-6 offset-md-6">
-                  <table style={{ width: "100%" }}>
+                  <table className="invoice-totals w-100">
                     <tbody>
                       <tr>
-                        <td style={{ padding: "4px", textAlign: "right" }}>
-                          <strong>Sub Total:</strong>
+                        <td style={{ textAlign: "right" }}>
+                          <strong>SUB TOTAL:</strong>
                         </td>
-                        <td style={{ padding: "4px", textAlign: "right" }}>
+                        <td style={{ textAlign: "right" }}>
                           {currentInvoice.currency} {currentInvoice.sub_total}
                         </td>
                       </tr>
                       <tr>
-                        <td style={{ padding: "4px", textAlign: "right" }}>
-                          <strong>Total:</strong>
+                        <td style={{ textAlign: "right" }}>
+                          <strong>TOTAL:</strong>
                         </td>
-                        <td style={{ padding: "4px", textAlign: "right" }}>
+                        <td style={{ textAlign: "right" }}>
                           {currentInvoice.currency}{" "}
                           {currentInvoice.total_amount}
                         </td>
                       </tr>
                       <tr>
-                        <td style={{ padding: "4px", textAlign: "right" }}>
-                          <strong>Amount Received:</strong>
+                        <td style={{ textAlign: "right" }}>
+                          <strong>AMOUNT RECEIVED:</strong>
                         </td>
-                        <td style={{ padding: "4px", textAlign: "right" }}>
+                        <td style={{ textAlign: "right" }}>
                           {currentInvoice.currency}{" "}
                           {currentInvoice.amount_received}
                         </td>
                       </tr>
                       <tr>
-                        <td style={{ padding: "4px", textAlign: "right" }}>
-                          <strong>Balance:</strong>
+                        <td style={{ textAlign: "right" }}>
+                          <strong>BALANCE DUE:</strong>
                         </td>
-                        <td style={{ padding: "4px", textAlign: "right" }}>
+                        <td style={{ textAlign: "right" }}>
                           {currentInvoice.currency} {currentInvoice.balance}
                         </td>
                       </tr>
@@ -1068,20 +1270,50 @@ const Invoice_list = () => {
                 </div>
               </div>
 
-              {/* Bottom left: Staff and Remark */}
+              <div className="mb-4">
+                <h6 className="fw-bold">ACCOUNT DETAILS</h6>
+                <div>
+                  <strong>ACCOUNT NAME:</strong>{" "}
+                  {currentInvoice.account?.account_name || "N/A"}
+                </div>
+                <div>
+                  <strong>ACCOUNT NO:</strong>{" "}
+                  {currentInvoice.account?.account_no || "N/A"}
+                </div>
+                <div>
+                  <strong>BANK:</strong> {currentInvoice.account?.bank || "N/A"}
+                </div>
+                <div>
+                  <strong>BRANCH:</strong>{" "}
+                  {currentInvoice.account?.branch || "N/A"}
+                </div>
+                <div>
+                  <strong>IFSC CODE:</strong>{" "}
+                  {currentInvoice.account?.ifsc_code || "N/A"}
+                </div>
+                <div>
+                  <strong>Bank Address:</strong>{" "}
+                  {currentInvoice.account?.bank_address || "N/A"}
+                </div>
+              </div>
+
+              {/* Payment Instructions / Account Details */}
               <div className="row">
                 <div className="col-md-6">
+                  {currentInvoice.payment_instructions && (
+                    <div className="mb-3">
+                      {currentInvoice.payment_instructions} 
+                    </div>
+                  )}
                   <div>
-                    {/* <strong>Staff:</strong> {currentInvoice.staff} */}
-                  </div>
-                  <div>
-                    <strong>Remark:</strong> {currentInvoice.remarks}
+                    <strong>Remark:</strong> {currentInvoice.remarks }
                   </div>
                 </div>
               </div>
             </div>
           )}
         </Modal.Body>
+
         <Modal.Footer>
           <Button
             variant="secondary"
@@ -1089,19 +1321,26 @@ const Invoice_list = () => {
           >
             Close
           </Button>
+          <PDFDownloadLink
+            document={
+              <InvoicePDF invoice={currentInvoice} company="appleholidays" />
+            }
+            fileName={`appleholidays_invoice_${currentInvoice?.invoice_number}.pdf`}
+            className="btn btn-success me-2"
+          >
+            {({ loading }) => (
+              <>
+                <FaDownload className="me-1" />
+                {loading ? "Generating..." : "Download PDF"}
+              </>
+            )}
+          </PDFDownloadLink>
           <Button
             variant="primary"
-            onClick={() => handlePrintInvoice(currentInvoice?.id)}
+            onClick={() => window.print()}
             className="d-flex align-items-center"
           >
             <FaPrint className="me-1" /> Print Invoice
-          </Button>
-          <Button
-            variant="success"
-            onClick={() => alert("PDF download would be implemented here")}
-            className="d-flex align-items-center"
-          >
-            <FaDownload className="me-1" /> Download PDF
           </Button>
         </Modal.Footer>
       </Modal>
@@ -1124,30 +1363,16 @@ const Invoice_list = () => {
             <div className="invoice-preview p-4">
               {/* Company Header */}
               <div className="text-center mb-3">
-                <h4 className="mb-1 fw-bold">Sharmila Tours & Travels</h4>
+                <h4 className="mb-1 fw-bold text-danger">
+                  Sharmila Tours & Travels
+                </h4>
                 <div className="mb-1">
                   No: 148, Aluthmawatha Road, Colombo - 15, Sri Lanka
                 </div>
-                {/* <div className="mb-1">Chinna Chokkikulam, Madurai - 625002</div> */}
-                <div className="mb-1">Tel:011 23 52 400 | 011 23 45 800</div>
-                {/* <div className="mb-1">E-mail: chennai@Sharmilatravels.com</div> */}
-                {/* <div className="mb-1">
-                        Service Tax Registration No.: ADVT544290
-                      </div> */}
-                {/* <div className="mb-3">GSTIN: 33ADVT544290TZV</div> */}
+                <div className="mb-1">Tel: 011 23 52 400 | 011 23 45 800</div>
+                <div className="mb-1">E-mail: fares@sharmilatravels.com</div>
 
-                {/* <div className="notice-box p-2 mb-3 text-start bg-warning bg-opacity-10 border-start border-warning border-4">
-                        <strong>STRICTLY TO BE NOTED:</strong> Finance bill 2017
-                        proposes to insert Section 269ST in the Income tax Act that
-                        restricts receiving an amount of Rs 2,00,000/- or more.
-                        Sharmila Travels will not accept any cash deposit effective
-                        1st April 2017. If trade partners make cash deposit, then the
-                        amount will be ignored and use other payment modes such as
-                        Cheque deposit, RTGS & NEFT for all your future bookings with
-                        Sharmila Travels.
-                      </div> */}
-
-                <h5 className="fw-bold mb-3">INVOICE </h5>
+                <h5 className="fw-bold mb-3 mt-4">INVOICE</h5>
               </div>
 
               {/* Invoice Meta and Customer Info */}
@@ -1160,12 +1385,12 @@ const Invoice_list = () => {
                   <div>{currentInvoice.customer?.address || "N/A"}</div>
                   {/* <div>GST NO: {currentInvoice.customer?.gst_no || "N/A"}</div> */}
                 </div>
-                <div className="text-end">
+                <div className="text-start">
                   <div>
                     <strong>No.</strong> {currentInvoice.invoice_number}
                   </div>
                   <div>
-                    <strong>Date</strong>{" "}
+                    <strong>Date:</strong>{" "}
                     {formatDate(currentInvoice.issue_date)}
                   </div>
                   <div>
@@ -1173,14 +1398,15 @@ const Invoice_list = () => {
                     {currentInvoice.your_ref || "N/A"}
                   </div>
                   <div>
-                    <strong>Sales ID</strong> {currentInvoice.sales_id || "N/A"}
+                    <strong>Sales ID:</strong>{" "}
+                    {currentInvoice.sales_id || "N/A"}
                   </div>
                   <div>
-                    <strong>Printed By</strong>{" "}
+                    <strong>Printed By:</strong>{" "}
                     {currentInvoice.printed_by || "N/A"}
                   </div>
                   <div>
-                    <strong>Booking ID</strong>{" "}
+                    <strong>Booking ID:</strong>{" "}
                     {currentInvoice.booking_id || "N/A"}
                   </div>
                 </div>
@@ -1216,7 +1442,12 @@ const Invoice_list = () => {
               </table>
 
               {/* Payment Instructions */}
-              <div className="mb-3">{currentInvoice.payment_instructions}</div>
+              {currentInvoice.payment_instructions && (
+                <div className="mb-3">
+                  <strong>Payment Instructions:</strong>{" "}
+                  {currentInvoice.payment_instructions}
+                </div>
+              )}
 
               {/* Totals */}
               <div className="row mb-4">
@@ -1228,16 +1459,28 @@ const Invoice_list = () => {
                           <strong>Sub Total:</strong>
                         </td>
                         <td style={{ padding: "4px", textAlign: "right" }}>
-                          {currentInvoice.currency} {currentInvoice.sub_total}
+                          {currentInvoice.currency}{" "}
+                          {Number(currentInvoice.sub_total).toFixed(2)}
                         </td>
                       </tr>
+                      {currentInvoice.gst && (
+                        <tr>
+                          <td style={{ padding: "4px", textAlign: "right" }}>
+                            <strong>GST:</strong>
+                          </td>
+                          <td style={{ padding: "4px", textAlign: "right" }}>
+                            {currentInvoice.currency}{" "}
+                            {Number(currentInvoice.gst).toFixed(2)}
+                          </td>
+                        </tr>
+                      )}
                       <tr>
                         <td style={{ padding: "4px", textAlign: "right" }}>
                           <strong>Total:</strong>
                         </td>
                         <td style={{ padding: "4px", textAlign: "right" }}>
                           {currentInvoice.currency}{" "}
-                          {currentInvoice.total_amount}
+                          {Number(currentInvoice.total_amount).toFixed(2)}
                         </td>
                       </tr>
                       <tr>
@@ -1246,7 +1489,7 @@ const Invoice_list = () => {
                         </td>
                         <td style={{ padding: "4px", textAlign: "right" }}>
                           {currentInvoice.currency}{" "}
-                          {currentInvoice.amount_received}
+                          {Number(currentInvoice.amount_received).toFixed(2)}
                         </td>
                       </tr>
                       <tr>
@@ -1254,7 +1497,8 @@ const Invoice_list = () => {
                           <strong>Balance:</strong>
                         </td>
                         <td style={{ padding: "4px", textAlign: "right" }}>
-                          {currentInvoice.currency} {currentInvoice.balance}
+                          {currentInvoice.currency}{" "}
+                          {Number(currentInvoice.balance).toFixed(2)}
                         </td>
                       </tr>
                     </tbody>
@@ -1262,20 +1506,50 @@ const Invoice_list = () => {
                 </div>
               </div>
 
+              <div className="mb-4">
+                <h6 className="fw-bold">ACCOUNT DETAILS</h6>
+                <div>
+                  <strong>ACCOUNT NAME:</strong>{" "}
+                  {currentInvoice.account?.account_name || "N/A"}
+                </div>
+                <div>
+                  <strong>ACCOUNT NO:</strong>{" "}
+                  {currentInvoice.account?.account_no || "N/A"}
+                </div>
+                <div>
+                  <strong>BANK:</strong> {currentInvoice.account?.bank || "N/A"}
+                </div>
+                <div>
+                  <strong>BRANCH:</strong>{" "}
+                  {currentInvoice.account?.branch || "N/A"}
+                </div>
+                <div>
+                  <strong>IFSC CODE:</strong>{" "}
+                  {currentInvoice.account?.ifsc_code || "N/A"}
+                </div>
+                <div>
+                  <strong>Bank Address:</strong>{" "}
+                  {currentInvoice.account?.bank_address || "N/A"}
+                </div>
+              </div>
+
               {/* Bottom left: Staff and Remark */}
               <div className="row">
                 <div className="col-md-6">
+                  {currentInvoice.staff && (
+                    <div>
+                      <strong>Staff:</strong> {currentInvoice.staff}
+                    </div>
+                  )}
                   <div>
-                    {/* <strong>Staff:</strong> {currentInvoice.staff} */}
-                  </div>
-                  <div>
-                    <strong>Remark:</strong> {currentInvoice.remarks}
+                    <strong>Remark:</strong> {currentInvoice.remarks || "N/A"}
                   </div>
                 </div>
               </div>
             </div>
           )}
         </Modal.Body>
+
         <Modal.Footer>
           <Button
             variant="secondary"
@@ -1283,19 +1557,26 @@ const Invoice_list = () => {
           >
             Close
           </Button>
+          <PDFDownloadLink
+            document={
+              <InvoicePDF invoice={currentInvoice} company="sharmila" />
+            }
+            fileName={`sharmila_invoice_${currentInvoice?.invoice_number}.pdf`}
+            className="btn btn-success me-2"
+          >
+            {({ loading }) => (
+              <>
+                <FaDownload className="me-1" />
+                {loading ? "Generating..." : "Download PDF"}
+              </>
+            )}
+          </PDFDownloadLink>
           <Button
             variant="primary"
-            onClick={() => handlePrintInvoice(currentInvoice?.id)}
+            onClick={() => window.print()}
             className="d-flex align-items-center"
           >
             <FaPrint className="me-1" /> Print Invoice
-          </Button>
-          <Button
-            variant="success"
-            onClick={() => alert("PDF download would be implemented here")}
-            className="d-flex align-items-center"
-          >
-            <FaDownload className="me-1" /> Download PDF
           </Button>
         </Modal.Footer>
       </Modal>

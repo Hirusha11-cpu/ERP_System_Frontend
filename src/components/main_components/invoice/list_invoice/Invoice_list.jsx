@@ -13,6 +13,7 @@ import {
   OverlayTrigger,
   Tooltip,
 } from "react-bootstrap";
+
 import {
   FaEye,
   FaTrash,
@@ -76,6 +77,8 @@ const Invoice_list = () => {
     loading: userLoading,
     error: userError,
   } = useUser();
+  const [cancelRemark, setCancelRemark] = useState("");
+const [cancelAttachment, setCancelAttachment] = useState(null);
 
   // useEffect(() => {
   //   fetchInvoices();
@@ -427,43 +430,91 @@ const Invoice_list = () => {
   //   }
   // };
 
+  // const handleDeleteInvoice = async () => {
+  //   try {
+  //     setIsLoading(true);
+
+  //     const emailResponse = await axios.post(
+  //       "/api/send-email",
+  //       {
+  //         to: "nightvine121@gmail.com", 
+  //         subject: `Invoice Cancellation Request: ${invoiceToDelete.invoice_number}`,
+  //         invoice_number: invoiceToDelete.invoice_number,
+  //         customer_name: invoiceToDelete.customer?.name || "N/A",
+  //         currency: invoiceToDelete.currency,
+  //         amount: invoiceToDelete.total_amount,
+  //         date: formatDate(invoiceToDelete.issue_date),
+  //         invoice_id: invoiceToDelete.id,
+  //       },
+  //       {
+  //         headers: {
+  //           Authorization: `Bearer ${token}`,
+  //         },
+  //       }
+  //     );
+
+  //     setShowDeleteModal(false);
+  //     setSuccess(
+  //       `Cancellation request for invoice ${invoiceToDelete.invoice_number} has been sent for approval.`
+  //     );
+  //   } catch (error) {
+  //     console.error("Error requesting invoice cancellation:", error);
+  //     setError(
+  //       error.response?.data?.error ||
+  //         "Failed to request invoice cancellation. Please try again."
+  //     );
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
+ 
   const handleDeleteInvoice = async () => {
-    try {
-      setIsLoading(true);
+  try {
+    setIsLoading(true);
 
-      const emailResponse = await axios.post(
-        "/api/send-email",
-        {
-          to: "nightvine121@gmail.com", // Or get boss's email dynamically
-          subject: `Invoice Cancellation Request: ${invoiceToDelete.invoice_number}`,
-          invoice_number: invoiceToDelete.invoice_number,
-          customer_name: invoiceToDelete.customer?.name || "N/A",
-          currency: invoiceToDelete.currency,
-          amount: invoiceToDelete.total_amount,
-          date: formatDate(invoiceToDelete.issue_date),
-          invoice_id: invoiceToDelete.id, // Add this
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      setShowDeleteModal(false);
-      setSuccess(
-        `Cancellation request for invoice ${invoiceToDelete.invoice_number} has been sent for approval.`
-      );
-    } catch (error) {
-      console.error("Error requesting invoice cancellation:", error);
-      setError(
-        error.response?.data?.error ||
-          "Failed to request invoice cancellation. Please try again."
-      );
-    } finally {
-      setIsLoading(false);
+    const formData = new FormData();
+    formData.append('to', "nightvine121@gmail.com");
+    formData.append('subject', `Invoice Cancellation Request: ${invoiceToDelete.invoice_number}`);
+    formData.append('invoice_number', invoiceToDelete.invoice_number);
+    formData.append('customer_name', invoiceToDelete.customer?.name || "N/A");
+    formData.append('currency', invoiceToDelete.currency);
+    formData.append('amount', invoiceToDelete.total_amount);
+    formData.append('date', formatDate(invoiceToDelete.issue_date));
+    formData.append('invoice_id', invoiceToDelete.id);
+    formData.append('remark', cancelRemark);
+    
+    if (cancelAttachment) {
+      formData.append('attachment', cancelAttachment);
     }
-  };
+
+    const emailResponse = await axios.post(
+      "/api/send-email",
+      formData,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
+        },
+      }
+    );
+
+    setShowDeleteModal(false);
+    setCancelRemark(""); // Reset remark
+    setCancelAttachment(null); // Reset attachment
+    setSuccess(
+      `Cancellation request for invoice ${invoiceToDelete.invoice_number} has been sent for approval.`
+    );
+  } catch (error) {
+    console.error("Error requesting invoice cancellation:", error);
+    setError(
+      error.response?.data?.error ||
+        "Failed to request invoice cancellation. Please try again."
+    );
+  } finally {
+    setIsLoading(false);
+  }
+};
+
   const handleUpdateInvoice = async (formData) => {
     try {
       // Convert items from form data to array format
@@ -2109,7 +2160,7 @@ const Invoice_list = () => {
       </Modal>
 
       {/* Delete Confirmation Modal */}
-      <Modal
+      {/* <Modal
         show={showDeleteModal}
         onHide={() => setShowDeleteModal(false)}
         centered
@@ -2121,11 +2172,7 @@ const Invoice_list = () => {
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          {/* {success === "" ? <div className="alert alert-danger">
-            <strong>Warning:</strong> This action cannot be undone.
-          </div> :  <div className="alert alert-success">
-        {success}
-      </div> } */}
+        
           <div className="alert alert-danger">
             <strong>Warning:</strong> This action cannot be undone.
           </div>
@@ -2150,7 +2197,96 @@ const Invoice_list = () => {
             </Button>
           )}
         </Modal.Footer>
-      </Modal>
+      </Modal> */}
+      <Modal
+  show={showDeleteModal}
+  onHide={() => {
+    setShowDeleteModal(false);
+    setCancelRemark(""); // Reset on close
+    setCancelAttachment(null); // Reset on close
+  }}
+  centered
+  size="lg"
+>
+  <Modal.Header closeButton>
+    <Modal.Title className="d-flex align-items-center">
+      <FaTrash className="me-2 text-danger" />
+      {isAdmin ? "Confirm Cancellation" : "Request Cancellation"}
+    </Modal.Title>
+  </Modal.Header>
+  <Modal.Body>
+    <div className="alert alert-danger">
+      <strong>Warning:</strong> {isAdmin 
+        ? "This action cannot be undone." 
+        : "This will send a cancellation request for approval."}
+    </div>
+
+    <p>
+      {isAdmin 
+        ? `Are you sure you want to cancel invoice #${invoiceToDelete?.invoice_number}?`
+        : `Are you sure you want to request cancellation for invoice #${invoiceToDelete?.invoice_number}?`}
+    </p>
+
+    {/* Add remark and attachment fields for non-admin users */}
+    {!isAdmin && (
+      <div className="mt-4">
+        <Form.Group className="mb-3">
+          <Form.Label>
+            <strong>Reason for Cancellation *</strong>
+          </Form.Label>
+          <Form.Control
+            as="textarea"
+            rows={3}
+            placeholder="Please provide the reason for cancellation..."
+            value={cancelRemark}
+            onChange={(e) => setCancelRemark(e.target.value)}
+            required
+          />
+        </Form.Group>
+
+        <Form.Group className="mb-3">
+          <Form.Label>
+            <strong>Attachment (Optional)</strong>
+          </Form.Label>
+          <Form.Control
+            type="file"
+            onChange={(e) => setCancelAttachment(e.target.files[0])}
+            accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+          />
+          <Form.Text className="text-muted">
+            Supported formats: PDF, JPG, PNG, DOC, DOCX (Max 5MB)
+          </Form.Text>
+        </Form.Group>
+      </div>
+    )}
+  </Modal.Body>
+  <Modal.Footer>
+    <Button 
+      variant="secondary" 
+      onClick={() => {
+        setShowDeleteModal(false);
+        setCancelRemark("");
+        setCancelAttachment(null);
+      }}
+    >
+      Close
+    </Button>
+    {!isAdmin && (
+      <Button 
+        variant="danger" 
+        onClick={handleDeleteInvoice}
+        disabled={!cancelRemark.trim()} // Disable if no remark
+      >
+        {isLoading ? "Submitting Request..." : "Submit Request"}
+      </Button>
+    )}
+    {isAdmin && (
+      <Button variant="danger" onClick={handleDeleteInvoiceAdmin}>
+        Confirm Cancel
+      </Button>
+    )}
+  </Modal.Footer>
+</Modal>
     </div>
   );
 };

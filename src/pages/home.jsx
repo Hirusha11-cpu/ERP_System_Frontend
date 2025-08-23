@@ -86,6 +86,7 @@ const Home = () => {
   const [creditCount, setCreditCount] = useState(0);
   const [filteredNonCreditCount, setFilteredNonCreditCount] = useState(0);
   const [filteredCreditCount, setFilteredCreditCount] = useState(0);
+  const [gracePeriod, setGracePeriod] = useState(15); // default 15 days
 
   const token =
     localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
@@ -210,7 +211,8 @@ const Home = () => {
   const applyPaymentTypeFilters = (data) => {
     if (paymentTypeFilter === "credit") {
       return data.filter(
-        (invoice) => invoice.payment_type === "credit" || invoice.customer?.name === "MMT"
+        (invoice) =>
+          invoice.payment_type === "credit" || invoice.customer?.name === "MMT"
       );
     } else if (paymentTypeFilter === "non-credit") {
       return data.filter((invoice) => invoice.payment_type === "non-credit");
@@ -218,7 +220,61 @@ const Home = () => {
     return data;
   };
 
-  const calculateStats = (invoiceData) => {
+  // const calculateStats = (invoiceData) => {
+  //   const stats = {
+  //     total: 0,
+  //     paid: 0,
+  //     overdue: 0,
+  //     pending: 0,
+  //   };
+
+  //   const pnl = {
+  //     totalRevenue: 0,
+  //     totalCost: 0,
+  //     totalProfit: 0,
+  //     totalInvoicesWithPnl: 0,
+  //   };
+
+  //   let nonCreditInvoices = 0;
+  //   let creditInvoices = 0;
+
+  //   invoiceData.forEach((invoice) => {
+  //     const amount = parseFloat(invoice.total_amount) || 0;
+  //     stats.total += amount;
+
+  //     if (invoice.payment_type === "non-credit") {
+  //       nonCreditInvoices++;
+  //     }
+  //     if (
+  //       invoice?.customer?.name === "MMT" ||
+  //       invoice.payment_type === "credit"
+  //     ) {
+  //       creditInvoices++;
+  //     }
+
+  //     if (
+  //       invoice.amount_received &&
+  //       parseFloat(invoice.amount_received) >= amount
+  //     ) {
+  //       stats.paid += amount;
+  //     } else if (new Date(invoice.due_date) < new Date()) {
+  //       stats.overdue += amount;
+  //     } else {
+  //       stats.pending += amount;
+  //     }
+
+  //     if (invoice.profit) {
+  //       pnl.totalRevenue += parseFloat(invoice.profit.total_revenue) || 0;
+  //       pnl.totalCost += parseFloat(invoice.profit.total_cost) || 0;
+  //       pnl.totalProfit += parseFloat(invoice.profit.profit) || 0;
+  //       pnl.totalInvoicesWithPnl++;
+  //     }
+  //   });
+
+  //   return { stats, pnl, nonCreditInvoices, creditInvoices };
+  // };
+
+  const calculateStats = (invoiceData, gracePeriodDays = 15) => {
     const stats = {
       total: 0,
       paid: 0,
@@ -235,6 +291,8 @@ const Home = () => {
 
     let nonCreditInvoices = 0;
     let creditInvoices = 0;
+
+    const now = new Date();
 
     invoiceData.forEach((invoice) => {
       const amount = parseFloat(invoice.total_amount) || 0;
@@ -255,10 +313,18 @@ const Home = () => {
         parseFloat(invoice.amount_received) >= amount
       ) {
         stats.paid += amount;
-      } else if (new Date(invoice.due_date) < new Date()) {
-        stats.overdue += amount;
       } else {
-        stats.pending += amount;
+        const dueDate = new Date(invoice.due_date);
+
+        // Add grace period
+        const graceDate = new Date(dueDate);
+        graceDate.setDate(dueDate.getDate() + gracePeriodDays);
+
+        if (now > graceDate) {
+          stats.overdue += amount; // overdue after grace period
+        } else {
+          stats.pending += amount; // still pending during grace period
+        }
       }
 
       if (invoice.profit) {
@@ -270,6 +336,14 @@ const Home = () => {
     });
 
     return { stats, pnl, nonCreditInvoices, creditInvoices };
+  };
+
+  const handleChange = (e) => {
+    console.log(e.target.value);
+    calculateStats(invoices, parseInt(e.target.value, 10));
+    const value = parseInt(e.target.value, 10);
+    setGracePeriod(value);
+    // onGraceChange(value); // pass it up so your calculation function uses it
   };
 
   const fetchInvoices = async () => {
@@ -337,12 +411,9 @@ const Home = () => {
     const paymentTypeFilteredData = applyPaymentTypeFilters(dateFilteredData);
     setFilteredInvoices(paymentTypeFilteredData);
 
-    const {
-      stats,
-      pnl,
-      nonCreditInvoices,
-      creditInvoices,
-    } = calculateStats(paymentTypeFilteredData);
+    const { stats, pnl, nonCreditInvoices, creditInvoices } = calculateStats(
+      paymentTypeFilteredData
+    );
     setFilteredStats(stats);
     setFilteredPnlSummary(pnl);
     setFilteredNonCreditCount(nonCreditInvoices);
@@ -697,13 +768,19 @@ const Home = () => {
               {paymentTypeFilter === "all" && "Type"}
             </Dropdown.Toggle>
             <Dropdown.Menu>
-              <Dropdown.Item onClick={() => handlePaymentTypeFilterChange("all")}>
+              <Dropdown.Item
+                onClick={() => handlePaymentTypeFilterChange("all")}
+              >
                 All Types
               </Dropdown.Item>
-              <Dropdown.Item onClick={() => handlePaymentTypeFilterChange("credit")}>
+              <Dropdown.Item
+                onClick={() => handlePaymentTypeFilterChange("credit")}
+              >
                 Credit
               </Dropdown.Item>
-              <Dropdown.Item onClick={() => handlePaymentTypeFilterChange("non-credit")}>
+              <Dropdown.Item
+                onClick={() => handlePaymentTypeFilterChange("non-credit")}
+              >
                 Non-Credit
               </Dropdown.Item>
             </Dropdown.Menu>
@@ -871,6 +948,19 @@ const Home = () => {
                     )}
                   </h3>
                 </div>
+
+                {/* Grace Period Selector */}
+                <Form.Select
+                  size="sm"
+                  value={gracePeriod}
+                  onChange={handleChange}
+                  style={{ width: "100px" }}
+                >
+                  <option value={7}>7 days</option>
+                  <option value={15}>15 days</option>
+                  <option value={30}>30 days</option>
+                  <option value={45}>45 days</option>
+                </Form.Select>
               </div>
               <div className="mt-3">
                 <Badge bg="danger" className="me-2">

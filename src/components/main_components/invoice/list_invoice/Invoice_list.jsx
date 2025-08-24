@@ -78,7 +78,7 @@ const Invoice_list = () => {
     error: userError,
   } = useUser();
   const [cancelRemark, setCancelRemark] = useState("");
-const [cancelAttachment, setCancelAttachment] = useState(null);
+  const [cancelAttachment, setCancelAttachment] = useState(null);
 
   // useEffect(() => {
   //   fetchInvoices();
@@ -437,7 +437,7 @@ const [cancelAttachment, setCancelAttachment] = useState(null);
   //     const emailResponse = await axios.post(
   //       "/api/send-email",
   //       {
-  //         to: "nightvine121@gmail.com", 
+  //         to: "nightvine121@gmail.com",
   //         subject: `Invoice Cancellation Request: ${invoiceToDelete.invoice_number}`,
   //         invoice_number: invoiceToDelete.invoice_number,
   //         customer_name: invoiceToDelete.customer?.name || "N/A",
@@ -467,53 +467,52 @@ const [cancelAttachment, setCancelAttachment] = useState(null);
   //     setIsLoading(false);
   //   }
   // };
- 
+
   const handleDeleteInvoice = async () => {
-  try {
-    setIsLoading(true);
+    try {
+      setIsLoading(true);
 
-    const formData = new FormData();
-    formData.append('to', "nightvine121@gmail.com");
-    formData.append('subject', `Invoice Cancellation Request: ${invoiceToDelete.invoice_number}`);
-    formData.append('invoice_number', invoiceToDelete.invoice_number);
-    formData.append('customer_name', invoiceToDelete.customer?.name || "N/A");
-    formData.append('currency', invoiceToDelete.currency);
-    formData.append('amount', invoiceToDelete.total_amount);
-    formData.append('date', formatDate(invoiceToDelete.issue_date));
-    formData.append('invoice_id', invoiceToDelete.id);
-    formData.append('remark', cancelRemark);
-    
-    if (cancelAttachment) {
-      formData.append('attachment', cancelAttachment);
-    }
+      const formData = new FormData();
+      formData.append("to", "nightvine121@gmail.com");
+      formData.append(
+        "subject",
+        `Invoice Cancellation Request: ${invoiceToDelete.invoice_number}`
+      );
+      formData.append("invoice_number", invoiceToDelete.invoice_number);
+      formData.append("customer_name", invoiceToDelete.customer?.name || "N/A");
+      formData.append("currency", invoiceToDelete.currency);
+      formData.append("amount", invoiceToDelete.total_amount);
+      formData.append("date", formatDate(invoiceToDelete.issue_date));
+      formData.append("invoice_id", invoiceToDelete.id);
+      formData.append("remark", cancelRemark);
 
-    const emailResponse = await axios.post(
-      "/api/send-email",
-      formData,
-      {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data'
-        },
+      if (cancelAttachment) {
+        formData.append("attachment", cancelAttachment);
       }
-    );
 
-    setShowDeleteModal(false);
-    setCancelRemark(""); // Reset remark
-    setCancelAttachment(null); // Reset attachment
-    setSuccess(
-      `Cancellation request for invoice ${invoiceToDelete.invoice_number} has been sent for approval.`
-    );
-  } catch (error) {
-    console.error("Error requesting invoice cancellation:", error);
-    setError(
-      error.response?.data?.error ||
-        "Failed to request invoice cancellation. Please try again."
-    );
-  } finally {
-    setIsLoading(false);
-  }
-};
+      const emailResponse = await axios.post("/api/send-email", formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      setShowDeleteModal(false);
+      setCancelRemark(""); // Reset remark
+      setCancelAttachment(null); // Reset attachment
+      setSuccess(
+        `Cancellation request for invoice ${invoiceToDelete.invoice_number} has been sent for approval.`
+      );
+    } catch (error) {
+      console.error("Error requesting invoice cancellation:", error);
+      setError(
+        error.response?.data?.error ||
+          "Failed to request invoice cancellation. Please try again."
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleUpdateInvoice = async (formData) => {
     try {
@@ -1215,7 +1214,8 @@ const [cancelAttachment, setCancelAttachment] = useState(null);
                 </div>
                 <div className="text-start">
                   <div>
-                    <strong>Tour confirmation No.</strong> {currentInvoice.invoice_number}
+                    <strong>Tour confirmation No.</strong>{" "}
+                    {currentInvoice.invoice_number}
                   </div>
                   <div>
                     <strong>Invoice No.</strong> {currentInvoice.id}
@@ -1353,11 +1353,11 @@ const [cancelAttachment, setCancelAttachment] = useState(null);
                 <div className="col-md-6">
                   {currentInvoice.payment_instructions && (
                     <div className="mb-3">
-                      {currentInvoice.payment_instructions} 
+                      {currentInvoice.payment_instructions}
                     </div>
                   )}
                   <div>
-                    <strong>Remark:</strong> {currentInvoice.remarks }
+                    <strong>Remark:</strong> {currentInvoice.remarks}
                   </div>
                 </div>
               </div>
@@ -1923,9 +1923,11 @@ const [cancelAttachment, setCancelAttachment] = useState(null);
                           <Form.Control
                             type="text"
                             name="payment_methods"
-                            defaultValue={currentInvoice.payment_methods?.join(
-                              ","
-                            )}
+                            defaultValue={
+                              Array.isArray(currentInvoice?.payment_methods)
+                                ? currentInvoice.payment_methods.join(",")
+                                : ""
+                            }
                           />
                         </FloatingLabel>
                       </Col>
@@ -2199,94 +2201,95 @@ const [cancelAttachment, setCancelAttachment] = useState(null);
         </Modal.Footer>
       </Modal> */}
       <Modal
-  show={showDeleteModal}
-  onHide={() => {
-    setShowDeleteModal(false);
-    setCancelRemark(""); // Reset on close
-    setCancelAttachment(null); // Reset on close
-  }}
-  centered
-  size="lg"
->
-  <Modal.Header closeButton>
-    <Modal.Title className="d-flex align-items-center">
-      <FaTrash className="me-2 text-danger" />
-      {isAdmin ? "Confirm Cancellation" : "Request Cancellation"}
-    </Modal.Title>
-  </Modal.Header>
-  <Modal.Body>
-    <div className="alert alert-danger">
-      <strong>Warning:</strong> {isAdmin 
-        ? "This action cannot be undone." 
-        : "This will send a cancellation request for approval."}
-    </div>
-
-    <p>
-      {isAdmin 
-        ? `Are you sure you want to cancel invoice #${invoiceToDelete?.invoice_number}?`
-        : `Are you sure you want to request cancellation for invoice #${invoiceToDelete?.invoice_number}?`}
-    </p>
-
-    {/* Add remark and attachment fields for non-admin users */}
-    {!isAdmin && (
-      <div className="mt-4">
-        <Form.Group className="mb-3">
-          <Form.Label>
-            <strong>Reason for Cancellation *</strong>
-          </Form.Label>
-          <Form.Control
-            as="textarea"
-            rows={3}
-            placeholder="Please provide the reason for cancellation..."
-            value={cancelRemark}
-            onChange={(e) => setCancelRemark(e.target.value)}
-            required
-          />
-        </Form.Group>
-
-        <Form.Group className="mb-3">
-          <Form.Label>
-            <strong>Attachment (Optional)</strong>
-          </Form.Label>
-          <Form.Control
-            type="file"
-            onChange={(e) => setCancelAttachment(e.target.files[0])}
-            accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-          />
-          <Form.Text className="text-muted">
-            Supported formats: PDF, JPG, PNG, DOC, DOCX (Max 5MB)
-          </Form.Text>
-        </Form.Group>
-      </div>
-    )}
-  </Modal.Body>
-  <Modal.Footer>
-    <Button 
-      variant="secondary" 
-      onClick={() => {
-        setShowDeleteModal(false);
-        setCancelRemark("");
-        setCancelAttachment(null);
-      }}
-    >
-      Close
-    </Button>
-    {!isAdmin && (
-      <Button 
-        variant="danger" 
-        onClick={handleDeleteInvoice}
-        disabled={!cancelRemark.trim()} // Disable if no remark
+        show={showDeleteModal}
+        onHide={() => {
+          setShowDeleteModal(false);
+          setCancelRemark(""); // Reset on close
+          setCancelAttachment(null); // Reset on close
+        }}
+        centered
+        size="lg"
       >
-        {isLoading ? "Submitting Request..." : "Submit Request"}
-      </Button>
-    )}
-    {isAdmin && (
-      <Button variant="danger" onClick={handleDeleteInvoiceAdmin}>
-        Confirm Cancel
-      </Button>
-    )}
-  </Modal.Footer>
-</Modal>
+        <Modal.Header closeButton>
+          <Modal.Title className="d-flex align-items-center">
+            <FaTrash className="me-2 text-danger" />
+            {isAdmin ? "Confirm Cancellation" : "Request Cancellation"}
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <div className="alert alert-danger">
+            <strong>Warning:</strong>{" "}
+            {isAdmin
+              ? "This action cannot be undone."
+              : "This will send a cancellation request for approval."}
+          </div>
+
+          <p>
+            {isAdmin
+              ? `Are you sure you want to cancel invoice #${invoiceToDelete?.invoice_number}?`
+              : `Are you sure you want to request cancellation for invoice #${invoiceToDelete?.invoice_number}?`}
+          </p>
+
+          {/* Add remark and attachment fields for non-admin users */}
+          {!isAdmin && (
+            <div className="mt-4">
+              <Form.Group className="mb-3">
+                <Form.Label>
+                  <strong>Reason for Cancellation *</strong>
+                </Form.Label>
+                <Form.Control
+                  as="textarea"
+                  rows={3}
+                  placeholder="Please provide the reason for cancellation..."
+                  value={cancelRemark}
+                  onChange={(e) => setCancelRemark(e.target.value)}
+                  required
+                />
+              </Form.Group>
+
+              <Form.Group className="mb-3">
+                <Form.Label>
+                  <strong>Attachment (Optional)</strong>
+                </Form.Label>
+                <Form.Control
+                  type="file"
+                  onChange={(e) => setCancelAttachment(e.target.files[0])}
+                  accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                />
+                <Form.Text className="text-muted">
+                  Supported formats: PDF, JPG, PNG, DOC, DOCX (Max 5MB)
+                </Form.Text>
+              </Form.Group>
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setShowDeleteModal(false);
+              setCancelRemark("");
+              setCancelAttachment(null);
+            }}
+          >
+            Close
+          </Button>
+          {!isAdmin && (
+            <Button
+              variant="danger"
+              onClick={handleDeleteInvoice}
+              disabled={!cancelRemark.trim()} // Disable if no remark
+            >
+              {isLoading ? "Submitting Request..." : "Submit Request"}
+            </Button>
+          )}
+          {isAdmin && (
+            <Button variant="danger" onClick={handleDeleteInvoiceAdmin}>
+              Confirm Cancel
+            </Button>
+          )}
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 };

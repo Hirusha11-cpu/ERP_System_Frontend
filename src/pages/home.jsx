@@ -34,6 +34,7 @@ import {
   FiChevronRight,
   FiGlobe,
   FiLayers,
+  FiCloud,
 } from "react-icons/fi";
 import {
   FaFileInvoiceDollar,
@@ -88,6 +89,18 @@ const Home = () => {
   const [filteredCreditCount, setFilteredCreditCount] = useState(0);
   const [gracePeriod, setGracePeriod] = useState(15); // default 15 days
 
+    const [appleSyncStats, setAppleSyncStats] = useState({
+    sync_created: 0,
+    sync_updated: 0,
+    last_sync_time: "Never",
+    total_invoices: 0,
+    last_invoice: {
+      id: 0,
+      quotation_no: 0,
+      created_at: null
+    }
+  });
+  const [syncLoading, setSyncLoading] = useState(false);
   const token =
     localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
 
@@ -115,6 +128,52 @@ const Home = () => {
       shirmila: 1,
     };
     setCompanyNo(companyMap[selectedCompany?.toLowerCase()] || null);
+  }, [selectedCompany]);
+
+    // Add function to fetch Apple sync stats
+  const fetchAppleSyncStats = async () => {
+    // if (selectedCompany?.toLowerCase() !== "appleholidays") return;
+    
+    try {
+      setSyncLoading(true);
+      const response = await axios.get('/api/apple-quotations/sync-stats', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setAppleSyncStats(response.data);
+    } catch (error) {
+      console.error("Error fetching Apple sync stats:", error);
+    } finally {
+      setSyncLoading(false);
+    }
+  };
+
+  // Add function to trigger sync manually
+  const triggerAppleSync = async () => {
+    try {
+      setSyncLoading(true);
+      const response = await axios.post('/api/apple-quotations/sync', {}, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      // Refresh the sync stats after sync
+      await fetchAppleSyncStats();
+      alert('Sync completed successfully!');
+    } catch (error) {
+      console.error("Error triggering Apple sync:", error);
+      alert('Sync failed. Please try again.');
+    } finally {
+      setSyncLoading(false);
+    }
+  };
+
+  // Add useEffect to fetch sync stats when company is Apple Holidays
+  useEffect(() => {
+    // if (selectedCompany?.toLowerCase() === "appleholidays") {
+      fetchAppleSyncStats();
+    // }
   }, [selectedCompany]);
 
   const convertCurrency = (amount) => {
@@ -439,6 +498,8 @@ const Home = () => {
   useEffect(() => {
     if (companyNo) {
       fetchInvoices();
+      fetchAppleSyncStats();
+
     }
   }, [companyNo, token]);
 
@@ -796,6 +857,8 @@ const Home = () => {
         </Col>
       </Row>
 
+   
+
       {/* Filter Summary */}
       {(dateFilter !== "all" || paymentTypeFilter !== "all") && (
         <Row className="mb-3">
@@ -1065,6 +1128,86 @@ const Home = () => {
           </Card>
         </Col>
       </Row>
+
+          {/* Apple Holidays Sync Stats Card - Only show for Apple Holidays */}
+      {selectedCompany?.toLowerCase() === "appleholidays" || "aahaas" && (
+        <Row className="mb-4">
+          <Col>
+            <Card className="shadow-sm">
+              <Card.Body>
+                <div className="d-flex justify-content-between align-items-center mb-3">
+                  <h5 className="mb-0">
+                    <FiCloud className="me-2 text-info" />
+                    Apple Quotations Sync Status
+                  </h5>
+                  <Button
+                    variant="outline-primary"
+                    size="sm"
+                    onClick={triggerAppleSync}
+                    disabled={syncLoading}
+                  >
+                    {syncLoading ? (
+                      <>
+                        <div className="spinner-border spinner-border-sm me-2" />
+                        Syncing...
+                      </>
+                    ) : (
+                      <>
+                        <FiRefreshCw className="me-2" />
+                        Sync Now
+                      </>
+                    )}
+                  </Button>
+                </div>
+                
+                <Row>
+                  <Col md={3}>
+                    <div className="text-center">
+                      <h6 className="text-muted">Total Invoices</h6>
+                      <h3 className="text-primary">{appleSyncStats.total_invoices}</h3>
+                    </div>
+                  </Col>
+                  <Col md={3}>
+                    <div className="text-center">
+                      <h6 className="text-muted">Last Created</h6>
+                      <h3 className="text-success">{appleSyncStats.sync_created}</h3>
+                    </div>
+                  </Col>
+                  <Col md={3}>
+                    <div className="text-center">
+                      <h6 className="text-muted">Last Updated</h6>
+                      <h3 className="text-warning">{appleSyncStats.sync_updated}</h3>
+                    </div>
+                  </Col>
+                  <Col md={3}>
+                    <div className="text-center">
+                      <h6 className="text-muted">Last Sync</h6>
+                      <h5 className={appleSyncStats.last_sync_time === "Never" ? "text-danger" : "text-success"}>
+                        {appleSyncStats.last_sync_time}
+                      </h5>
+                    </div>
+                  </Col>
+                </Row>
+
+                {appleSyncStats.last_invoice && appleSyncStats.last_invoice.id > 0 && (
+                  <div className="mt-3 p-3 bg-light rounded">
+                    <h6 className="mb-2">Latest Invoice</h6>
+                    <div className="d-flex justify-content-between">
+                      <span>Quotation #: {appleSyncStats.last_invoice.quotation_no}</span>
+                      <span>ID: {appleSyncStats.last_invoice.id}</span>
+                      <span>
+                        Created: {appleSyncStats.last_invoice.created_at ? 
+                          new Date(appleSyncStats.last_invoice.created_at).toLocaleDateString() : 
+                          'N/A'}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </Card.Body>
+            </Card>
+          </Col>
+        </Row>
+      )}
 
       {/* Main Content */}
       <Row>

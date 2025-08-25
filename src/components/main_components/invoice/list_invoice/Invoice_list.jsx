@@ -1124,7 +1124,15 @@ const Invoice_list = () => {
                 )}{" "} */}
                 days
               </p>
-
+               <div>
+                    <strong>Remark:</strong>
+                     {/* {currentInvoice.remarks} <br /> */}
+                    Please make payment before{" "}
+                    {new Date(
+                      new Date().setDate(new Date().getDate() + 5)
+                    ).toLocaleDateString()} (XE rate - 1 USD = LKR 365)
+                  </div>
+              
               {/* Contact Info */}
               <div className="contact-info mt-4">
                 <p>
@@ -1357,7 +1365,12 @@ const Invoice_list = () => {
                     </div>
                   )}
                   <div>
-                    <strong>Remark:</strong> {currentInvoice.remarks}
+                    <strong>Remark:</strong> 
+                    {/* {currentInvoice.remarks} <br /> */}
+                    Please make payment before{" "}
+                    {new Date(
+                      new Date().setDate(new Date().getDate() + 5)
+                    ).toLocaleDateString()} (XE rate - 1 USD = LKR 365)
                   </div>
                 </div>
               </div>
@@ -1423,7 +1436,9 @@ const Invoice_list = () => {
                 <div className="mb-1">Tel: 011 23 52 400 | 011 23 45 800</div>
                 <div className="mb-1">E-mail: fares@sharmilatravels.com</div>
 
-                <h5 className="fw-bold mb-3 mt-4">INVOICE</h5>
+                <h5 className="fw-bold mb-3 mt-4">
+                  INVOICE - {currentInvoice?.invoice_number}
+                </h5>
               </div>
 
               {/* Invoice Meta and Customer Info */}
@@ -1592,8 +1607,16 @@ const Invoice_list = () => {
                       <strong>Staff:</strong> {currentInvoice.staff}
                     </div>
                   )}
-                  <div>
+                  {/* <div>
                     <strong>Remark:</strong> {currentInvoice.remarks || "N/A"}
+                  </div> */}
+                   <div>
+                    <strong>Remark:</strong> 
+                    {/* {currentInvoice.remarks} <br /> */}
+                    Please make payment before{" "}
+                    {new Date(
+                      new Date().setDate(new Date().getDate() + 5)
+                    ).toLocaleDateString()} (XE rate - 1 USD = LKR 365)
                   </div>
                 </div>
               </div>

@@ -192,6 +192,10 @@ export const router = createBrowserRouter([
         element: <ProtectedRoute><Invoice_preview target="invoice_pnl" /></ProtectedRoute>,
       },
       {
+        path: "invoice/pnl/actual",
+        element: <ProtectedRoute><Invoice_preview target="invoice_pnl" /></ProtectedRoute>,
+      },
+      {
         path: "/invoice/summary",
         element: <ProtectedRoute><Invoice_preview target="invoice_summary" /></ProtectedRoute>,
       },

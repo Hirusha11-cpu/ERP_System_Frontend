@@ -89,7 +89,7 @@ const Activity_management = () => {
   };
 
   return (
-    <div className="container-fluid mt-4">
+    <div className="container-fluid mb-4">
       <h2>Activity Log Management</h2>
       <p className="text-muted">Track all system activities and changes</p>
       

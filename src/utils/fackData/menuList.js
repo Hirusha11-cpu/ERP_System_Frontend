@@ -115,7 +115,19 @@ export const menuList = [
         id: 4,
         name: "P&L Reports",
         path: "/invoice/pnl",
-        subdropdownMenu: false,
+        // subdropdownMenu: false,
+           subdropdownMenu: [
+          {
+            id: 1,
+            name: "Budget P&L",
+            path: "/invoice/pnl",
+          },
+          {
+            id: 2,
+            name: "Actual P&L",
+            path: "/invoice/pnl/actual",
+          }
+        ],
       },
       {
         id: 5,
@@ -129,14 +141,14 @@ export const menuList = [
         path: "/invoice/bank-accounts",
         subdropdownMenu: false,
       },
+      // {
+      //   id: 7,
+      //   name: "Reconciliation",
+      //   path: "/invoice/reconciliation",
+      //   subdropdownMenu: false,
+      // },
       {
         id: 7,
-        name: "Reconciliation",
-        path: "/invoice/reconciliation",
-        subdropdownMenu: false,
-      },
-      {
-        id: 8,
         name: "Upload Invoice",
         path: "/invoice/upload",
         subdropdownMenu: false,

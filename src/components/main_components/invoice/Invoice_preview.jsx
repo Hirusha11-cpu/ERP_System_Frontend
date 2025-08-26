@@ -14,7 +14,7 @@ import Invoice_summary from './summary_invoice/Invoice_summary';
 import Invoice_refund from './refund_invoice/invoice_refund';
 import Invoice_create from './create_invoice/Invoice_create';
 import Invoice_list from './list_invoice/Invoice_list';
-import Invoice_reconciliation from './create_invoice/reconciliation/Invoice_reconciliation';
+import Invoice_reconciliation from './create_invoice/reconciliation/Invoice_reconciliation1';
 import Reconciliation_apple from '../reconciliation/appleholidays/Reconciliation_apple';
 import Reconciliation_sharmila from '../reconciliation/sharmila/Reconciliation_sharmila';
 import Reconciliation_aahaas from '../reconciliation/aahaas/Reconciliation_aahaas';
@@ -25,7 +25,7 @@ import Summery_report from '../account_receivable/summary_report/Summery_report'
 import Sales from '../account_receivable/sales/Sales';
 import Account_Payable from '../account_payable/Account_Payable';
 import Actual_reconciliation from './actual_reconciliation/Actual_reconciliation';
-import Account_receivable from '../account_receivable/api/Account_receivable';
+import Account_receivable from '../account_receivable/api/Account_receivable1';
 import Role_management from '../role_management/role/Role_management';
 import Activity_management from '../role_management/activity_log/Activity_management';
 

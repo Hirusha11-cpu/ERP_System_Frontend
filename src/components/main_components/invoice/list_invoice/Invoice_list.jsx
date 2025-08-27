@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useRef } from "react";
 import {
   Table,
   Button,
@@ -40,6 +40,8 @@ import { CompanyContext } from "../../../../contentApi/CompanyProvider";
 import { useUser } from "../../../../contentApi/UserProvider";
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import { InvoicePDF } from "../upload_invoice/InvoicePDF";
+import html2pdf from "html2pdf.js";
+
 
 const Invoice_list = () => {
   const [invoices, setInvoices] = useState([]);
@@ -68,6 +70,7 @@ const Invoice_list = () => {
     endDate: "",
   });
   const navigate = useNavigate();
+  const receiptRef = useRef(); 
   const token =
     localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
   const {
@@ -201,6 +204,23 @@ const Invoice_list = () => {
     setCurrentInvoice(invoice);
     setShowEditModal(true);
   };
+
+  const downloadPDF = () => {
+        const element = receiptRef.current;
+        const opt = {
+          margin: 0.3,
+          filename: `receipt_"order"}.pdf`,
+          image: { type: "jpeg", quality: 0.98 },
+          html2canvas: { scale: 2 },
+          jsPDF: {
+            unit: "in",
+            format: [8.5, 13], // width x height (inches) → makes a tall portrait page
+            orientation: "portrait",
+          },
+        };
+    
+        html2pdf().set(opt).from(element).save();
+      };
 
   const handlePrintInvoice = (invoice) => {
     // Set the current invoice to generate the PDF for
@@ -941,6 +961,8 @@ const Invoice_list = () => {
           </Modal.Title>
         </Modal.Header>
         <Modal.Body className="p-0">
+          <div className="invoice-preview p-4" ref={receiptRef}>
+
           {currentInvoice && (
             <div className="invoice-preview p-4">
               {/* Company Header */}
@@ -1145,6 +1167,7 @@ const Invoice_list = () => {
               </div>
             </div>
           )}
+          </div>
         </Modal.Body>
 
         <Modal.Footer>
@@ -1154,7 +1177,10 @@ const Invoice_list = () => {
           >
             Close
           </Button>
-          <PDFDownloadLink
+           <Button variant="success" onClick={downloadPDF}>
+                      <FaDownload /> Download PDF
+                    </Button>
+          {/* <PDFDownloadLink
             document={<InvoicePDF invoice={currentInvoice} company="aahaas" />}
             fileName={`aahaas_invoice_${currentInvoice?.invoice_number}.pdf`}
             className="btn btn-success me-2"
@@ -1165,7 +1191,7 @@ const Invoice_list = () => {
                 {loading ? "Generating..." : "Download PDF"}
               </>
             )}
-          </PDFDownloadLink>
+          </PDFDownloadLink> */}
           <Button
             variant="primary"
             onClick={() => window.print()}
@@ -1190,6 +1216,8 @@ const Invoice_list = () => {
           </Modal.Title>
         </Modal.Header>
         <Modal.Body className="p-0">
+           <div className="invoice-preview p-4" ref={receiptRef}>
+ 
           {currentInvoice && (
             <div className="invoice-preview p-4">
               {/* Company Header */}
@@ -1376,6 +1404,8 @@ const Invoice_list = () => {
               </div>
             </div>
           )}
+
+          </div>
         </Modal.Body>
 
         <Modal.Footer>
@@ -1385,7 +1415,7 @@ const Invoice_list = () => {
           >
             Close
           </Button>
-          <PDFDownloadLink
+          {/* <PDFDownloadLink
             document={
               <InvoicePDF invoice={currentInvoice} company="appleholidays" />
             }
@@ -1398,7 +1428,10 @@ const Invoice_list = () => {
                 {loading ? "Generating..." : "Download PDF"}
               </>
             )}
-          </PDFDownloadLink>
+          </PDFDownloadLink> */}
+            <Button variant="success" onClick={downloadPDF}>
+                      <FaDownload /> Download PDF
+                    </Button>
           <Button
             variant="primary"
             onClick={() => window.print()}
@@ -1423,6 +1456,9 @@ const Invoice_list = () => {
           </Modal.Title>
         </Modal.Header>
         <Modal.Body className="p-0">
+            <div className="invoice-preview p-4" ref={receiptRef}>
+
+           
           {currentInvoice && (
             <div className="invoice-preview p-4">
               {/* Company Header */}
@@ -1622,6 +1658,7 @@ const Invoice_list = () => {
               </div>
             </div>
           )}
+           </div>
         </Modal.Body>
 
         <Modal.Footer>
@@ -1631,7 +1668,10 @@ const Invoice_list = () => {
           >
             Close
           </Button>
-          <PDFDownloadLink
+           <Button variant="success" onClick={downloadPDF}>
+                      <FaDownload /> Download PDF
+                    </Button>
+          {/* <PDFDownloadLink
             document={
               <InvoicePDF invoice={currentInvoice} company="sharmila" />
             }
@@ -1644,7 +1684,7 @@ const Invoice_list = () => {
                 {loading ? "Generating..." : "Download PDF"}
               </>
             )}
-          </PDFDownloadLink>
+          </PDFDownloadLink> */}
           <Button
             variant="primary"
             onClick={() => window.print()}

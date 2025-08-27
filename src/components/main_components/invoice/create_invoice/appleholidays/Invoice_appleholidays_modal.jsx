@@ -23,6 +23,19 @@ const Invoice_appleholidays_modal = ({
 
   const receiptRef = useRef(); // Reference to modal body
 
+  // const downloadPDF = () => {
+  //   const element = receiptRef.current;
+  //   const opt = {
+  //     margin: 0.3,
+  //     filename: `receipt_${formData.invoice.number || "order"}.pdf`,
+  //     image: { type: "jpeg", quality: 0.98 },
+  //     html2canvas: { scale: 2 },
+  //     jsPDF: { unit: "in", format: "letter", orientation: "portrait" },
+  //   };
+
+  //   html2pdf().set(opt).from(element).save();
+  // };
+
   const downloadPDF = () => {
     const element = receiptRef.current;
     const opt = {
@@ -30,7 +43,11 @@ const Invoice_appleholidays_modal = ({
       filename: `receipt_${formData.invoice.number || "order"}.pdf`,
       image: { type: "jpeg", quality: 0.98 },
       html2canvas: { scale: 2 },
-      jsPDF: { unit: "in", format: "letter", orientation: "portrait" },
+      jsPDF: {
+        unit: "in",
+        format: [8.5, 13], // width x height (inches) → makes a tall portrait page
+        orientation: "portrait",
+      },
     };
 
     html2pdf().set(opt).from(element).save();
@@ -41,8 +58,8 @@ const Invoice_appleholidays_modal = ({
       <Modal.Header closeButton>
         <Modal.Title>Invoice Preview</Modal.Title>
       </Modal.Header>
-      <Modal.Body className="p-0" ref={receiptRef}>
-        <div className="invoice-preview p-4">
+      <Modal.Body className="p-0">
+        <div className="invoice-preview p-4" ref={receiptRef}>
           {/* Company Header */}
           <div className="company-header text-center mb-4">
             <img
@@ -70,10 +87,19 @@ const Invoice_appleholidays_modal = ({
               <div>
                 {formData.customer.address || "Ravichander Balachander • 9"}
               </div>
+              <div>
+                {formData.currencyDetails.currency === "INR"
+                  ? "GST - 4500"
+                  : ""}
+              </div>
             </div>
-            <div className="text-end">
+            <div className="text-start">
               <div>
                 <strong>No.</strong> {formData.invoice.number || "IS44641"}
+              </div>
+              <div>
+                <strong>Tour Confirmation no.</strong>{" "}
+                {formData.id || "IS44641"}
               </div>
               <div>
                 <strong>Date</strong> {formatDate(formData.invoice.issueDate)}
@@ -124,6 +150,20 @@ const Invoice_appleholidays_modal = ({
                   </td>
                 </tr>
               ))}
+              {formData.currencyDetails.currency === "INR" ? (
+                <tr>
+                  <td>
+                    <strong>Handling Fee:</strong>
+                  </td>
+                  <td colSpan="3" style={{ textAlign: "right" }}>
+                    {/* <strong>Handling Fee:</strong> */}
+                  </td>
+                  <td>
+                    {currencySymbols[formData.currencyDetails.currency] || "$"}
+                    {formData.totals.handlingFee.toFixed(2)}
+                  </td>
+                </tr>
+              ) : null}
             </tbody>
           </table>
 
@@ -144,6 +184,30 @@ const Invoice_appleholidays_modal = ({
                         {formData.totals.subTotal.toFixed(2)}
                       </td>
                     </tr>
+                    {formData.currencyDetails.currency === "INR" ? (
+                      <tr>
+                        <td style={{ textAlign: "right" }}>
+                          <strong>HANDLING CHARGES:</strong>
+                        </td>
+                        <td style={{ textAlign: "right" }}>
+                          {currencySymbols[formData.currencyDetails.currency] ||
+                            "$"}
+                          {formData.totals.handlingFee.toFixed(2)}
+                        </td>
+                      </tr>
+                    ) : null}
+                    {formData.currencyDetails.currency === "INR" ? (
+                      <tr>
+                        <td style={{ textAlign: "right" }}>
+                          <strong>GST:</strong>
+                        </td>
+                        <td style={{ textAlign: "right" }}>
+                          {currencySymbols[formData.currencyDetails.currency] ||
+                            "$"}
+                          {formData.totals.gst.toFixed(2)}
+                        </td>
+                      </tr>
+                    ) : null}
                     <tr>
                       <td style={{ textAlign: "right" }}>
                         <strong>BANK CHARGES:</strong>
@@ -192,7 +256,7 @@ const Invoice_appleholidays_modal = ({
             <div className="row">
               {/* ACCOUNT DETAILS moved below */}
               <div className="col-md-6">
-                <div className="mb-3">
+                {/* <div className="mb-3">
                   <p className="mb-0">
                     {formData.payment.type === "credit" ? (
                       <span></span>
@@ -203,7 +267,7 @@ const Invoice_appleholidays_modal = ({
                       </span>
                     )}
                   </p>
-                </div>
+                </div> */}
 
                 <h6 className="fw-bold">ACCOUNT DETAILS</h6>
                 <div>
@@ -244,7 +308,23 @@ const Invoice_appleholidays_modal = ({
                   )}{" "}
                   days
                 </p>
-                <strong>Remark:</strong> {formData.payment.remarks}
+                {/* <strong>Remark:</strong> {formData.payment.remarks} */}
+              </div>
+            </div>
+          </div>
+          <div className="row">
+            <div className="col-md-6">
+              {formData.payment_instructions && (
+                <div className="mb-3">{formData.payment_instructions}</div>
+              )}
+              <div>
+                <strong>Remark:</strong>
+                {/* {currentInvoice.remarks} <br /> */}
+                Please make payment before{" "}
+                {new Date(
+                  new Date().setDate(new Date().getDate() + 5)
+                ).toLocaleDateString()}{" "}
+                (XE rate - 1 USD = LKR 365)
               </div>
             </div>
           </div>

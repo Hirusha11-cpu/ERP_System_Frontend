@@ -247,6 +247,18 @@ export const router = createBrowserRouter([
         path: "/activity_management",
         element: <ProtectedRoute><Invoice_preview target="activity_management" /></ProtectedRoute>,
       },
+      {
+        path: "/summary_reports",
+        element: <ProtectedRoute><Invoice_preview target="summary_reports" /></ProtectedRoute>,
+      },
+      {
+        path: "/cheque_print/list",
+        element: <ProtectedRoute><Invoice_preview target="cheque_print_list" /></ProtectedRoute>,
+      },
+      {
+        path: "/cheque_print/create",
+        element: <ProtectedRoute><Invoice_preview target="cheque_print_create" /></ProtectedRoute>,
+      },
             {
                 path: "/payment/view",
                 element: <PaymentView />

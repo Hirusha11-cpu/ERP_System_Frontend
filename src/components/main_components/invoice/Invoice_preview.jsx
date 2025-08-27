@@ -28,6 +28,9 @@ import Actual_reconciliation from './actual_reconciliation/Actual_reconciliation
 import Account_receivable from '../account_receivable/api/Account_receivable1';
 import Role_management from '../role_management/role/Role_management';
 import Activity_management from '../role_management/activity_log/Activity_management';
+import Summary_report from '../summary/Summary_report';
+import Cheque_print_list from './cheque_print/Cheque_print_list';
+import Cheque_print_create from './cheque_print/Cheque_print_create';
 
 const Invoice_preview = ({ target }) => {
     const { selectedCompany } = useContext(CompanyContext);
@@ -275,6 +278,42 @@ const Invoice_preview = ({ target }) => {
         return <Activity_management company={'aahaas'}/>;
       default:
         return <Activity_management company={'aahaas'}/>;
+    }
+  }
+  if (target === "summary_reports") {
+   switch (selectedCompany) {
+      case "appleholidays":
+        return <Summary_report company={'appleholidays'}/>;
+      case "shirmila":
+        return <Summary_report company={'shirmila'} />;
+      case "aahaas":
+        return <Summary_report company={'aahaas'}/>;
+      default:
+        return <Summary_report company={'aahaas'}/>;
+    }
+  }
+  if (target === "cheque_print_list") {
+   switch (selectedCompany) {
+      case "appleholidays":
+        return <Cheque_print_list company={'appleholidays'}/>;
+      case "shirmila":
+        return <Cheque_print_list company={'shirmila'} />;
+      case "aahaas":
+        return <Cheque_print_list company={'aahaas'}/>;
+      default:
+        return <Cheque_print_list company={'aahaas'}/>;
+    }
+  }
+  if (target === "cheque_print_create") {
+   switch (selectedCompany) {
+      case "appleholidays":
+        return <Cheque_print_create company={'appleholidays'}/>;
+      case "shirmila":
+        return <Cheque_print_create company={'shirmila'} />;
+      case "aahaas":
+        return <Cheque_print_create company={'aahaas'}/>;
+      default:
+        return <Cheque_print_create company={'aahaas'}/>;
     }
   }
 

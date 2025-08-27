@@ -21,20 +21,37 @@ const Invoice_sharmila_modal = ({
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 to include both days
     return diffDays > 0 ? diffDays : 0;
   };
-   const receiptRef = useRef(); // Reference to modal body
-    
-      const downloadPDF = () => {
-        const element = receiptRef.current;
-        const opt = {
-          margin:       0.3,
-          filename:     `receipt_${formData.invoice.number || "order"}.pdf`,
-          image:        { type: 'jpeg', quality: 0.98 },
-          html2canvas:  { scale: 2 },
-          jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
-        };
-    
-        html2pdf().set(opt).from(element).save();
+  const receiptRef = useRef(); // Reference to modal body
+
+  // const downloadPDF = () => {
+  //   const element = receiptRef.current;
+  //   const opt = {
+  //     margin: 0.3,
+  //     filename: `receipt_${formData.invoice.number || "order"}.pdf`,
+  //     image: { type: "jpeg", quality: 0.98 },
+  //     html2canvas: { scale: 2 },
+  //     jsPDF: { unit: "in", format: "letter", orientation: "portrait" },
+  //   };
+
+  //   html2pdf().set(opt).from(element).save();
+  // };
+
+  const downloadPDF = () => {
+      const element = receiptRef.current;
+      const opt = {
+        margin: 0.3,
+        filename: `receipt_${formData.invoice.number || "order"}.pdf`,
+        image: { type: "jpeg", quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: {
+          unit: "in",
+          format: [8.5, 11], // width x height (inches) → makes a tall portrait page
+          orientation: "portrait",
+        },
       };
+  
+      html2pdf().set(opt).from(element).save();
+    };
 
   return (
     <Modal show={show} onHide={onHide} size="lg" fullscreen="lg-down">
@@ -67,10 +84,14 @@ const Invoice_sharmila_modal = ({
               <div>
                 {formData.customer.address || "Ravichander Balachander • 9"}
               </div>
-            </div>
-            <div className="text-end">
               <div>
-                <strong> No.</strong> {"S00001"}
+                <strong>GST:</strong>{" "}
+                {"7895"}
+              </div>
+            </div>
+            <div className="text-start">
+              <div>
+                <strong>Tour Confirmation No.</strong> {"S00001"}
               </div>
               <div>
                 <strong>Invoice No.</strong>{" "}
@@ -166,6 +187,20 @@ const Invoice_sharmila_modal = ({
                   </td>
                 </tr>
               ))}
+               {formData.currencyDetails.currency === "INR" ? (
+                <tr>
+                  <td>
+                    <strong>Handling Fee:</strong>
+                  </td>
+                  <td colSpan="3" style={{ textAlign: "right" }}>
+                    {/* <strong>Handling Fee:</strong> */}
+                  </td>
+                  <td style={{ textAlign: "right" }}>
+                    {currencySymbols[formData.currencyDetails.currency] || "$"}
+                    {formData.totals.handlingFee.toFixed(2)}
+                  </td>
+                </tr>
+              ) : null}
             </tbody>
           </table>
 
@@ -259,13 +294,13 @@ const Invoice_sharmila_modal = ({
           </div>
 
           {/* Payment Instructions */}
-          {formData.payment.type === "non-credit" && (
+          {/* {formData.payment.type === "non-credit" && (
             <div className="mb-3">
               {formData.payment.instructions}{" "}
               {formData.payment.type === "non-credit" &&
                 formData.payment.collectionDate}
             </div>
-          )}
+          )} */}
           <p>
             <strong>Start Date:</strong> {formData.invoice.startDate}{" "}
             &nbsp;|&nbsp;
@@ -279,10 +314,26 @@ const Invoice_sharmila_modal = ({
           </p>
 
           {/* Bottom left: Staff and Remark */}
-          <div className="row">
+          {/* <div className="row">
             <div className="col-md-6">
               <div>
                 <strong>Remark:</strong> {formData.payment.remarks}
+              </div>
+            </div>
+          </div> */}
+          <div className="row">
+            <div className="col-md-6">
+              {formData.payment_instructions && (
+                <div className="mb-3">{formData.payment_instructions}</div>
+              )}
+              <div>
+                <strong>Remark:</strong>
+                {/* {currentInvoice.remarks} <br /> */}
+                Please make payment before{" "}
+                {new Date(
+                  new Date().setDate(new Date().getDate() + 5)
+                ).toLocaleDateString()}{" "}
+                (XE rate - 1 USD = LKR 365)
               </div>
             </div>
           </div>
@@ -293,8 +344,8 @@ const Invoice_sharmila_modal = ({
           Close
         </Button>
         <Button variant="success" onClick={downloadPDF}>
-                    <FaDownload /> Download PDF
-                  </Button>
+          <FaDownload /> Download PDF
+        </Button>
         {/* <Button
           variant="success"
           onClick={() => alert("PDF download would be implemented here")}

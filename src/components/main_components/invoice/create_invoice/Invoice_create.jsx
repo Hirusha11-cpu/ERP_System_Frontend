@@ -698,7 +698,7 @@ const Invoice_create = () => {
       console.log(handlingFee);
       totalAmount = totalAmount - handlingFee;
       console.log(totalAmount);
-      subTotal = totalAmount;
+      subTotal = totalAmount + handlingFee;
     } else {
       subTotal = totalAmount;
     }

@@ -184,7 +184,7 @@ const Invoice_appleholidays_modal = ({
                         {formData.totals.subTotal.toFixed(2)}
                       </td>
                     </tr>
-                    {formData.currencyDetails.currency === "INR" ? (
+                    {/* {formData.currencyDetails.currency === "INR" ? (
                       <tr>
                         <td style={{ textAlign: "right" }}>
                           <strong>HANDLING CHARGES:</strong>
@@ -195,7 +195,7 @@ const Invoice_appleholidays_modal = ({
                           {formData.totals.handlingFee.toFixed(2)}
                         </td>
                       </tr>
-                    ) : null}
+                    ) : null} */}
                     {formData.currencyDetails.currency === "INR" ? (
                       <tr>
                         <td style={{ textAlign: "right" }}>

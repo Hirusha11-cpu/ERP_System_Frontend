@@ -37,21 +37,21 @@ const Invoice_sharmila_modal = ({
   // };
 
   const downloadPDF = () => {
-      const element = receiptRef.current;
-      const opt = {
-        margin: 0.3,
-        filename: `receipt_${formData.invoice.number || "order"}.pdf`,
-        image: { type: "jpeg", quality: 0.98 },
-        html2canvas: { scale: 2 },
-        jsPDF: {
-          unit: "in",
-          format: [8.5, 11], // width x height (inches) → makes a tall portrait page
-          orientation: "portrait",
-        },
-      };
-  
-      html2pdf().set(opt).from(element).save();
+    const element = receiptRef.current;
+    const opt = {
+      margin: 0.3,
+      filename: `receipt_${formData.invoice.number || "order"}.pdf`,
+      image: { type: "jpeg", quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: {
+        unit: "in",
+        format: [8.5, 11], // width x height (inches) → makes a tall portrait page
+        orientation: "portrait",
+      },
     };
+
+    html2pdf().set(opt).from(element).save();
+  };
 
   return (
     <Modal show={show} onHide={onHide} size="lg" fullscreen="lg-down">
@@ -61,7 +61,8 @@ const Invoice_sharmila_modal = ({
       <Modal.Body className="p-0" ref={receiptRef}>
         <div id="invoice-preview-content" className="invoice-preview p-4">
           {/* Company Header */}
-          <div className="text-center mb-3">
+
+          {/* <div className="text-center mb-3">
             <h4 className="mb-1 fw-bold" style={{ color: "red" }}>
               Sharmila Tours & Travels
             </h4>
@@ -71,7 +72,24 @@ const Invoice_sharmila_modal = ({
             <div className="mb-1">Tel:011 23 52 400 | 011 23 45 800</div>
             <div className="mb-1">E-mail: fares@sharmilatravels.com </div>
 
-            <h5 className="fw-bold mb-3 mt-4">INVOICE</h5>
+            <h5 className="fw-bold mb-3 mt-4">INVOICE - {formData?.invoice_number}</h5>
+          </div> */}
+          <div className="text-center mb-3">
+            <h3 className="mb-2 fw-bold" style={{ color: "red" }}>
+              Sharmila Tours & Travels
+            </h3>
+            <div className="mb-1">
+              Shop No: 1st Floor, 10, Venkatraman Road, Kamala Second Street,
+              Chinna Chokkikulam, Madurai - 625002
+            </div>
+            <div className="mb-1">Tel: +91 0452 405 8375 / 4054704</div>
+            <div className="mb-1">E-mail: chennal@sharmilatravels.com</div>
+            <div className="mb-1">Services Tax (Reg. No.): ADVFS44290</div>
+            <div className="mb-1">GSTIN: 33ADVFS442901ZV</div>
+
+            <h5 className="fw-bold mb-3 mt-4">
+              INVOICE - {formData?.invoice_number}
+            </h5>
           </div>
 
           {/* Invoice Meta and Customer Info */}
@@ -82,41 +100,42 @@ const Invoice_sharmila_modal = ({
                 {formData.customer.name || "PICK YOUR TRAIL"}
               </div>
               <div>
-                {formData.customer.address || "Ravichander Balachander • 9"}
+                <strong>Customer Name:</strong>{" "}
+                {formData.customer.address || "Ravichander Balachander"}
               </div>
               <div>
-                <strong>GST:</strong>{" "}
-                {"7895"}
+                <strong>Date:</strong> {formatDate(formData.invoice.issueDate)}
+              </div>
+              <div>
+                <strong>GST:</strong> {"7895"}
               </div>
             </div>
             <div className="text-start">
               <div>
-                <strong>Tour Confirmation No.</strong> {"S00001"}
+                <strong>Tour No.</strong> {"S00001"}
               </div>
               <div>
-                <strong>Invoice No.</strong>{" "}
+                <strong>Order No.</strong>{" "}
                 {countryOptions.find((c) => c.code === formData.invoice.country)
                   ?.prefix || "IN"}
                 {formData.invoice.number || "IS44641"}
               </div>
-              <div>
-                <strong>Date</strong> {formatDate(formData.invoice.issueDate)}
-              </div>
-              <div>
-                <strong>Your Ref.</strong>{" "}
-                {formData.invoice.yourRef || "399648 CNTL"}
-              </div>
+
               <div>
                 <strong>Sales ID</strong>{" "}
                 {formData.invoice.salesId || "ARAVIND"}
               </div>
               <div>
-                <strong>Printed By</strong>{" "}
+                <strong>Account ID</strong>{" "}
                 {formData.invoice.printedBy || "KAVIYA"}
               </div>
               <div>
                 <strong>Booking ID</strong>{" "}
                 {formData.invoice.bookingId || "399648 CNTL"}
+              </div>
+              <div>
+                <strong>Other Ref.</strong>{" "}
+                {formData.invoice.yourRef || "399648 CNTL"}
               </div>
             </div>
           </div>
@@ -155,7 +174,11 @@ const Invoice_sharmila_modal = ({
                     }}
                   >
                     {currencySymbols[formData.currencyDetails.currency] || ""}
-                    {item.price.toFixed(2)}
+                    {/* {item.price.toFixed(2)} */}
+                    {item.price.toLocaleString("en-US", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
                   </td>
                   <td
                     style={{
@@ -183,11 +206,15 @@ const Invoice_sharmila_modal = ({
                     }}
                   >
                     {currencySymbols[formData.currencyDetails.currency] || ""}
-                    {item.total.toFixed(2)}
+                    {/* {item.total.toFixed(2)} */}
+                    {item.total.toLocaleString("en-US", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
                   </td>
                 </tr>
               ))}
-               {formData.currencyDetails.currency === "INR" ? (
+              {formData.currencyDetails.currency === "INR" ? (
                 <tr>
                   <td>
                     <strong>Handling Fee:</strong>
@@ -197,7 +224,11 @@ const Invoice_sharmila_modal = ({
                   </td>
                   <td style={{ textAlign: "right" }}>
                     {currencySymbols[formData.currencyDetails.currency] || "$"}
-                    {formData.totals.handlingFee.toFixed(2)}
+                    {/* {formData.totals.handlingFee.toFixed(2)} */}
+                    {formData.totals.handlingFee.toLocaleString("en-US", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
                   </td>
                 </tr>
               ) : null}
@@ -214,7 +245,11 @@ const Invoice_sharmila_modal = ({
                   </td>
                   <td style={{ padding: "4px", textAlign: "right" }}>
                     {currencySymbols[formData.currencyDetails.currency] || ""}
-                    {formData.totals.subTotal.toFixed(2)}
+                    {/* {formData.totals.subTotal.toFixed(2)} */}
+                    {formData.totals.subTotal.toLocaleString("en-US", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
                   </td>
                 </tr>
 
@@ -225,7 +260,11 @@ const Invoice_sharmila_modal = ({
                         <strong>CGST of 9.00%:</strong>
                       </td>
                       <td style={{ padding: "4px", textAlign: "right" }}>
-                        ₹{(formData.totals.gst / 2).toFixed(2)}
+                        {/* ₹{(formData.totals.gst / 2).toFixed(2)} */}
+                        ₹{(formData.totals.gst / 2).toLocaleString("en-US", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
                       </td>
                     </tr>
                     <tr>
@@ -233,7 +272,11 @@ const Invoice_sharmila_modal = ({
                         <strong>SGST of 9.00%:</strong>
                       </td>
                       <td style={{ padding: "4px", textAlign: "right" }}>
-                        ₹{(formData.totals.gst / 2).toFixed(2)}
+                        {/* ₹{(formData.totals.gst / 2).toFixed(2)} */}
+                        ₹{(formData.totals.gst / 2).toLocaleString("en-US", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
                       </td>
                     </tr>
                   </>
@@ -245,7 +288,10 @@ const Invoice_sharmila_modal = ({
                   </td>
                   <td style={{ padding: "4px", textAlign: "right" }}>
                     {currencySymbols[formData.currencyDetails.currency] || ""}
-                    {formData.totals.total.toFixed(2)}
+                    {formData.totals.total.toLocaleString("en-US", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
                   </td>
                 </tr>
                 <tr>
@@ -254,7 +300,10 @@ const Invoice_sharmila_modal = ({
                   </td>
                   <td style={{ padding: "4px", textAlign: "right" }}>
                     {currencySymbols[formData.currencyDetails.currency] || ""}
-                    {formData.totals.amountReceived.toFixed(2)}
+                    {formData.totals.amountReceived.toLocaleString("en-US", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
                   </td>
                 </tr>
                 <tr>
@@ -263,7 +312,10 @@ const Invoice_sharmila_modal = ({
                   </td>
                   <td style={{ padding: "4px", textAlign: "right" }}>
                     {currencySymbols[formData.currencyDetails.currency] || ""}
-                    {formData.totals.balance.toFixed(2)}
+                    {formData.totals.balance.toLocaleString("en-US", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
                   </td>
                 </tr>
               </table>

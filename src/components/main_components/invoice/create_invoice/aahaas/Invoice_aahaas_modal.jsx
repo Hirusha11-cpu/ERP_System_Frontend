@@ -76,7 +76,7 @@ const Invoice_aahaas_modal = ({
                   One Galle Face Tower, 2208, 1A Centre Road, Colombo 002
                 </div>
                 <div>Tel: 011 2352 400 | Web: www.aahaas.com</div>
-                <div>Email: finance@aahaas.com</div>
+                <div>Email: info@aahaas.com</div>
               </div>
               {/* <div>{new Date().toLocaleDateString()}</div> */}
             </div>

@@ -4,8 +4,9 @@
   }
   
   .receipt-header {
-    background-color: #343a40;
-    color: white;
+    /* background-color: #343a40; */
+    background-color: #e4e5e6;
+    color: rgb(11, 11, 11);
     padding: 1.5rem;
     border-radius: 0.3rem 0.3rem 0 0;
   }
@@ -52,12 +53,19 @@
   }
   
   .customer-table th {
+    background-color: #e7e8e8;
+    color: rgb(0, 0, 0);
+    padding: 0.75rem;
+    text-align: left;
+  }
+  
+  /* .customer-table th {
     background-color: #343a40;
     color: white;
     padding: 0.75rem;
     text-align: left;
   }
-  
+   */
   .customer-table td {
     padding: 0.75rem;
     border-bottom: 1px solid #dee2e6;
@@ -70,11 +78,17 @@
   }
   
   .items-table th {
+    background-color: #e7e8e8;
+    color: rgb(2, 2, 2);
+    padding: 0.75rem;
+    text-align: left;
+  }
+  /* .items-table th {
     background-color: #343a40;
     color: white;
     padding: 0.75rem;
     text-align: left;
-  }
+  } */
   
   .items-table td {
     padding: 0.75rem;

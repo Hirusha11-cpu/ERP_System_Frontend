@@ -150,6 +150,25 @@ const Invoice_create = () => {
     }
   };
 
+  // const fetchAccounts = async (currencyInfo = "USD") => {
+  //   try {
+  //     console.log(`Fetching accounts for currency: ${currencyInfo}`);
+
+  //     const response = await axios.get(
+  //       `/api/accounts/by-currency/${currencyInfo}/${companyNo}`,
+  //       {
+  //         headers: {
+  //           Authorization: `Bearer ${token}`,
+  //         },
+  //       }
+  //     );
+  //     console.log(response);
+  //     setAccounts(response.data);
+  //   } catch (error) {
+  //     console.error("Error fetching accounts:", error);
+  //   }
+  // };
+
   const fetchAccounts = async (currencyInfo = "USD") => {
     try {
       console.log(`Fetching accounts for currency: ${currencyInfo}`);
@@ -164,11 +183,16 @@ const Invoice_create = () => {
       );
       console.log(response);
       setAccounts(response.data);
+
+      // Auto-select the first account for the new currency if available
+      if (response.data.length > 0) {
+        const firstAccount = response.data[0];
+        handleAccountSelect(firstAccount.id, currencyInfo);
+      }
     } catch (error) {
       console.error("Error fetching accounts:", error);
     }
   };
-
   const fetchCustomers = async () => {
     try {
       const response = await axios.get("/api/customers", {
@@ -256,7 +280,10 @@ const Invoice_create = () => {
       start_date: formData.invoice.startDate,
       sales_id: formData.invoice.salesId,
       end_date: formData.invoice.endDate,
-      travel_period: calculateTravelDays(formData.invoice.startDate, formData.invoice.endDate),
+      travel_period: calculateTravelDays(
+        formData.invoice.startDate,
+        formData.invoice.endDate
+      ),
 
       items: formData.serviceItems.map((item) => ({
         code: item.code,
@@ -371,8 +398,7 @@ const Invoice_create = () => {
       yourRef: "",
       bookingId: "",
       startDate: "",
-      endDate: ""
-
+      endDate: "",
     },
     currencyDetails: {
       currency: "USD",
@@ -521,13 +547,12 @@ const Invoice_create = () => {
   }, [customerSearch, customers]);
 
   const calculateTravelDays = (start, end) => {
-  const startDate = new Date(start);
-  const endDate = new Date(end);
-  const diffTime = endDate - startDate;
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 to include both days
-  return diffDays > 0 ? diffDays : 0;
-};
-
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    const diffTime = endDate - startDate;
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 to include both days
+    return diffDays > 0 ? diffDays : 0;
+  };
 
   // Handle customer selection
   const handleCustomerSelect = (customer) => {
@@ -623,39 +648,85 @@ const Invoice_create = () => {
   };
 
   // Handle currency change
-  const handleCurrencyChange = (currency) => {
-    console.log("Selected currency:", currency);
+  // const handleCurrencyChange = (currency) => {
+  //   console.log("Selected currency:", currency);
 
-    let rate = 87.52;
-    switch (currency) {
-      case "SGD":
-        rate = 65.32;
-        break;
-      case "MYR":
-        rate = 21.05;
-        break;
-      case "LKR":
-        rate = 0.29;
-        break;
-      case "INR":
-        rate = 1.0;
-        break;
-      default:
-        rate = 87.52;
+  //   let rate = 87.52;
+  //   switch (currency) {
+  //     case "SGD":
+  //       rate = 65.32;
+  //       break;
+  //     case "MYR":
+  //       rate = 21.05;
+  //       break;
+  //     case "LKR":
+  //       rate = 0.29;
+  //       break;
+  //     case "INR":
+  //       rate = 1.0;
+  //       break;
+  //     default:
+  //       rate = 87.52;
+  //   }
+  //   setCurrency(currency);
+  //   setFormData({
+  //     ...formData,
+  //     currencyDetails: {
+  //       ...formData.currencyDetails,
+  //       currency,
+  //       exchangeRate: rate,
+  //       customRate: rate,
+  //     },
+  //   });
+
+  //   fetchAccounts(currency);
+  // };
+ const handleCurrencyChange = async (currency) => {
+  console.log("Selected currency:", currency);
+
+  let rate = 87.52;
+  switch (currency) {
+    case "SGD":
+      rate = 65.32;
+      break;
+    case "MYR":
+      rate = 21.05;
+      break;
+    case "LKR":
+      rate = 0.29;
+      break;
+    case "INR":
+      rate = 1.0;
+      break;
+    default:
+      rate = 87.52;
+  }
+  
+  setCurrency(currency);
+  
+  // Reset account details
+  setFormData(prev => ({
+    ...prev,
+    accountDetails: {
+      name: "",
+      number: "",
+      bank: "",
+      branch: "",
+      ifsc: "",
+      address: "",
+    },
+    selectedAccountId: null,
+    currencyDetails: {
+      ...prev.currencyDetails,
+      currency,
+      exchangeRate: rate,
+      customRate: rate,
     }
-    setCurrency(currency);
-    setFormData({
-      ...formData,
-      currencyDetails: {
-        ...formData.currencyDetails,
-        currency,
-        exchangeRate: rate,
-        customRate: rate,
-      },
-    });
-
-    fetchAccounts(currency);
-  };
+  }));
+  
+  // Fetch accounts for the new currency
+  await fetchAccounts(currency);
+};
 
   // Calculate totals
   const calculateTotals = () => {
@@ -696,9 +767,10 @@ const Invoice_create = () => {
       const perPersonRate = subTotal / totalPax - 5;
       handlingFee = 5 * 88.66 * totalPax;
       console.log(handlingFee);
-      totalAmount = totalAmount - handlingFee;
+      // totalAmount = totalAmount - handlingFee;
       console.log(totalAmount);
-      subTotal = totalAmount + handlingFee;
+      // subTotal = totalAmount + handlingFee;
+      subTotal = totalAmount;
     } else {
       subTotal = totalAmount;
     }
@@ -741,7 +813,7 @@ const Invoice_create = () => {
     // Calculate total
     const total =
       subTotal +
-      handlingFee +
+      // handlingFee +
       gst +
       // formData.totals.additionalTax +
       additionalTax +
@@ -942,6 +1014,28 @@ const Invoice_create = () => {
     console.log(formData);
   };
 
+  // const handleAccountSelect = (accountId, currency) => {
+  //   console.log("Selected account ID:", accountId);
+
+  //   const selected = accounts.find((acc) => acc.id === parseInt(accountId));
+  //   console.log("Selected account:", selected);
+
+  //   if (selected) {
+  //     setFormData((prev) => ({
+  //       ...prev,
+  //       accountDetails: {
+  //         name: selected.account_name,
+  //         number: selected.account_no,
+  //         bank: selected.bank,
+  //         branch: selected.branch,
+  //         ifsc: selected.ifsc_code,
+  //         address: selected.bank_address,
+  //       },
+  //       selectedAccountId: selected.id,
+  //     }));
+  //   }
+  // };
+
   const handleAccountSelect = (accountId, currency) => {
     console.log("Selected account ID:", accountId);
 
@@ -963,7 +1057,6 @@ const Invoice_create = () => {
       }));
     }
   };
-
   const handleAccount = () => {
     navigate("/invoice/bank-accounts");
   };
@@ -1634,11 +1727,27 @@ const Invoice_create = () => {
               <FaPlus /> Add Account
             </Button>
           </div>
-          <Form.Group className="mb-3">
+          {/* <Form.Group className="mb-3">
             <Form.Label>Select Account</Form.Label>
             <Form.Select
               onChange={(e) => handleAccountSelect(e.target.value, currency)}
               defaultValue=""
+            >
+              <option value="" disabled>
+                Select an account
+              </option>
+              {accounts.map((account) => (
+                <option key={account.id} value={account.id}>
+                  {account.account_name} - {account.account_no}
+                </option>
+              ))}
+            </Form.Select>
+          </Form.Group> */}
+          <Form.Group className="mb-3">
+            <Form.Label>Select Account</Form.Label>
+            <Form.Select
+              onChange={(e) => handleAccountSelect(e.target.value, currency)}
+              value={formData.selectedAccountId || ""}
             >
               <option value="" disabled>
                 Select an account
@@ -2568,7 +2677,7 @@ const Invoice_create = () => {
               <option value="essentials">Essentials</option>
               <option value="non-essentials">Non-Essentials</option>
               <option value="education">Education</option>
-              <option value="standard">Standard</option>
+              <option value="standard">SubTotal</option>
             </Form.Select>
           </Form.Group>
 

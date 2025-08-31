@@ -373,14 +373,29 @@ const Invoice_sharmila_modal = ({
               </div>
             </div>
           </div> */}
-          <div className="row">
+           <div className="row">
+            <div className="col-md-6">
+              {formData.payment_instructions && (
+                <div className="mb-3">{formData.payment_instructions}</div>
+              )}
+
+              <div className="remark">
+                <strong>Remark:</strong> Invoice amount is USD{" "}
+                {formData.totals.total }. Payments made more
+                than two (2) days after the invoice date will be subject to the
+                applicable Xe.com exchange rate plus 1%. The payment deadline
+                shall be in accordance with the booking confirmation or fifteen
+                (15) days prior to arrival, whichever occurs earlier.
+              </div>
+            </div>
+          </div>
+          {/* <div className="row">
             <div className="col-md-6">
               {formData.payment_instructions && (
                 <div className="mb-3">{formData.payment_instructions}</div>
               )}
               <div>
                 <strong>Remark:</strong>
-                {/* {currentInvoice.remarks} <br /> */}
                 Please make payment before{" "}
                 {new Date(
                   new Date().setDate(new Date().getDate() + 5)
@@ -388,7 +403,7 @@ const Invoice_sharmila_modal = ({
                 (XE rate - 1 USD = LKR 365)
               </div>
             </div>
-          </div>
+          </div> */}
         </div>
       </Modal.Body>
       <Modal.Footer>

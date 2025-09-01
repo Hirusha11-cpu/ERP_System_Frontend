@@ -3748,6 +3748,8 @@ const Invoice_create = () => {
           currencySymbols={currencySymbols}
           printInvoice={printInvoice}
           formatDate={formatDate}
+          xeRate = {xeRate}
+
         />
       )}
 
@@ -3759,6 +3761,7 @@ const Invoice_create = () => {
           formatDate={formatDate}
           currencySymbols={currencySymbols}
           printInvoice={printInvoice}
+          xeRate = {xeRate}
         />
       )}
 
@@ -3771,6 +3774,8 @@ const Invoice_create = () => {
           currencySymbols={currencySymbols}
           printInvoice={printInvoice}
           formatDate={formatDate}
+          xeRate = {xeRate}
+
         />
       )}
     </div>

@@ -388,7 +388,7 @@ const Invoice_sharmila_modal = ({
                 <strong>Remark:</strong> Invoice amount is USD{" "}
                 {formData.totals.total }. Payments made more
                 than two (2) days after the invoice date will be subject to the
-                applicable Xe.com exchange rate plus 1%. The payment deadline
+                applicable Xe.com({xeRate})  exchange rate plus 1%. The payment deadline
                 shall be in accordance with the booking confirmation or fifteen
                 (15) days prior to arrival, whichever occurs earlier.
               </div>

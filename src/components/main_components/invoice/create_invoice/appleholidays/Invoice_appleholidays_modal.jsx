@@ -108,9 +108,9 @@ const Invoice_appleholidays_modal = ({
                 <strong>Tour No :</strong>{" "}
                 {formData.invoice.number || "IS44641"}
               </div>
-              <div>
+              {/* <div>
                 <strong>Order No :</strong> {formData.id || "IS44641"}
-              </div>
+              </div> */}
               <div>
                 <strong>Sales ID :</strong>{" "}
                 {formData.invoice.salesId || "ARAVEND"}

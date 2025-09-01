@@ -214,6 +214,30 @@ const Invoice_aahaas_modal = ({
                   })}
                 </td>
               </tr>
+              <tr>
+                <td>Total Delivery Charges:</td>
+                <td>
+                  {currencySymbols[formData.currencyDetails.currency] || "$"}
+                  {/* {formData.totals.subTotal.toFixed(2)} */}
+                  0.00
+                  {/* {formData.totals.subTotal.toLocaleString("en-US", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })} */}
+                </td>
+              </tr>
+              <tr>
+                <td>Total Discount:</td>
+                <td>
+                  {currencySymbols[formData.currencyDetails.currency] || "$"}
+                  {/* {formData.totals.subTotal.toFixed(2)} */}
+                  0.00
+                  {/* {formData.totals.subTotal.toLocaleString("en-US", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })} */}
+                </td>
+              </tr>
               {formData.currencyDetails.currency === "INR" && (
                 <>
                   <tr>

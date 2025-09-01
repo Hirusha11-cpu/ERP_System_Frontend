@@ -88,38 +88,43 @@ const Invoice_sharmila_modal = ({
             <div className="mb-1">GSTIN: 33ADVFS442901ZV</div>
 
             <h5 className="fw-bold mb-3 mt-4">
-              INVOICE - {formData?.invoice_number}
+              INVOICE - {formData?.invoice.number}
             </h5>
           </div>
 
           {/* Invoice Meta and Customer Info */}
           <div className="d-flex justify-content-between mb-4">
             <div>
-              <div>
-                <strong>To:</strong>{" "}
-                {formData.customer.name || "PICK YOUR TRAIL"}
-              </div>
-              <div>
-                <strong>Customer Name:</strong>{" "}
-                {formData.customer.address || "Ravichander Balachander"}
-              </div>
-              <div>
+                <div>
                 <strong>Date:</strong> {formatDate(formData.invoice.issueDate)}
               </div>
               <div>
-                <strong>GST:</strong> {"7895"}
+                <strong>Customer Info</strong>{" "}
+                {/* {formData.customer.name || "PICK YOUR TRAIL"} */}
+              </div>
+              <div>
+                <strong>Name:</strong>{" "}
+                {formData.customer.name || "PICK YOUR TRAIL"}
+              </div>
+              <div>
+                <strong>Address:</strong>{" "}
+                {formData.customer.address || "Madurai"}
+              </div>
+            
+              <div>
+                {/* <strong>GST:</strong> {"7895"} */}
               </div>
             </div>
             <div className="text-start">
               <div>
                 <strong>Tour No.</strong> {"S00001"}
               </div>
-              <div>
+              {/* <div>
                 <strong>Order No.</strong>{" "}
                 {countryOptions.find((c) => c.code === formData.invoice.country)
                   ?.prefix || "IN"}
                 {formData.invoice.number || "IS44641"}
-              </div>
+              </div> */}
 
               <div>
                 <strong>Sales ID</strong>{" "}

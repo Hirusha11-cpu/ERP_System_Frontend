@@ -41,6 +41,7 @@ import { useUser } from "../../../../contentApi/UserProvider";
 import { PDFDownloadLink } from "@react-pdf/renderer";
 import { InvoicePDF } from "../upload_invoice/InvoicePDF";
 import html2pdf from "html2pdf.js";
+import Invoice_aahaas_modal from "../create_invoice/aahaas/Invoice_aahaas_modal";
 
 const Invoice_list = () => {
   const [invoices, setInvoices] = useState([]);
@@ -374,6 +375,112 @@ const Invoice_list = () => {
   const confirmDelete = (invoice) => {
     setInvoiceToDelete(invoice);
     setShowDeleteModal(true);
+  };
+
+  const formatInvoiceData = (invoice) => {
+  if (!invoice) return {};
+  
+  return {
+    customer: {
+      id: invoice.customer_id || null,
+      name: invoice.customer?.name || "",
+      address: invoice.customer?.address || "",
+      mobile: invoice.customer?.mobile || "",
+      code: invoice.customer?.code || "",
+      gstNo: invoice.customer?.gst_no || "",
+    },
+    invoice: {
+      country: invoice.country_code || "IN",
+      number: invoice.invoice_number ? invoice.invoice_number.replace(/^INV-/, "") : "",
+      issueDate: invoice.issue_date || new Date().toISOString().split("T")[0],
+      dueDate: invoice.due_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+      salesId: invoice.sales_id || "",
+      printedBy: invoice.printed_by || "",
+      yourRef: invoice.your_ref || "",
+      bookingId: invoice.booking_no || "",
+      startDate: invoice.start_date || "",
+      endDate: invoice.end_date || "",
+    },
+    currencyDetails: {
+      currency: invoice.currency || "USD",
+      exchangeRate: invoice.exchange_rate || 87.52,
+      rateSource: "custom",
+      customRate: invoice.exchange_rate || 87.52,
+      addOneToRate: true,
+      addTenToRate: false,
+      taxTreatment: invoice.tax_treatment || "exclusive",
+    },
+    serviceItems: invoice.items?.map(item => ({
+      id: item.id || Date.now(),
+      code: item.code || "",
+      type: item.type || "hotel",
+      description: item.description || "",
+      checkin_time: item.checkin_time || "",
+      checkout_time: item.checkout_time || "",
+      qty: item.quantity || 1,
+      price: item.price || 0,
+      discount: item.discount || 0,
+      total: (item.price * item.quantity * (1 - (item.discount || 0) / 100)) || 0
+    })) || [],
+    additionalCharges: invoice.additional_charges?.map(charge => ({
+      id: charge.id || Date.now(),
+      description: charge.description || "",
+      amount: charge.amount || 0,
+      taxable: charge.taxable || false
+    })) || [],
+    taxRates: [], // This would need to be populated from your tax rates API
+    accountDetails: {
+      name: invoice.account?.account_name || "",
+      number: invoice.account?.account_no || "",
+      bank: invoice.account?.bank || "",
+      branch: invoice.account?.branch || "",
+      ifsc: invoice.account?.ifsc_code || "",
+      address: invoice.account?.bank_address || "",
+    },
+    payment: {
+      type: invoice.payment_type || "non-credit",
+      collectionDate: invoice.collection_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+      instructions: invoice.payment_instructions || "Please settle the invoice on or before",
+      methods: {
+        bankTransfer: Array.isArray(invoice.payment_methods) 
+          ? invoice.payment_methods.includes("bankTransfer") 
+          : true,
+        amex: Array.isArray(invoice.payment_methods) 
+          ? invoice.payment_methods.includes("amex") 
+          : false,
+        googlePay: Array.isArray(invoice.payment_methods) 
+          ? invoice.payment_methods.includes("googlePay") 
+          : false,
+        usdPortal: Array.isArray(invoice.payment_methods) 
+          ? invoice.payment_methods.includes("usdPortal") 
+          : false,
+      },
+      staff: invoice.staff || "KAVIYA",
+      remarks: invoice.remarks || "Payable in INR(Rate 87.52)",
+    },
+    totals: {
+      subTotal: invoice.sub_total || 0,
+      handlingFee: invoice.handling_fee || 0,
+      gst: invoice.gst_amount || 0,
+      additionalTax: invoice.additional_tax || 0,
+      bankCharges: invoice.bank_charges || 0,
+      total: invoice.total_amount || 0,
+      amountReceived: invoice.amount_received || 0,
+      balance: invoice.balance || 0,
+    },
+    attachments: invoice.attachments || [],
+  };
+};
+
+
+  const [formData, setFormData] = useState(formatInvoiceData(currentInvoice)); 
+
+  const currencySymbols = {
+    INR: "₹",
+    USD: "$",
+    SGD: "S$",
+    MYR: "RM",
+    LKR: "Rs"
   };
 
   const handleDeleteInvoiceAdmin = async () => {
@@ -963,7 +1070,6 @@ const Invoice_list = () => {
         <Modal.Body className="p-0">
           {currentInvoice && (
             <div className="order-preview p-4" ref={receiptRef}>
-              {/* Company Header */}
               <div className="text-center mb-3">
                 <img
                   src="/images/logo/aahaas.png"
@@ -976,14 +1082,12 @@ const Invoice_list = () => {
                 <div>Tel: +9411 2352 400 | Web: www.appleholidaysds.com</div>
               </div>
 
-              {/* Greeting */}
               <div className="thank-you mb-2">
                 Dear {currentInvoice.customer?.name || "Customer"}, Thank you for
                 your order
               </div>
               <p>Please find below the receipt for your order</p>
 
-              {/* Order Meta */}
               <div className="order-meta mb-3">
                 <div>
                   <strong>Order No:</strong> {currentInvoice.order_no}
@@ -1001,7 +1105,6 @@ const Invoice_list = () => {
                 </div>
               </div>
 
-              {/* Customer Details */}
               <h5>Customer Details</h5>
               <table className="table table-bordered mb-4">
                 <thead>
@@ -1022,7 +1125,6 @@ const Invoice_list = () => {
                 </tbody>
               </table>
 
-              {/* Service / Items */}
               <h5>Service Details</h5>
               <table className="table table-bordered mb-4">
                 <thead style={{ backgroundColor: "#343a40", color: "white" }}>
@@ -1055,7 +1157,6 @@ const Invoice_list = () => {
                 </tbody>
               </table>
 
-              {/* Totals */}
               <table className="table totals-table mb-4">
                 <tbody>
                   <tr>
@@ -1093,7 +1194,6 @@ const Invoice_list = () => {
                 </tbody>
               </table>
 
-              {/* Contact Info */}
               <div className="contact-info mt-4">
                 <p>
                   Should you have any questions regarding your order, please
@@ -1126,6 +1226,59 @@ const Invoice_list = () => {
           </Button>
         </Modal.Footer>
       </Modal>
+       {/* Aahaas Invoice Preview Modal */}
+      {/* <Invoice_aahaas_modal
+        show={showPreviewModalAahaas}
+        onHide={() => setShowPreviewModalAahaas(false)}
+        formData={currentInvoice ? {
+          customer: {
+            name: currentInvoice.customer?.name || "",
+            address: currentInvoice.customer?.address || "",
+            email: currentInvoice.customer?.email || "",
+            phone: currentInvoice.customer?.mobile || ""
+          },
+          invoice: {
+            country: currentInvoice.country_code || "IN",
+            number: currentInvoice.invoice_number || "",
+            issueDate: currentInvoice.issue_date || new Date().toISOString().split('T')[0],
+            startDate: currentInvoice.start_date || "",
+            endDate: currentInvoice.end_date || ""
+          },
+          currencyDetails: {
+            currency: currentInvoice.currency || "USD"
+          },
+          serviceItems: currentInvoice.items?.map(item => ({
+            description: item.description || "",
+            price: item.price || 0,
+            discount: item.discount || 0,
+            qty: item.quantity || 0,
+            total: (item.price * item.quantity * (1 - (item.discount || 0) / 100)) || 0
+          })) || [],
+          totals: {
+            subTotal: currentInvoice.sub_total || 0,
+            handlingFee: currentInvoice.handling_fee || 0,
+            gst: currentInvoice.gst_amount || 0,
+            total: currentInvoice.total_amount || 0,
+            amountReceived: currentInvoice.amount_received || 0,
+            balance: currentInvoice.balance || 0
+          },
+          payment: {
+            type: currentInvoice.payment_type || "non-credit"
+          }
+        } : {}}
+        formatDate={formatDate}
+        currencySymbols={currencySymbols}
+        printInvoice={() => window.print()}
+      /> */}
+      {/* <Invoice_aahaas_modal
+  show={showPreviewModalAahaas}
+  onHide={() => setShowPreviewModalAahaas(false)}
+  formData={formatInvoiceData(currentInvoice)}
+  formatDate={formatDate}
+  currencySymbols={currencySymbols}
+  printInvoice={() => window.print()}
+/> */}
+
 
       {/* Invoice Preview Modal Appleholidays*/}
       <Modal

@@ -9,6 +9,7 @@ import {
   Tab,
   Row,
   Col,
+  Badge,
 } from "react-bootstrap";
 import "bootstrap/dist/css/bootstrap.min.css";
 import {
@@ -20,6 +21,7 @@ import {
   FaDownload,
   FaSyncAlt,
   FaCog,
+  FaEdit, // Add this import
 } from "react-icons/fa";
 import { CompanyContext } from "../../../../contentApi/CompanyProvider";
 import axios from "axios";
@@ -38,6 +40,10 @@ const Invoice_create = () => {
   const [customers, setCustomers] = useState([]);
   const [taxRates, setTaxRates] = useState([]);
   const [accounts, setAccounts] = useState([]);
+  const [editingItem, setEditingItem] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [xeRate, setXeRate] = useState(88.66);
+  const [increaseAmount, setIncreaseAmount] = useState(1);
 
   const [currency, setCurrency] = useState("USD");
   const [attachments, setAttachments] = useState([]);
@@ -61,7 +67,7 @@ const Invoice_create = () => {
       shirmila: 1,
     };
 
-    setCompanyNo(companyMap[selectedCompany?.toLowerCase()] || null);
+    setCompanyNo(companyMap[selectedCompany?.toLowerCase()] || 3);
     // resetForm()
     setFormData({
       customer: {
@@ -476,6 +482,10 @@ const Invoice_create = () => {
     component: "",
     rate: 0,
   });
+  const [vatInclude, setVatInclude] = useState(false);
+  const [vatComponent, setVatComponent] = useState({
+    taxBased: "",
+  });
   const [newCustomer, setNewCustomer] = useState({
     code: "",
     name: "",
@@ -583,7 +593,8 @@ const Invoice_create = () => {
       handleCustomerSelect(response.data);
       setShowCustomerModal(false);
       setNewCustomer({
-        code: "",
+        // code: "",
+        code: "1",
         name: "",
         address: "",
         mobile: "",
@@ -681,54 +692,264 @@ const Invoice_create = () => {
 
   //   fetchAccounts(currency);
   // };
- const handleCurrencyChange = async (currency) => {
-  console.log("Selected currency:", currency);
+  const handleCurrencyChange = async (currency) => {
+    console.log("Selected currency:", currency);
 
-  let rate = 87.52;
-  switch (currency) {
-    case "SGD":
-      rate = 65.32;
-      break;
-    case "MYR":
-      rate = 21.05;
-      break;
-    case "LKR":
-      rate = 0.29;
-      break;
-    case "INR":
-      rate = 1.0;
-      break;
-    default:
-      rate = 87.52;
-  }
-  
-  setCurrency(currency);
-  
-  // Reset account details
-  setFormData(prev => ({
-    ...prev,
-    accountDetails: {
-      name: "",
-      number: "",
-      bank: "",
-      branch: "",
-      ifsc: "",
-      address: "",
-    },
-    selectedAccountId: null,
-    currencyDetails: {
-      ...prev.currencyDetails,
-      currency,
-      exchangeRate: rate,
-      customRate: rate,
+    let rate = 87.52;
+    switch (currency) {
+      case "SGD":
+        rate = 65.32;
+        break;
+      case "MYR":
+        rate = 21.05;
+        break;
+      case "LKR":
+        rate = 0.29;
+        break;
+      case "INR":
+        rate = 1.0;
+        break;
+      default:
+        rate = 87.52;
     }
-  }));
-  
-  // Fetch accounts for the new currency
-  await fetchAccounts(currency);
-};
+
+    setCurrency(currency);
+
+    // Reset account details
+    setFormData((prev) => ({
+      ...prev,
+      accountDetails: {
+        name: "",
+        number: "",
+        bank: "",
+        branch: "",
+        ifsc: "",
+        address: "",
+      },
+      selectedAccountId: null,
+      currencyDetails: {
+        ...prev.currencyDetails,
+        currency,
+        exchangeRate: rate,
+        customRate: rate,
+      },
+    }));
+
+    // Fetch accounts for the new currency
+    await fetchAccounts(currency);
+  };
 
   // Calculate totals
+  // const calculateTotals = () => {
+  //   const { currency, exchangeRate, taxTreatment } = formData.currencyDetails;
+  //   const { serviceItems, additionalCharges, taxRates } = formData;
+
+  //   // Calculate subtotal from service items
+  //   let subTotal = 0;
+  //   let totalPax = 0;
+  //   let totalAmount = 0;
+  //   console.log(serviceItems);
+
+  //   serviceItems.forEach((item) => {
+  //     if (item.type === "hotel" || item.type === "restaurant") {
+  //       console.log(item.total);
+
+  //       totalPax += item.qty;
+  //       totalAmount += item.total;
+  //     }
+  //     // subTotal += item.total;
+  //   });
+  //   console.log(totalAmount);
+
+  //   // Add additional charges
+  //   let taxableCharges = 0;
+  //   additionalCharges.forEach((charge) => {
+  //     subTotal += charge.amount;
+  //     if (charge.taxable) {
+  //       taxableCharges += charge.amount;
+  //     }
+  //   });
+  //   console.log(exchangeRate);
+  //   console.log(totalPax);
+
+  //   // Calculate handling fee (only for INR)
+  //   let handlingFee = 0;
+  //   if (currency === "INR" && totalPax > 0) {
+  //     const perPersonRate = subTotal / totalPax - 5;
+  //     handlingFee = 5 * 88.66 * totalPax;
+  //     console.log(handlingFee);
+  //     // totalAmount = totalAmount - handlingFee;
+  //     console.log(totalAmount);
+  //     // subTotal = totalAmount + handlingFee;
+  //     subTotal = totalAmount;
+  //   } else {
+  //     subTotal = totalAmount;
+  //   }
+
+  //   let additionalTax = 0;
+  //   console.log(taxRates);
+
+  //   if (subTotal > 0 && taxRates.length > 0) {
+  //     console.log(Number(taxRates[0].rate));
+  //     additionalTax = subTotal * (parseFloat(Number(taxRates[0].rate)) / 100);
+  //   }
+
+  //   // formData.serviceItems.forEach((item) => {
+  //   //   console.log(formData.taxRates);
+
+  //   //   const itemTaxRate = formData.taxRates.find(
+  //   //     (tax) => tax.component === item.type
+  //   //   );
+  //   //   console.log(itemTaxRate);
+
+  //   //   if (itemTaxRate) {
+  //   //     const itemTotal = item.price * (1 - item.discount / 100) * item.qty;
+  //   //     console.log(itemTotal);
+
+  //   //     additionalTax += itemTotal * (parseFloat(itemTaxRate.rate) / 100);
+  //   //   }
+  //   // });
+
+  //   // Calculate GST (only for INR)
+  //   if (vatInclude) {
+  //     if (vatComponent.taxBased != "") {
+  //       if (vatComponent.taxBased === "subtotal") {
+  //         subTotal = subTotal + (subTotal * 18) / 100;
+  //       } else if (vatComponent.taxBased === "total") {
+  //         total = total + (total * 18) / 100;
+  //       } else if (vatComponent.taxBased === "handling") {
+  //         handlingFee = handlingFee + (handlingFee * 18) / 100;
+  //       }
+  //     }
+  //   }
+  //   let gst = 0;
+  //   if (currency === "INR") {
+  //     // const gstRate = taxRates.find((tax) => tax.name === "GST")?.rate || 0;
+  //     gst = handlingFee * (18 / 100);
+  //   }
+  //   const additionalChargeCost = formData.additionalCharges.reduce(
+  //     (acc, item) => acc + parseFloat(item.amount || 0),
+  //     0
+  //   );
+  //   console.log(handlingFee);
+
+  //   console.log(vatComponent);
+  //   console.log(handlingFee);
+
+  //   // Calculate total
+  //   const total =
+  //     subTotal +
+  //     // handlingFee +
+  //     gst +
+  //     // formData.totals.additionalTax +
+  //     additionalTax +
+  //     additionalChargeCost +
+  //     formData.totals.bankCharges;
+  //   const balance = total - formData.totals.amountReceived;
+
+  //   setFormData({
+  //     ...formData,
+  //     totals: {
+  //       ...formData.totals,
+  //       subTotal,
+  //       handlingFee,
+  //       gst,
+  //       total,
+  //       balance,
+  //       additionalTax,
+  //     },
+  //   });
+  // };
+
+  // Replace the entire calculateTotals function with this:
+  // const calculateTotals = () => {
+  //   const { currency, exchangeRate, taxTreatment } = formData.currencyDetails;
+  //   const { serviceItems, additionalCharges, taxRates } = formData;
+
+  //   // Calculate subtotal from service items
+  //   let subTotal = 0;
+  //   let totalPax = 0;
+  //   let totalAmount = 0;
+
+  //   serviceItems.forEach((item) => {
+  //     if (item.type === "hotel" || item.type === "restaurant") {
+  //       totalPax += item.qty;
+  //       totalAmount += item.total;
+  //     }
+  //   });
+
+  //   // Add additional charges
+  //   let taxableCharges = 0;
+  //   additionalCharges.forEach((charge) => {
+  //     subTotal += charge.amount;
+  //     if (charge.taxable) {
+  //       taxableCharges += charge.amount;
+  //     }
+  //   });
+
+  //   // Calculate handling fee (only for INR)
+  //   let handlingFee = 0;
+  //   if (currency === "INR" && totalPax > 0) {
+  //     const perPersonRate = subTotal / totalPax - 5;
+  //     handlingFee = 5 * 88.66 * totalPax;
+  //     subTotal = totalAmount;
+  //   } else {
+  //     subTotal = totalAmount;
+  //   }
+
+  //   let additionalTax = 0;
+  //   if (subTotal > 0 && taxRates.length > 0) {
+  //     additionalTax = subTotal * (parseFloat(Number(taxRates[0].rate)) / 100);
+  //   }
+
+  //   // Calculate GST (only for INR)
+  //   let gst = 0;
+  //   if (currency === "INR") {
+  //     gst = handlingFee * (18 / 100);
+  //   }
+
+  //   const additionalChargeCost = formData.additionalCharges.reduce(
+  //     (acc, item) => acc + parseFloat(item.amount || 0),
+  //     0
+  //   );
+
+  //   // Create temporary variables for VAT calculation
+  //   let calculatedSubTotal = subTotal;
+  //   let calculatedHandlingFee = handlingFee;
+  //   let calculatedTotal = subTotal + handlingFee + gst + additionalTax + additionalChargeCost + formData.totals.bankCharges;
+
+  //   // Apply VAT if enabled
+  //   if (vatInclude && vatComponent.taxBased !== "") {
+  //     const vatRate = 0.18; // 18% VAT
+
+  //     if (vatComponent.taxBased === "subtotal") {
+  //       calculatedSubTotal = calculatedSubTotal + (calculatedSubTotal * vatRate);
+  //     } else if (vatComponent.taxBased === "total") {
+  //       calculatedTotal = calculatedTotal + (calculatedTotal * vatRate);
+  //     } else if (vatComponent.taxBased === "handling") {
+  //       calculatedHandlingFee = calculatedHandlingFee + (calculatedHandlingFee * vatRate);
+  //     }
+  //   }
+
+  //   // Recalculate total with VAT adjustments
+  //   calculatedTotal = calculatedSubTotal + calculatedHandlingFee + gst + additionalTax + additionalChargeCost + formData.totals.bankCharges;
+
+  //   const balance = calculatedTotal - formData.totals.amountReceived;
+
+  //   setFormData({
+  //     ...formData,
+  //     totals: {
+  //       ...formData.totals,
+  //       subTotal: calculatedSubTotal,
+  //       handlingFee: calculatedHandlingFee,
+  //       gst,
+  //       total: calculatedTotal,
+  //       balance,
+  //       additionalTax,
+  //     },
+  //   });
+  // };
+  // Replace the entire calculateTotals function with this:
   const calculateTotals = () => {
     const { currency, exchangeRate, taxTreatment } = formData.currencyDetails;
     const { serviceItems, additionalCharges, taxRates } = formData;
@@ -737,18 +958,13 @@ const Invoice_create = () => {
     let subTotal = 0;
     let totalPax = 0;
     let totalAmount = 0;
-    console.log(serviceItems);
 
     serviceItems.forEach((item) => {
-      if (item.type === "hotel" || item.type === "restaurant") {
-        console.log(item.total);
-
+      // if (item.type === "hotel" || item.type === "restaurant") {
         totalPax += item.qty;
         totalAmount += item.total;
-      }
-      // subTotal += item.total;
+      // }
     });
-    console.log(totalAmount);
 
     // Add additional charges
     let taxableCharges = 0;
@@ -758,81 +974,111 @@ const Invoice_create = () => {
         taxableCharges += charge.amount;
       }
     });
-    console.log(exchangeRate);
-    console.log(totalPax);
 
     // Calculate handling fee (only for INR)
     let handlingFee = 0;
     if (currency === "INR" && totalPax > 0) {
       const perPersonRate = subTotal / totalPax - 5;
-      handlingFee = 5 * 88.66 * totalPax;
-      console.log(handlingFee);
-      // totalAmount = totalAmount - handlingFee;
-      console.log(totalAmount);
-      // subTotal = totalAmount + handlingFee;
+      // handlingFee = 5 * 88.66 * totalPax;
+      handlingFee = 5 * (xeRate + increaseAmount) * totalPax;
       subTotal = totalAmount;
     } else {
       subTotal = totalAmount;
     }
 
     let additionalTax = 0;
-    console.log(taxRates);
-
     if (subTotal > 0 && taxRates.length > 0) {
-      console.log(Number(taxRates[0].rate));
       additionalTax = subTotal * (parseFloat(Number(taxRates[0].rate)) / 100);
     }
-
-    // formData.serviceItems.forEach((item) => {
-    //   console.log(formData.taxRates);
-
-    //   const itemTaxRate = formData.taxRates.find(
-    //     (tax) => tax.component === item.type
-    //   );
-    //   console.log(itemTaxRate);
-
-    //   if (itemTaxRate) {
-    //     const itemTotal = item.price * (1 - item.discount / 100) * item.qty;
-    //     console.log(itemTotal);
-
-    //     additionalTax += itemTotal * (parseFloat(itemTaxRate.rate) / 100);
-    //   }
-    // });
 
     // Calculate GST (only for INR)
     let gst = 0;
     if (currency === "INR") {
-      // const gstRate = taxRates.find((tax) => tax.name === "GST")?.rate || 0;
       gst = handlingFee * (18 / 100);
     }
+
     const additionalChargeCost = formData.additionalCharges.reduce(
       (acc, item) => acc + parseFloat(item.amount || 0),
       0
     );
 
-    // Calculate total
-    const total =
+    // Create temporary variables for VAT calculation
+    let calculatedSubTotal = subTotal;
+    let calculatedHandlingFee = handlingFee;
+    let calculatedTotal =
       subTotal +
-      // handlingFee +
+      handlingFee +
       gst +
-      // formData.totals.additionalTax +
       additionalTax +
       additionalChargeCost +
       formData.totals.bankCharges;
-    const balance = total - formData.totals.amountReceived;
+
+    // Apply VAT if enabled
+    if (vatInclude && vatComponent.taxBased !== "") {
+      const vatRate = 0.18; // 18% VAT
+
+      if (vatComponent.taxBased === "subtotal") {
+        calculatedSubTotal = calculatedSubTotal + calculatedSubTotal * vatRate;
+      } else if (vatComponent.taxBased === "total") {
+        calculatedTotal = calculatedTotal + calculatedTotal * vatRate;
+      } else if (vatComponent.taxBased === "handling") {
+        calculatedHandlingFee =
+          calculatedHandlingFee + calculatedHandlingFee * vatRate;
+      }
+    }
+
+    // Recalculate total with VAT adjustments
+    calculatedTotal =
+      calculatedSubTotal +
+      // calculatedHandlingFee +
+      gst +
+      additionalTax +
+      additionalChargeCost +
+      formData.totals.bankCharges;
+
+    const balance = calculatedTotal - formData.totals.amountReceived;
 
     setFormData({
       ...formData,
       totals: {
         ...formData.totals,
-        subTotal,
-        handlingFee,
+        subTotal: calculatedSubTotal,
+        handlingFee: calculatedHandlingFee,
         gst,
-        total,
+        total: calculatedTotal,
         balance,
         additionalTax,
       },
     });
+  };
+
+  const toggleTaxRateStatus = async (taxId, isActive) => {
+    try {
+      await axios.patch(
+        `/api/tax-rates/${taxId}`,
+        { isActive },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      // Update local state
+      const updatedTaxRates = taxRates.map((tax) =>
+        tax.id === taxId ? { ...tax, isActive } : tax
+      );
+
+      setTaxRates(updatedTaxRates);
+      setFormData((prev) => ({
+        ...prev,
+        taxRates: updatedTaxRates,
+      }));
+
+      calculateTotals();
+    } catch (error) {
+      console.error("Error updating tax rate status:", error);
+    }
   };
 
   // Add new item to service table
@@ -1061,6 +1307,69 @@ const Invoice_create = () => {
     navigate("/invoice/bank-accounts");
   };
 
+  // Handle edit item
+  const handleEditItem = (item) => {
+    setEditingItem(item);
+    setNewItem({
+      ...item,
+      total: item.qty * item.price * (1 - item.discount / 100),
+    });
+    setIsEditing(true);
+    setShowItemModal(true);
+  };
+
+  // Update existing item
+  const updateItem = () => {
+    const { currency, exchangeRate } = formData.currencyDetails;
+    const total = newItem.price * (1 - newItem.discount / 100) * newItem.qty;
+
+    setFormData({
+      ...formData,
+      serviceItems: formData.serviceItems.map((item) =>
+        item.id === editingItem.id
+          ? {
+              ...newItem,
+              total: currency === "INR" ? total : total,
+            }
+          : item
+      ),
+    });
+
+    // Reset states
+    setNewItem({
+      code: "",
+      type: "hotel",
+      description: "",
+      checkin_time: "",
+      checkout_time: "",
+      qty: 1,
+      price: 0,
+      discount: 0,
+      total: 0,
+    });
+    setEditingItem(null);
+    setIsEditing(false);
+    setShowItemModal(false);
+  };
+
+  // Cancel edit
+  const cancelEdit = () => {
+    setNewItem({
+      code: "",
+      type: "hotel",
+      description: "",
+      checkin_time: "",
+      checkout_time: "",
+      qty: 1,
+      price: 0,
+      discount: 0,
+      total: 0,
+    });
+    setEditingItem(null);
+    setIsEditing(false);
+    setShowItemModal(false);
+  };
+
   // Print invoice
   const printInvoice = () => {
     const printContent = document.getElementById(
@@ -1150,6 +1459,19 @@ const Invoice_create = () => {
       });
     }
   };
+  // Auto-calculate total when item details change
+  useEffect(() => {
+    if (showItemModal) {
+      const total = newItem.qty * newItem.price * (1 - newItem.discount / 100);
+      setNewItem((prev) => ({ ...prev, total }));
+    }
+  }, [newItem.qty, newItem.price, newItem.discount, showItemModal]);
+
+  useEffect(() => {
+    if (formData.currencyDetails.currency === "INR") {
+      calculateTotals();
+    }
+  }, [xeRate, increaseAmount]);
 
   return (
     <div className="container py-4">
@@ -1176,6 +1498,88 @@ const Invoice_create = () => {
           <h5 className="section-title fw-semibold mb-3 pb-2 border-bottom">
             Invoice Information
           </h5>
+          {/* <Row className="mb-3">
+            <Col md={6}>
+              <Form.Group>
+                <Form.Label>XE Rate</Form.Label>
+                <Form.Control
+                  type="number"
+                  value={xeRate}
+                  onChange={(e) => setXeRate(e.target.value)}
+                />
+              </Form.Group>
+            </Col>
+
+            <Col md={6}>
+              <Form.Group>
+                <Form.Label>Increase Amount</Form.Label>
+                <Form.Control
+                  type="number"
+                  value={increaseAmount}
+                  onChange={(e) => setIncreaseAmount(e.target.value)}
+                />
+              </Form.Group>
+            </Col>
+          </Row> */}
+          <Row className="mb-3">
+            <Col md={6}>
+              <Form.Group>
+                <Form.Label>XE Rate</Form.Label>
+                <Form.Control
+                  type="number"
+                  step="0.01"
+                  value={xeRate}
+                  onChange={(e) => setXeRate(parseFloat(e.target.value) || 0)}
+                />
+              </Form.Group>
+            </Col>
+
+            <Col md={6}>
+              <Form.Group>
+                <Form.Label>Increase Amount</Form.Label>
+                <Form.Control
+                  type="number"
+                  step="0.01"
+                  value={increaseAmount}
+                  onChange={(e) =>
+                    setIncreaseAmount(parseFloat(e.target.value) || 0)
+                  }
+                />
+              </Form.Group>
+            </Col>
+          </Row>
+
+          {/* Add this new section to show the handling fee calculation */}
+          {formData.currencyDetails.currency === "INR" && (
+            <Card className="mb-3">
+              <Card.Body>
+                <h6 className="card-title">Handling Fee Calculation</h6>
+                <div className="d-flex justify-content-between align-items-center">
+                  <span>Calculation Formula:</span>
+                  <strong>
+                    5 × ({xeRate} + {increaseAmount}) ×{" "}
+                    {formData.serviceItems.reduce((total, item) => {
+                      if (item.type === "hotel" || item.type === "restaurant") {
+                        return total + item.qty;
+                      }
+                      return total;
+                    }, 0)}{" "}
+                    pax
+                  </strong>
+                </div>
+                <div className="d-flex justify-content-between align-items-center mt-2">
+                  <span>Current Handling Fee:</span>
+                  <strong className="text-primary">
+                    {formData.currencyDetails.currency}{" "}
+                    {formData.totals.handlingFee.toFixed(2)}
+                  </strong>
+                </div>
+                <div className="text-muted small mt-2">
+                  Handling Fee = 5 × (XE Rate + Increase Amount) × Total Pax
+                </div>
+              </Card.Body>
+            </Card>
+          )}
 
           <Row className="mb-3">
             <Col md={6}>
@@ -1564,6 +1968,66 @@ const Invoice_create = () => {
         </Card.Body>
       </Card>
       {/* Service Details */}
+      {/* <Card className="mb-4">
+        <Card.Body>
+          <div className="d-flex justify-content-between align-items-center mb-3">
+            <h5 className="section-title fw-semibold mb-0">Service Details</h5>
+            <Button variant="primary" onClick={() => setShowItemModal(true)}>
+              <FaPlus /> Add Item
+            </Button>
+          </div>
+
+          <div className="table-responsive">
+            <Table bordered>
+              <thead className="table-light">
+                <tr>
+                  <th>Code</th>
+                  <th>Type</th>
+                  <th>Description</th>
+                  <th>Check-in</th>
+                  <th>Check-out</th>
+                  <th>Qty</th>
+                  <th>Price</th>
+                  <th>Discount</th>
+                  <th>Total</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {formData.serviceItems.map((item) => (
+                  <tr key={item.id}>
+                    <td>{item.code}</td>
+                    <td>{item.type}</td>
+                    <td>{item.description}</td>
+                    <td>{item.checkin_time || "-"}</td>
+                    <td>{item.checkout_time || "-"}</td>
+                    <td>{item.qty}</td>
+                    <td>{item.price.toFixed(2)}</td>
+                    <td>{item.discount}%</td>
+                    <td>{(item.qty * item.price).toFixed(2)}</td>
+                    <td>
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={() => deleteItem(item.id, "service")}
+                      >
+                        <FaTrash />
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          </div>
+
+          {formData.currencyDetails.currency === "INR" && (
+            <div className="mt-3">
+              <strong>Handling Fee:</strong>{" "}
+              {formData.totals.handlingFee.toFixed(2)}
+            </div>
+          )}
+        </Card.Body>
+      </Card> */}
       <Card className="mb-4">
         <Card.Body>
           <div className="d-flex justify-content-between align-items-center mb-3">
@@ -1600,16 +2064,32 @@ const Invoice_create = () => {
                     <td>{item.qty}</td>
                     <td>{item.price.toFixed(2)}</td>
                     <td>{item.discount}%</td>
-                    {/* <td>{item.total.toFixed(2)}</td> */}
-                    <td>{(item.qty * item.price).toFixed(2)}</td>
                     <td>
-                      <Button
-                        variant="danger"
-                        size="sm"
-                        onClick={() => deleteItem(item.id, "service")}
-                      >
-                        <FaTrash />
-                      </Button>
+                      {(
+                        item.qty *
+                        item.price *
+                        (1 - item.discount / 100)
+                      ).toFixed(2)}
+                    </td>
+                    <td>
+                      <div className="d-flex gap-1">
+                        <Button
+                          variant="warning"
+                          size="sm"
+                          onClick={() => handleEditItem(item)}
+                          title="Edit Item"
+                        >
+                          <FaEdit />
+                        </Button>
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          onClick={() => deleteItem(item.id, "service")}
+                          title="Delete Item"
+                        >
+                          <FaTrash />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -1676,7 +2156,7 @@ const Invoice_create = () => {
         </Card.Body>
       </Card>
       {/* Tax Rates */}
-      <Card className="mb-4">
+      {/* <Card className="mb-4">
         <Card.Body>
           <div className="d-flex justify-content-between align-items-center mb-3">
             <h5 className="section-title fw-semibold mb-0">Tax Rates</h5>
@@ -1713,6 +2193,136 @@ const Invoice_create = () => {
               </tbody>
             </Table>
           </div>
+        </Card.Body>
+      </Card> */}
+      <Card className="mb-4">
+        <Card.Body>
+          <div className="d-flex justify-content-between align-items-center mb-3">
+            <h5 className="section-title fw-semibold mb-0">Tax Rates</h5>
+            <Button variant="primary" onClick={() => setShowTaxModal(true)}>
+              <FaPlus /> Add Tax Rate
+            </Button>
+          </div>
+
+          {/* VAT Toggle */}
+          <Form.Group className="mb-3">
+            <Form.Check
+              type="switch"
+              id="vat-toggle"
+              label="VAT Included"
+              checked={vatInclude}
+              onChange={(e) => {
+                setVatInclude(e.target.checked);
+                if (!e.target.checked) {
+                  setVatComponent({ taxBased: "" });
+                }
+              }}
+            />
+          </Form.Group>
+
+          {vatInclude && (
+            <Form.Group className="mb-3">
+              <Form.Label>VAT Applied On:</Form.Label>
+              <Form.Select
+                value={vatComponent.taxBased}
+                onChange={(e) => {
+                  setVatComponent({
+                    ...vatComponent,
+                    taxBased: e.target.value,
+                  });
+                  calculateTotals(); // Recalculate when selection changes
+                }}
+              >
+                <option value="">Select VAT Component</option>
+                <option value="subtotal">Subtotal</option>
+                <option value="total">Total Amount</option>
+                <option value="handling">Handling Fee</option>
+              </Form.Select>
+              {vatComponent.taxBased && (
+                <Form.Text className="text-muted">
+                  VAT (18%) will be applied to {vatComponent.taxBased}
+                </Form.Text>
+              )}
+            </Form.Group>
+          )}
+
+          <div className="table-responsive">
+            <Table bordered>
+              <thead className="table-light">
+                <tr>
+                  <th>Component</th>
+                  <th>Rate (%)</th>
+                  <th>Type</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {taxRates.map((tax, index) => (
+                  <tr key={index}>
+                    <td>{tax.component}</td>
+                    <td>{tax.rate}</td>
+                    <td>
+                      <Badge
+                        bg={tax.component === "VAT" ? "success" : "primary"}
+                      >
+                        {tax.component === "VAT" ? "VAT" : "Standard"}
+                      </Badge>
+                    </td>
+                    <td>
+                      <Form.Check
+                        type="switch"
+                        checked={tax.isActive !== false}
+                        onChange={(e) =>
+                          toggleTaxRateStatus(tax.id, e.target.checked)
+                        }
+                      />
+                    </td>
+                    <td>
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        onClick={() => deleteItem(tax.id, "tax")}
+                      >
+                        <FaTrash />
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          </div>
+
+          {/* VAT Summary */}
+          {vatInclude && vatComponent.taxBased && (
+            <Card className="mt-3 bg-light">
+              <Card.Body>
+                <h6 className="card-title">VAT Calculation Summary</h6>
+                <div className="d-flex justify-content-between">
+                  <span>VAT Rate:</span>
+                  <strong>18%</strong>
+                </div>
+                <div className="d-flex justify-content-between">
+                  <span>Applied On:</span>
+                  <strong>{vatComponent.taxBased}</strong>
+                </div>
+                <div className="d-flex justify-content-between">
+                  <span>VAT Amount:</span>
+                  <strong>
+                    {(() => {
+                      const baseAmount =
+                        vatComponent.taxBased === "subtotal"
+                          ? formData.totals.subTotal
+                          : vatComponent.taxBased === "total"
+                          ? formData.totals.total
+                          : formData.totals.handlingFee;
+                      return (baseAmount * 0.18).toFixed(2);
+                    })()}
+                  </strong>
+                </div>
+              </Card.Body>
+            </Card>
+          )}
         </Card.Body>
       </Card>
       {/* Account Details */}
@@ -2677,10 +3287,9 @@ const Invoice_create = () => {
               <option value="essentials">Essentials</option>
               <option value="non-essentials">Non-Essentials</option>
               <option value="education">Education</option>
-              <option value="standard">SubTotal</option>
+              {/* <option value="standard">SubTotal</option> */}
             </Form.Select>
           </Form.Group>
-
           {/* <Form.Group className="mb-3">
             <Form.Label>Display Name:</Form.Label>
             <Form.Control
@@ -2691,7 +3300,6 @@ const Invoice_create = () => {
               }
             />
           </Form.Group> */}
-
           <Form.Group className="mb-3">
             <Form.Label>Rate (%):</Form.Label>
             <Form.Control
@@ -2723,7 +3331,6 @@ const Invoice_create = () => {
               }
             />
           </Form.Group> */}
-
           {newTaxRate.rate > 0 && (
             <div className="alert alert-info">
               {/* <strong>Tax Calculation:</strong> For an item worth 100{" "}
@@ -2736,6 +3343,38 @@ const Invoice_create = () => {
               {formData.currencyDetails.currency} at a rate of {newTaxRate.rate}
               %.
             </div>
+          )}
+          {/* VAT Type Selection */}
+          <Form.Group className="mb-3">
+            <Form.Label>VAT Type:</Form.Label>
+            <Form.Select
+              value={vatInclude.vatType || "nonvat"}
+              onChange={(e) => {
+                const value = e.target.value;
+                // setNewTaxRate({ ...newTaxRate, vatType: value });
+                setVatInclude(value !== "nonvat"); // enable if exclusive or inclusive
+              }}
+            >
+              <option value="exclusive">Exclusive (add VAT)</option>
+              <option value="nonvat">Non-VAT</option>
+            </Form.Select>
+          </Form.Group>
+          {/* Show Tax Component only if vatInclude is true */}
+          {vatInclude && (
+            <Form.Group className="mb-3">
+              <Form.Label>Tax Component:</Form.Label>
+              <Form.Select
+                value={vatComponent.taxBased}
+                onChange={(e) =>
+                  setVatComponent({ ...vatComponent, taxBased: e.target.value })
+                }
+              >
+                <option value="">Select Component</option>
+                <option value="subtotal">Subtotal</option>
+                <option value="total">Total</option>
+                <option value="handling">Handling Fee</option>
+              </Form.Select>
+            </Form.Group>
           )}
         </Modal.Body>
         <Modal.Footer>
@@ -2801,6 +3440,217 @@ const Invoice_create = () => {
           </Button>
         </Modal.Footer>
       </Modal> */}
+      <Modal
+        show={showItemModal}
+        onHide={() => (isEditing ? cancelEdit() : setShowItemModal(false))}
+        size="lg"
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>{isEditing ? "Edit Item" : "Add New Item"}</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Nav
+            variant="tabs"
+            activeKey={activeTab}
+            onSelect={setActiveTab}
+            className="mb-4"
+          >
+            <Nav.Item>
+              <Nav.Link eventKey="sell">Sell Details</Nav.Link>
+            </Nav.Item>
+          </Nav>
+
+          <Tab.Content>
+            <Tab.Pane eventKey="sell" active={activeTab === "sell"}>
+              <Row>
+                <Col md={6} className="mb-3">
+                  <Form.Group>
+                    <Form.Label>Item Code:</Form.Label>
+                    <Form.Control
+                      type="text"
+                      value={newItem.code}
+                      onChange={(e) =>
+                        setNewItem({ ...newItem, code: e.target.value })
+                      }
+                    />
+                  </Form.Group>
+                </Col>
+
+                <Col md={6} className="mb-3">
+                  <Form.Group>
+                    <Form.Label>Item Type:</Form.Label>
+                    <Form.Select
+                      value={newItem.type}
+                      onChange={(e) =>
+                        setNewItem({ ...newItem, type: e.target.value })
+                      }
+                    >
+                      {itemTypes.map((type) => (
+                        <option key={type} value={type}>
+                          {type}
+                        </option>
+                      ))}
+                    </Form.Select>
+                  </Form.Group>
+                </Col>
+
+                <Col md={12} className="mb-3">
+                  <Form.Group>
+                    <Form.Label>Description:</Form.Label>
+                    <Form.Select
+                      value={newItem.description}
+                      onChange={(e) =>
+                        setNewItem({
+                          ...newItem,
+                          description: e.target.value,
+                        })
+                      }
+                    >
+                      <option value="">Select Description</option>
+                      {companyNo === 1 || companyNo === 2 ? (
+                        <>
+                          <option value="Cost per Adult">Cost per Adult</option>
+                          <option value="Cost per Child">Cost per Child</option>
+                        </>
+                      ) : (
+                        <option value="Cost per Product">
+                          Cost per Product
+                        </option>
+                      )}
+                      <option value="custom">Other (Type Manually)</option>
+                    </Form.Select>
+
+                    {newItem.description === "custom" && (
+                      <Form.Control
+                        className="mt-2"
+                        type="text"
+                        placeholder="Enter custom description"
+                        value={newItem.customDescription || ""}
+                        onChange={(e) =>
+                          setNewItem({
+                            ...newItem,
+                            description: e.target.value,
+                            customDescription: e.target.value,
+                          })
+                        }
+                      />
+                    )}
+                  </Form.Group>
+                </Col>
+
+                <Col md={6} className="mb-3">
+                  <Form.Group>
+                    <Form.Label>Check-in Date:</Form.Label>
+                    <Form.Control
+                      type="date"
+                      value={newItem.checkin_time}
+                      onChange={(e) =>
+                        setNewItem({ ...newItem, checkin_time: e.target.value })
+                      }
+                    />
+                  </Form.Group>
+                </Col>
+
+                <Col md={6} className="mb-3">
+                  <Form.Group>
+                    <Form.Label>Check-out Date:</Form.Label>
+                    <Form.Control
+                      type="date"
+                      value={newItem.checkout_time}
+                      onChange={(e) =>
+                        setNewItem({
+                          ...newItem,
+                          checkout_time: e.target.value,
+                        })
+                      }
+                    />
+                  </Form.Group>
+                </Col>
+
+                <Col md={4} className="mb-3">
+                  <Form.Group>
+                    <Form.Label>Quantity:</Form.Label>
+                    <Form.Control
+                      type="number"
+                      value={newItem.qty}
+                      onChange={(e) =>
+                        setNewItem({
+                          ...newItem,
+                          qty: parseInt(e.target.value) || 0,
+                        })
+                      }
+                    />
+                  </Form.Group>
+                </Col>
+
+                <Col md={4} className="mb-3">
+                  <Form.Group>
+                    <Form.Label>Price:</Form.Label>
+                    <Form.Control
+                      inputMode="decimal"
+                      pattern="[0-9]*"
+                      value={newItem.price}
+                      onChange={(e) =>
+                        setNewItem({
+                          ...newItem,
+                          price: parseFloat(e.target.value) || 0,
+                        })
+                      }
+                    />
+                  </Form.Group>
+                </Col>
+
+                <Col md={4} className="mb-3">
+                  <Form.Group>
+                    <Form.Label>Discount (%):</Form.Label>
+                    <Form.Control
+                      type="number"
+                      value={newItem.discount}
+                      onChange={(e) =>
+                        setNewItem({
+                          ...newItem,
+                          discount: parseFloat(e.target.value) || 0,
+                        })
+                      }
+                    />
+                  </Form.Group>
+                </Col>
+
+                {/* Display calculated total */}
+                <Col md={12} className="mb-3">
+                  <Form.Group>
+                    <Form.Label>Calculated Total:</Form.Label>
+                    <Form.Control
+                      type="text"
+                      readOnly
+                      value={`${(
+                        newItem.qty *
+                        newItem.price *
+                        (1 - newItem.discount / 100)
+                      ).toFixed(2)} ${formData.currencyDetails.currency}`}
+                      className="fw-bold"
+                    />
+                  </Form.Group>
+                </Col>
+              </Row>
+            </Tab.Pane>
+          </Tab.Content>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button
+            variant="secondary"
+            onClick={() => (isEditing ? cancelEdit() : setShowItemModal(false))}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="primary"
+            onClick={isEditing ? updateItem : addNewItem}
+          >
+            {isEditing ? "Update Item" : "Add to Invoice"}
+          </Button>
+        </Modal.Footer>
+      </Modal>
       {/* Customer Modal */}
       <Modal
         show={showCustomerModal}
@@ -2810,7 +3660,7 @@ const Invoice_create = () => {
           <Modal.Title>Create New Customer</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          <Form.Group className="mb-3">
+          {/* <Form.Group className="mb-3">
             <Form.Label>Customer Code:</Form.Label>
             <Form.Control
               type="text"
@@ -2819,7 +3669,7 @@ const Invoice_create = () => {
                 setNewCustomer({ ...newCustomer, code: e.target.value })
               }
             />
-          </Form.Group>
+          </Form.Group> */}
 
           <Form.Group className="mb-3">
             <Form.Label>Customer Name:</Form.Label>
@@ -2851,6 +3701,16 @@ const Invoice_create = () => {
               value={newCustomer.mobile}
               onChange={(e) =>
                 setNewCustomer({ ...newCustomer, mobile: e.target.value })
+              }
+            />
+          </Form.Group>
+          <Form.Group className="mb-3">
+            <Form.Label>GST NO:</Form.Label>
+            <Form.Control
+              type="text"
+              value={newCustomer.gstNo}
+              onChange={(e) =>
+                setNewCustomer({ ...newCustomer, gstNo: e.target.value })
               }
             />
           </Form.Group>

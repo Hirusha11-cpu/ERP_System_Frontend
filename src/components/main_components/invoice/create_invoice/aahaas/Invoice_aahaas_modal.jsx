@@ -20,6 +20,7 @@ const Invoice_aahaas_modal = ({
     return diffDays > 0 ? diffDays : 0;
   };
   const receiptRef = useRef(); // Reference to modal body
+  console.log(formData);
 
   // const downloadPDF = () => {
   //   const element = receiptRef.current;
@@ -240,9 +241,8 @@ const Invoice_aahaas_modal = ({
               </tr>
               {formData.currencyDetails.currency === "INR" && (
                 <>
-                  <tr>
+                  {/* <tr>
                     <td>CGST of 9.00%:</td>
-                    {/* <td>₹{(formData.totals.gst / 2).toFixed(2)}</td> */}
                     <td>
                       ₹
                       {(formData.totals.gst / 2).toLocaleString("en-IN", {
@@ -253,10 +253,19 @@ const Invoice_aahaas_modal = ({
                   </tr>
                   <tr>
                     <td>SGST of 9.00%:</td>
-                    {/* <td>₹{(formData.totals.gst / 2).toFixed(2)}</td> */}
                      <td>
                       ₹
                       {(formData.totals.gst / 2).toLocaleString("en-IN", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </td>
+                  </tr> */}
+                  <tr>
+                    <td>GST of 18.00%:</td>
+                    <td>
+                      ₹
+                      {(formData.totals.gst).toLocaleString("en-IN", {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
                       })}
@@ -318,14 +327,13 @@ const Invoice_aahaas_modal = ({
               )}{" "}
               days
             </p>
-            <div className="row">
+            {/* <div className="row">
               <div className="col-md-6">
                 {formData.payment_instructions && (
                   <div className="mb-3">{formData.payment_instructions}</div>
                 )}
                 <div>
                   <strong>Remark:</strong>
-                  {/* {currentInvoice.remarks} <br /> */}
                   Please make payment before{" "}
                   {new Date(
                     new Date().setDate(new Date().getDate() + 5)
@@ -333,7 +341,7 @@ const Invoice_aahaas_modal = ({
                   (XE rate - 1 USD = LKR 365)
                 </div>
               </div>
-            </div>
+            </div> */}
 
             {/* Contact Information */}
             <div className="contact-info">

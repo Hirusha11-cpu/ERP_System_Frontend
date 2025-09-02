@@ -11,7 +11,7 @@ const Invoice_appleholidays_modal = ({
   formatDate,
   currencySymbols,
   printInvoice,
-  xeRate
+  xeRate,
 }) => {
   console.log("Invoice Data:", formData);
   const calculateTravelDays = (start, end) => {
@@ -77,7 +77,7 @@ const Invoice_appleholidays_modal = ({
 
           {/* Invoice Title */}
           <div className="text-center mb-3">
-            <h5 className="fw-bold">INVOICE - {formData.invoice.number} </h5>
+            <h5 className="fw-bold">INVOICE - {formData.invoice.id ?? "3456"} </h5>
           </div>
 
           {/* Invoice Meta and Customer Info */}
@@ -234,6 +234,19 @@ const Invoice_appleholidays_modal = ({
                         </td>
                       </tr>
                     ) : null}
+                    {/* <tr>
+                      <td style={{ textAlign: "right" }}>
+                        <strong>BANK CHARGES:</strong>
+                      </td>
+                      <td style={{ textAlign: "right" }}>
+                        {currencySymbols[formData.currencyDetails.currency] ||
+                          "$"}
+                        {formData.totals.bankCharges.toLocaleString("en-US", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </td>
+                    </tr> */}
                     <tr>
                       <td style={{ textAlign: "right" }}>
                         <strong>BANK CHARGES:</strong>
@@ -242,10 +255,17 @@ const Invoice_appleholidays_modal = ({
                         {currencySymbols[formData.currencyDetails.currency] ||
                           "$"}
                         {/* {formData.totals.bankCharges.toFixed(2)} */}
-                        {formData.totals.bankCharges.toLocaleString("en-US", {
+                        {/* {formData.additionalCharges.bankCharges.toLocaleString("en-US", {
                           minimumFractionDigits: 2,
                           maximumFractionDigits: 2,
-                        })}
+                        })} */}
+                        {formData.additionalCharges
+                          .reduce(
+                            (sum, charge) =>
+                              sum + parseFloat(charge.amount || 0),
+                            0
+                          )
+                          .toFixed(2)}
                       </td>
                     </tr>
                     <tr>
@@ -375,13 +395,35 @@ const Invoice_appleholidays_modal = ({
                 <div className="mb-3">{formData.payment_instructions}</div>
               )}
 
-              <div className="remark">
+              {/* <div className="remark">
                 <strong>Remark:</strong> Invoice amount is USD{" "}
                 {formData.totals.total }. Payments made more
                 than two (2) days after the invoice date will be subject to the
-                applicable Xe.com({xeRate}) exchange rate plus 1. The payment deadline
+                applicable Xe.com({currencySymbols[formData.currencyDetails.currency] === "$" ? {xeRate} : "" }) exchange rate plus 1. The payment deadline
                 shall be in accordance with the booking confirmation or fifteen
                 (15) days prior to arrival, whichever occurs earlier.
+              </div> */}
+              <div className="remark">
+                <strong>Remark:</strong> Invoice amount is{" "}
+                {/* {formData.currencyDetails.currency !== "USD" ?? "USD"} {formData.totals.total}. */}
+                {"USD"} {formData.totals.total}.
+                Payments made more than two (2) days after the invoice date will
+                be subject to the applicable Xe.com{" "}
+                {formData.currencyDetails.currency !== "USD"
+                  ? `${xeRate} + 1`
+                  : ""}{" "}
+                exchange rate. The payment deadline shall be in accordance with
+                the booking confirmation or{" "}
+                {formData.invoice.startDate
+                  ? new Date(
+                      new Date(formData.invoice.startDate).setDate(
+                        new Date(formData.invoice.startDate).getDate() - 15
+                      )
+                    )
+                      .toISOString()
+                      .split("T")[0]
+                  : "15 days"}{" "}
+                 prior to arrival, whichever occurs earlier.
               </div>
             </div>
           </div>

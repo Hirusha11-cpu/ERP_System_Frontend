@@ -53,6 +53,7 @@ const Invoice_create = () => {
   // Fetch customers and tax rates on component mount
   useEffect(() => {
     fetchCustomers();
+    // fetchAccounts()
     // fetchTaxRates();
   }, []);
 
@@ -393,7 +394,7 @@ const Invoice_create = () => {
       gstNo: "",
     },
     invoice: {
-      country: "IN",
+      country: "IS",
       number: "",
       issueDate: new Date().toISOString().split("T")[0],
       dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
@@ -594,7 +595,7 @@ const Invoice_create = () => {
       setShowCustomerModal(false);
       setNewCustomer({
         // code: "",
-        code: "1",
+        code: "",
         name: "",
         address: "",
         mobile: "",
@@ -961,8 +962,8 @@ const Invoice_create = () => {
 
     serviceItems.forEach((item) => {
       // if (item.type === "hotel" || item.type === "restaurant") {
-        totalPax += item.qty;
-        totalAmount += item.total;
+      totalPax += item.qty;
+      totalAmount += item.total;
       // }
     });
 
@@ -1862,11 +1863,22 @@ const Invoice_create = () => {
                     />
                   </Form.Group>
 
+                  {/* <Form.Group className="mb-3">
+                    <Form.Label>End Date:</Form.Label>
+                    <Form.Control
+                      type="date"
+                      value={formData.invoice.endDate}
+                      onChange={(e) =>
+                        handleInputChange("invoice", "endDate", e.target.value)
+                      }
+                    />
+                  </Form.Group> */}
                   <Form.Group className="mb-3">
                     <Form.Label>End Date:</Form.Label>
                     <Form.Control
                       type="date"
                       value={formData.invoice.endDate}
+                      min={formData.invoice.startDate || ""} // ensures end date cannot be before start date
                       onChange={(e) =>
                         handleInputChange("invoice", "endDate", e.target.value)
                       }
@@ -3660,7 +3672,7 @@ const Invoice_create = () => {
           <Modal.Title>Create New Customer</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          {/* <Form.Group className="mb-3">
+          <Form.Group className="mb-3">
             <Form.Label>Customer Code:</Form.Label>
             <Form.Control
               type="text"
@@ -3669,7 +3681,7 @@ const Invoice_create = () => {
                 setNewCustomer({ ...newCustomer, code: e.target.value })
               }
             />
-          </Form.Group> */}
+          </Form.Group>
 
           <Form.Group className="mb-3">
             <Form.Label>Customer Name:</Form.Label>
@@ -3748,8 +3760,7 @@ const Invoice_create = () => {
           currencySymbols={currencySymbols}
           printInvoice={printInvoice}
           formatDate={formatDate}
-          xeRate = {xeRate}
-
+          xeRate={xeRate}
         />
       )}
 
@@ -3761,7 +3772,7 @@ const Invoice_create = () => {
           formatDate={formatDate}
           currencySymbols={currencySymbols}
           printInvoice={printInvoice}
-          xeRate = {xeRate}
+          xeRate={xeRate}
         />
       )}
 
@@ -3774,8 +3785,7 @@ const Invoice_create = () => {
           currencySymbols={currencySymbols}
           printInvoice={printInvoice}
           formatDate={formatDate}
-          xeRate = {xeRate}
-
+          xeRate={xeRate}
         />
       )}
     </div>

@@ -384,13 +384,35 @@ const Invoice_sharmila_modal = ({
                 <div className="mb-3">{formData.payment_instructions}</div>
               )}
 
-              <div className="remark">
+              {/* <div className="remark">
                 <strong>Remark:</strong> Invoice amount is USD{" "}
                 {formData.totals.total }. Payments made more
                 than two (2) days after the invoice date will be subject to the
                 applicable Xe.com({xeRate})  exchange rate plus 1%. The payment deadline
                 shall be in accordance with the booking confirmation or fifteen
                 (15) days prior to arrival, whichever occurs earlier.
+              </div> */}
+              <div className="remark">
+                <strong>Remark:</strong> Invoice amount is{" "}
+                {/* {formData.currencyDetails.currency !== "USD" ?? "USD"} {formData.totals.total}. */}
+                {"USD"} {formData.totals.total}.
+                Payments made more than two (2) days after the invoice date will
+                be subject to the applicable Xe.com{" "}
+                {formData.currencyDetails.currency !== "USD"
+                  ? `${xeRate} + 1`
+                  : ""}{" "}
+                exchange rate. The payment deadline shall be in accordance with
+                the booking confirmation or{" "}
+                {formData.invoice.startDate
+                  ? new Date(
+                      new Date(formData.invoice.startDate).setDate(
+                        new Date(formData.invoice.startDate).getDate() - 15
+                      )
+                    )
+                      .toISOString()
+                      .split("T")[0]
+                  : "15 days"}{" "}
+                 prior to arrival, whichever occurs earlier.
               </div>
             </div>
           </div>

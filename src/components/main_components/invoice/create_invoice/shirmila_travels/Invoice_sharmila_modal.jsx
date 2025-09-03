@@ -12,6 +12,7 @@ const Invoice_sharmila_modal = ({
   currencySymbols,
   printInvoice,
   formatDate,
+  xeRate
 }) => {
   console.log("Invoice Data:", formData);
   const calculateTravelDays = (start, end) => {
@@ -88,7 +89,7 @@ const Invoice_sharmila_modal = ({
             <div className="mb-1">GSTIN: 33ADVFS442901ZV</div>
 
             <h5 className="fw-bold mb-3 mt-4">
-              INVOICE - {formData?.invoice.number}
+              INVOICE - {formData.invoice?.id ?? "3456"}
             </h5>
           </div>
 
@@ -96,7 +97,7 @@ const Invoice_sharmila_modal = ({
           <div className="d-flex justify-content-between mb-4">
             <div>
                 <div>
-                <strong>Date:</strong> {formatDate(formData.invoice.issueDate)}
+                <strong>Date:</strong> {formatDate(formData.invoice?.issueDate)}
               </div>
               <div>
                 <strong>Customer Info</strong>{" "}
@@ -104,11 +105,11 @@ const Invoice_sharmila_modal = ({
               </div>
               <div>
                 <strong>Name:</strong>{" "}
-                {formData.customer.name || "PICK YOUR TRAIL"}
+                {formData.customer?.name || "PICK YOUR TRAIL"}
               </div>
               <div>
                 <strong>Address:</strong>{" "}
-                {formData.customer.address || "Madurai"}
+                {formData.customer?.address || "Madurai"}
               </div>
             
               <div>
@@ -128,19 +129,19 @@ const Invoice_sharmila_modal = ({
 
               <div>
                 <strong>Sales ID</strong>{" "}
-                {formData.invoice.salesId || "ARAVIND"}
+                {formData.invoice?.salesId || "ARAVIND"}
               </div>
               <div>
                 <strong>Account ID</strong>{" "}
-                {formData.invoice.printedBy || "KAVIYA"}
+                {formData.invoice?.printedBy || "KAVIYA"}
               </div>
               <div>
                 <strong>Booking ID</strong>{" "}
-                {formData.invoice.bookingId || "399648 CNTL"}
+                {formData.invoice?.bookingId || "399648 CNTL"}
               </div>
               <div>
                 <strong>Other Ref.</strong>{" "}
-                {formData.invoice.yourRef || "399648 CNTL"}
+                {formData.invoice?.yourRef || "399648 CNTL"}
               </div>
             </div>
           </div>
@@ -164,12 +165,12 @@ const Invoice_sharmila_modal = ({
               </tr>
             </thead>
             <tbody>
-              {formData.serviceItems.map((item) => (
+              {formData.serviceItems?.map((item) => (
                 <tr key={item.id}>
                   <td
                     style={{ padding: "8px", borderBottom: "1px solid #ddd" }}
                   >
-                    {item.description}
+                    {item?.description}
                   </td>
                   <td
                     style={{
@@ -178,9 +179,9 @@ const Invoice_sharmila_modal = ({
                       borderBottom: "1px solid #ddd",
                     }}
                   >
-                    {currencySymbols[formData.currencyDetails.currency] || ""}
+                    {currencySymbols[formData.currencyDetails?.currency] || ""}
                     {/* {item.price.toFixed(2)} */}
-                    {item.price.toLocaleString("en-US", {
+                    {item?.price.toLocaleString("en-US", {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
                   })}
@@ -192,7 +193,7 @@ const Invoice_sharmila_modal = ({
                       borderBottom: "1px solid #ddd",
                     }}
                   >
-                    {item.discount}%
+                    {item?.discount}%
                   </td>
                   <td
                     style={{
@@ -201,7 +202,7 @@ const Invoice_sharmila_modal = ({
                       borderBottom: "1px solid #ddd",
                     }}
                   >
-                    {item.qty}
+                    {item?.qty}
                   </td>
                   <td
                     style={{
@@ -210,16 +211,16 @@ const Invoice_sharmila_modal = ({
                       borderBottom: "1px solid #ddd",
                     }}
                   >
-                    {currencySymbols[formData.currencyDetails.currency] || ""}
+                    {currencySymbols[formData.currencyDetails?.currency] || ""}
                     {/* {item.total.toFixed(2)} */}
-                    {item.total.toLocaleString("en-US", {
+                    {item?.total.toLocaleString("en-US", {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
                   })}
                   </td>
                 </tr>
               ))}
-              {formData.currencyDetails.currency === "INR" ? (
+              {formData.currencyDetails?.currency === "INR" ? (
                 <tr>
                   <td>
                     <strong>Handling Fee:</strong>
@@ -228,9 +229,9 @@ const Invoice_sharmila_modal = ({
                     {/* <strong>Handling Fee:</strong> */}
                   </td>
                   <td style={{ textAlign: "right" }}>
-                    {currencySymbols[formData.currencyDetails.currency] || "$"}
+                    {currencySymbols[formData.currencyDetails?.currency] || "$"}
                     {/* {formData.totals.handlingFee.toFixed(2)} */}
-                    {formData.totals.handlingFee.toLocaleString("en-US", {
+                    {formData.totals?.handlingFee.toLocaleString("en-US", {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
                   })}
@@ -249,16 +250,16 @@ const Invoice_sharmila_modal = ({
                     <strong>Sub Total:</strong>
                   </td>
                   <td style={{ padding: "4px", textAlign: "right" }}>
-                    {currencySymbols[formData.currencyDetails.currency] || ""}
+                    {currencySymbols[formData.currencyDetails?.currency] || ""}
                     {/* {formData.totals.subTotal.toFixed(2)} */}
-                    {formData.totals.subTotal.toLocaleString("en-US", {
+                    {formData.totals?.subTotal.toLocaleString("en-US", {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
                   })}
                   </td>
                 </tr>
 
-                {formData.currencyDetails.currency === "INR" && (
+                {formData.currencyDetails?.currency === "INR" && (
                   <>
                     <tr>
                       <td style={{ padding: "4px", textAlign: "right" }}>
@@ -266,7 +267,7 @@ const Invoice_sharmila_modal = ({
                       </td>
                       <td style={{ padding: "4px", textAlign: "right" }}>
                         {/* ₹{(formData.totals.gst / 2).toFixed(2)} */}
-                        ₹{(formData.totals.gst / 2).toLocaleString("en-US", {
+                        ₹{(formData?.totals.gst / 2).toLocaleString("en-US", {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
                   })}
@@ -278,7 +279,7 @@ const Invoice_sharmila_modal = ({
                       </td>
                       <td style={{ padding: "4px", textAlign: "right" }}>
                         {/* ₹{(formData.totals.gst / 2).toFixed(2)} */}
-                        ₹{(formData.totals.gst / 2).toLocaleString("en-US", {
+                        ₹{(formData?.totals?.gst / 2).toLocaleString("en-US", {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
                   })}
@@ -292,8 +293,8 @@ const Invoice_sharmila_modal = ({
                     <strong>Total:</strong>
                   </td>
                   <td style={{ padding: "4px", textAlign: "right" }}>
-                    {currencySymbols[formData.currencyDetails.currency] || ""}
-                    {formData.totals.total.toLocaleString("en-US", {
+                    {currencySymbols[formData.currencyDetails?.currency] || ""}
+                    {formData.totals?.total.toLocaleString("en-US", {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
                   })}
@@ -304,8 +305,8 @@ const Invoice_sharmila_modal = ({
                     <strong>Amount Received:</strong>
                   </td>
                   <td style={{ padding: "4px", textAlign: "right" }}>
-                    {currencySymbols[formData.currencyDetails.currency] || ""}
-                    {formData.totals.amountReceived.toLocaleString("en-US", {
+                    {currencySymbols[formData.currencyDetails?.currency] || ""}
+                    {formData.totals?.amountReceived.toLocaleString("en-US", {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
                   })}
@@ -316,8 +317,8 @@ const Invoice_sharmila_modal = ({
                     <strong>Balance:</strong>
                   </td>
                   <td style={{ padding: "4px", textAlign: "right" }}>
-                    {currencySymbols[formData.currencyDetails.currency] || ""}
-                    {formData.totals.balance.toLocaleString("en-US", {
+                    {currencySymbols[formData.currencyDetails?.currency] || ""}
+                    {formData.totals?.balance.toLocaleString("en-US", {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
                   })}
@@ -331,22 +332,22 @@ const Invoice_sharmila_modal = ({
           <div className="mb-4">
             <h6 className="fw-bold">ACCOUNT DETAILS</h6>
             <div>
-              <strong>ACCOUNT NAME:</strong> {formData.accountDetails.name}
+              <strong>ACCOUNT NAME:</strong> {formData.accountDetails?.name}
             </div>
             <div>
-              <strong>ACCOUNT NO:</strong> {formData.accountDetails.number}
+              <strong>ACCOUNT NO:</strong> {formData.accountDetails?.number}
             </div>
             <div>
-              <strong>BANK:</strong> {formData.accountDetails.bank}
+              <strong>BANK:</strong> {formData.accountDetails?.bank}
             </div>
             <div>
-              <strong>BRANCH:</strong> {formData.accountDetails.branch}
+              <strong>BRANCH:</strong> {formData.accountDetails?.branch}
             </div>
             <div>
-              <strong>IFSC CODE:</strong> {formData.accountDetails.ifsc}
+              <strong>IFSC CODE:</strong> {formData.accountDetails?.ifsc}
             </div>
             <div>
-              <strong>Bank Address:</strong> {formData.accountDetails.address}
+              <strong>Bank Address:</strong> {formData.accountDetails?.address}
             </div>
           </div>
 
@@ -359,13 +360,13 @@ const Invoice_sharmila_modal = ({
             </div>
           )} */}
           <p>
-            <strong>Start Date:</strong> {formData.invoice.startDate}{" "}
+            <strong>Start Date:</strong> {formData.invoice?.startDate}{" "}
             &nbsp;|&nbsp;
-            <strong>End Date:</strong> {formData.invoice.endDate} &nbsp;|&nbsp;
+            <strong>End Date:</strong> {formData.invoice?.endDate} &nbsp;|&nbsp;
             <strong>Travel Period:</strong>{" "}
             {calculateTravelDays(
-              formData.invoice.startDate,
-              formData.invoice.endDate
+              formData.invoice?.startDate,
+              formData.invoice?.endDate
             )}{" "}
             days
           </p>
@@ -380,8 +381,8 @@ const Invoice_sharmila_modal = ({
           </div> */}
            <div className="row">
             <div className="col-md-6">
-              {formData.payment_instructions && (
-                <div className="mb-3">{formData.payment_instructions}</div>
+              {formData?.payment_instructions && (
+                <div className="mb-3">{formData?.payment_instructions}</div>
               )}
 
               {/* <div className="remark">
@@ -395,18 +396,18 @@ const Invoice_sharmila_modal = ({
               <div className="remark">
                 <strong>Remark:</strong> Invoice amount is{" "}
                 {/* {formData.currencyDetails.currency !== "USD" ?? "USD"} {formData.totals.total}. */}
-                {"USD"} {formData.totals.total}.
+                {"USD"} {formData.totals?.total}.
                 Payments made more than two (2) days after the invoice date will
                 be subject to the applicable Xe.com{" "}
-                {formData.currencyDetails.currency !== "USD"
+                {formData.currencyDetails?.currency !== "USD"
                   ? `${xeRate} + 1`
                   : ""}{" "}
                 exchange rate. The payment deadline shall be in accordance with
                 the booking confirmation or{" "}
-                {formData.invoice.startDate
+                {formData.invoice?.startDate
                   ? new Date(
-                      new Date(formData.invoice.startDate).setDate(
-                        new Date(formData.invoice.startDate).getDate() - 15
+                      new Date(formData.invoice?.startDate).setDate(
+                        new Date(formData.invoice?.startDate).getDate() - 15
                       )
                     )
                       .toISOString()

@@ -42,6 +42,8 @@ import { PDFDownloadLink } from "@react-pdf/renderer";
 import { InvoicePDF } from "../upload_invoice/InvoicePDF";
 import html2pdf from "html2pdf.js";
 import Invoice_aahaas_modal from "../create_invoice/aahaas/Invoice_aahaas_modal";
+import Invoice_appleholidays_modal from "../create_invoice/appleholidays/Invoice_appleholidays_modal";
+import Invoice_sharmila_modal from "../create_invoice/shirmila_travels/Invoice_sharmila_modal";
 
 const Invoice_list = () => {
   const [invoices, setInvoices] = useState([]);
@@ -64,6 +66,7 @@ const Invoice_list = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [filterStatus, setFilterStatus] = useState("all");
   const { selectedCompany } = useContext(CompanyContext);
+  const [xeRate, setXeRate] = useState(88.66);
   const [filterCreditType, setFilterCreditType] = useState("all");
   const [dateFilter, setDateFilter] = useState({
     startDate: "",
@@ -222,6 +225,17 @@ const Invoice_list = () => {
     html2pdf().set(opt).from(element).save();
   };
 
+  const printInvoice = () => {
+    const printContent = document.getElementById(
+      "invoice-preview-content"
+    ).innerHTML;
+    const originalContent = document.body.innerHTML;
+
+    document.body.innerHTML = printContent;
+    window.print();
+    document.body.innerHTML = originalContent;
+  };
+
   const handlePrintInvoice = (invoice) => {
     // Set the current invoice to generate the PDF for
     setCurrentInvoice(invoice);
@@ -378,110 +392,135 @@ const Invoice_list = () => {
   };
 
   const formatInvoiceData = (invoice) => {
-  if (!invoice) return {};
-  
-  return {
-    customer: {
-      id: invoice.customer_id || null,
-      name: invoice.customer?.name || "",
-      address: invoice.customer?.address || "",
-      mobile: invoice.customer?.mobile || "",
-      code: invoice.customer?.code || "",
-      gstNo: invoice.customer?.gst_no || "",
-    },
-    invoice: {
-      country: invoice.country_code || "IN",
-      number: invoice.invoice_number ? invoice.invoice_number.replace(/^INV-/, "") : "",
-      issueDate: invoice.issue_date || new Date().toISOString().split("T")[0],
-      dueDate: invoice.due_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-      salesId: invoice.sales_id || "",
-      printedBy: invoice.printed_by || "",
-      yourRef: invoice.your_ref || "",
-      bookingId: invoice.booking_no || "",
-      startDate: invoice.start_date || "",
-      endDate: invoice.end_date || "",
-    },
-    currencyDetails: {
-      currency: invoice.currency || "USD",
-      exchangeRate: invoice.exchange_rate || 87.52,
-      rateSource: "custom",
-      customRate: invoice.exchange_rate || 87.52,
-      addOneToRate: true,
-      addTenToRate: false,
-      taxTreatment: invoice.tax_treatment || "exclusive",
-    },
-    serviceItems: invoice.items?.map(item => ({
-      id: item.id || Date.now(),
-      code: item.code || "",
-      type: item.type || "hotel",
-      description: item.description || "",
-      checkin_time: item.checkin_time || "",
-      checkout_time: item.checkout_time || "",
-      qty: item.quantity || 1,
-      price: item.price || 0,
-      discount: item.discount || 0,
-      total: (item.price * item.quantity * (1 - (item.discount || 0) / 100)) || 0
-    })) || [],
-    additionalCharges: invoice.additional_charges?.map(charge => ({
-      id: charge.id || Date.now(),
-      description: charge.description || "",
-      amount: charge.amount || 0,
-      taxable: charge.taxable || false
-    })) || [],
-    taxRates: [], // This would need to be populated from your tax rates API
-    accountDetails: {
-      name: invoice.account?.account_name || "",
-      number: invoice.account?.account_no || "",
-      bank: invoice.account?.bank || "",
-      branch: invoice.account?.branch || "",
-      ifsc: invoice.account?.ifsc_code || "",
-      address: invoice.account?.bank_address || "",
-    },
-    payment: {
-      type: invoice.payment_type || "non-credit",
-      collectionDate: invoice.collection_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-      instructions: invoice.payment_instructions || "Please settle the invoice on or before",
-      methods: {
-        bankTransfer: Array.isArray(invoice.payment_methods) 
-          ? invoice.payment_methods.includes("bankTransfer") 
-          : true,
-        amex: Array.isArray(invoice.payment_methods) 
-          ? invoice.payment_methods.includes("amex") 
-          : false,
-        googlePay: Array.isArray(invoice.payment_methods) 
-          ? invoice.payment_methods.includes("googlePay") 
-          : false,
-        usdPortal: Array.isArray(invoice.payment_methods) 
-          ? invoice.payment_methods.includes("usdPortal") 
-          : false,
+    if (!invoice) return {};
+
+    return {
+      customer: {
+        id: invoice.customer_id || null,
+        name: invoice.customer?.name || "",
+        address: invoice.customer?.address || "",
+        mobile: invoice.customer?.mobile || "",
+        code: invoice.customer?.code || "",
+        gstNo: invoice.customer?.gst_no || "",
       },
-      staff: invoice.staff || "KAVIYA",
-      remarks: invoice.remarks || "Payable in INR(Rate 87.52)",
-    },
-    totals: {
-      subTotal: invoice.sub_total || 0,
-      handlingFee: invoice.handling_fee || 0,
-      gst: invoice.gst_amount || 0,
-      additionalTax: invoice.additional_tax || 0,
-      bankCharges: invoice.bank_charges || 0,
-      total: invoice.total_amount || 0,
-      amountReceived: invoice.amount_received || 0,
-      balance: invoice.balance || 0,
-    },
-    attachments: invoice.attachments || [],
+      invoice: {
+        country: invoice.country_code || "IN",
+        // number: invoice.invoice_number ? invoice.invoice_number.replace(/^INV-/, "") : "",
+        number: invoice.invoice_number || "",
+        issueDate: invoice.issue_date || new Date().toISOString().split("T")[0],
+        dueDate:
+          invoice.due_date ||
+          new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+            .toISOString()
+            .split("T")[0],
+        salesId: invoice.sales_id || "",
+        printedBy: invoice.printed_by || "",
+        yourRef: invoice.your_ref || "",
+        bookingId: invoice.booking_no || "",
+        startDate: invoice.start_date || "",
+        endDate: invoice.end_date || "",
+      },
+      currencyDetails: {
+        currency: invoice.currency || "USD",
+        exchangeRate: invoice.exchange_rate || 87.52,
+        rateSource: "custom",
+        customRate: invoice.exchange_rate || 87.52,
+        addOneToRate: true,
+        addTenToRate: false,
+        taxTreatment: invoice.tax_treatment || "exclusive",
+      },
+      serviceItems:
+        invoice.items?.map((item) => ({
+          id: item.id || Date.now(),
+          code: item.code || "",
+          type: item.type || "hotel",
+          description: item.description || "",
+          checkin_time: item.checkin_time || "",
+          checkout_time: item.checkout_time || "",
+          qty: item.quantity || 1,
+          price: item.price || 0,
+          discount: item.discount || 0,
+          total:
+            item.price * item.quantity * (1 - (item.discount || 0) / 100) || 0,
+        })) || [],
+      additionalCharges:
+        invoice.additional_charges?.map((charge) => ({
+          id: charge.id || Date.now(),
+          description: charge.description || "",
+          amount: charge.amount || 0,
+          taxable: charge.taxable || false,
+        })) || [],
+      taxRates: [], // This would need to be populated from your tax rates API
+      accountDetails: {
+        name: invoice.account?.account_name || "",
+        number: invoice.account?.account_no || "",
+        bank: invoice.account?.bank || "",
+        branch: invoice.account?.branch || "",
+        ifsc: invoice.account?.ifsc_code || "",
+        address: invoice.account?.bank_address || "",
+      },
+      payment: {
+        type: invoice.payment_type || "non-credit",
+        collectionDate:
+          invoice.collection_date ||
+          new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+            .toISOString()
+            .split("T")[0],
+        instructions:
+          invoice.payment_instructions ||
+          "Please settle the invoice on or before",
+        methods: {
+          bankTransfer: Array.isArray(invoice.payment_methods)
+            ? invoice.payment_methods.includes("bankTransfer")
+            : true,
+          amex: Array.isArray(invoice.payment_methods)
+            ? invoice.payment_methods.includes("amex")
+            : false,
+          googlePay: Array.isArray(invoice.payment_methods)
+            ? invoice.payment_methods.includes("googlePay")
+            : false,
+          usdPortal: Array.isArray(invoice.payment_methods)
+            ? invoice.payment_methods.includes("usdPortal")
+            : false,
+        },
+        staff: invoice.staff || "KAVIYA",
+        remarks: invoice.remarks || "Payable in INR(Rate 87.52)",
+      },
+      totals: {
+        subTotal: invoice.sub_total || 0,
+        handlingFee: invoice.handling_fee || 0,
+        gst: invoice.gst_amount || 0,
+        additionalTax: invoice.additional_tax || 0,
+        bankCharges: invoice.bank_charges || 0,
+        total: invoice.total_amount || 0,
+        amountReceived: invoice.amount_received || 0,
+        balance: invoice.balance || 0,
+      },
+      attachments: invoice.attachments || [],
+    };
   };
-};
 
-
-  const [formData, setFormData] = useState(formatInvoiceData(currentInvoice)); 
+  const [formData, setFormData] = useState(formatInvoiceData(currentInvoice));
 
   const currencySymbols = {
     INR: "₹",
     USD: "$",
     SGD: "S$",
     MYR: "RM",
-    LKR: "Rs"
+    LKR: "Rs",
   };
+
+  const countryOptions = [
+    { code: "IN", name: "India", prefix: "IN" },
+    { code: "LK", name: "Sri Lanka", prefix: "IS" },
+    { code: "SG", name: "Singapore", prefix: "SG" },
+    { code: "VN", name: "Vietnam", prefix: "VN" },
+    { code: "MY", name: "Malaysia", prefix: "MY" },
+    { code: "MV", name: "Maldives", prefix: "MV" },
+    { code: "ID", name: "Bali", prefix: "ID" },
+    { code: "KH", name: "Cambodia", prefix: "CM" },
+    { code: "OB", name: "Other Countries", prefix: "OB" },
+  ];
 
   const handleDeleteInvoiceAdmin = async () => {
     try {
@@ -1054,7 +1093,7 @@ const Invoice_list = () => {
       </Card>
 
       {/* Invoice Preview Modal Aahaas*/}
-      <Modal
+      {/* <Modal
         show={showPreviewModalAahaas}
         onHide={() => setShowPreviewModalAahaas(false)}
         size="lg"
@@ -1225,8 +1264,20 @@ const Invoice_list = () => {
             <FaPrint className="me-1" /> Print
           </Button>
         </Modal.Footer>
-      </Modal>
-       {/* Aahaas Invoice Preview Modal */}
+      </Modal> */}
+
+      <Invoice_aahaas_modal
+        show={showPreviewModalAahaas}
+        onHide={() => setShowPreviewModalAahaas(false)}
+        formData={formatInvoiceData(currentInvoice)}
+        countryOptions={countryOptions}
+        currencySymbols={currencySymbols}
+        printInvoice={handlePrintInvoiceAahaas}
+        formatDate={formatDate}
+        xeRate={xeRate}
+      />
+
+      {/* Aahaas Invoice Preview Modal */}
       {/* <Invoice_aahaas_modal
         show={showPreviewModalAahaas}
         onHide={() => setShowPreviewModalAahaas(false)}
@@ -1279,9 +1330,8 @@ const Invoice_list = () => {
   printInvoice={() => window.print()}
 /> */}
 
-
       {/* Invoice Preview Modal Appleholidays*/}
-      <Modal
+      {/* <Modal
         show={showPreviewModalAppleholidays}
         onHide={() => setShowPreviewModalAppleholidays(false)}
         size="lg"
@@ -1297,7 +1347,6 @@ const Invoice_list = () => {
           <div className="invoice-preview p-4" ref={receiptRef}>
             {currentInvoice && (
               <div className="invoice-preview p-4">
-                {/* Company Header */}
                 <div className="company-header text-center mb-4">
                   <img
                     src="/images/logo/appleholidays_extend.png"
@@ -1311,12 +1360,10 @@ const Invoice_list = () => {
                   <div>Tel: 011 2352 400 | Web: www.appleholidaysds.com</div>
                 </div>
 
-                {/* Invoice Title */}
                 <div className="text-center mb-3">
                   <h5 className="fw-bold">INVOICE - {currentInvoice.id}</h5>
                 </div>
 
-                {/* Invoice Meta and Customer Info */}
                 <div className="d-flex justify-content-between mb-4">
                   <div>
                     <div>
@@ -1356,7 +1403,6 @@ const Invoice_list = () => {
                   </div>
                 </div>
 
-                {/* Items Table */}
                 <table className="invoice-table mb-3">
                   <thead>
                     <tr>
@@ -1370,7 +1416,6 @@ const Invoice_list = () => {
                   <tbody>
                     {currentInvoice.items?.map((item, index) => (
                       <tr key={index}>
-                        {/* <td>{item.description}</td> */}
                         <td>Cost per Adult</td>
                         <td style={{ textAlign: "right" }}>
                           {currentInvoice.currency} {item.price}
@@ -1383,15 +1428,9 @@ const Invoice_list = () => {
                         </td>
                       </tr>
                     ))}
-                    {/* <td>Handling Fee</td>
-                  <td style={{ textAlign: "right" }}></td>
-                  <td style={{ textAlign: "right" }}></td>
-                  <td style={{ textAlign: "right" }}></td>
-                  <td style={{ textAlign: "right" }}>USD 100.00</td> */}
                   </tbody>
                 </table>
 
-                {/* Totals */}
                 <div className="row mb-4">
                   <div className="col-md-6 offset-md-6">
                     <table className="invoice-totals w-100">
@@ -1463,7 +1502,6 @@ const Invoice_list = () => {
                   </div>
                 </div>
 
-                {/* Payment Instructions / Account Details */}
                 <div className="row">
                   <div className="col-md-6">
                     {currentInvoice.payment_instructions && (
@@ -1473,7 +1511,6 @@ const Invoice_list = () => {
                     )}
                     <div>
                       <strong>Remark:</strong>
-                      {/* {currentInvoice.remarks} <br /> */}
                       Please make payment before{" "}
                       {new Date(
                         new Date().setDate(new Date().getDate() + 5)
@@ -1494,20 +1531,6 @@ const Invoice_list = () => {
           >
             Close
           </Button>
-          {/* <PDFDownloadLink
-            document={
-              <InvoicePDF invoice={currentInvoice} company="appleholidays" />
-            }
-            fileName={`appleholidays_invoice_${currentInvoice?.invoice_number}.pdf`}
-            className="btn btn-success me-2"
-          >
-            {({ loading }) => (
-              <>
-                <FaDownload className="me-1" />
-                {loading ? "Generating..." : "Download PDF"}
-              </>
-            )}
-          </PDFDownloadLink> */}
           <Button variant="success" onClick={downloadPDF}>
             <FaDownload /> Download PDF
           </Button>
@@ -1519,10 +1542,20 @@ const Invoice_list = () => {
             <FaPrint className="me-1" /> Print Invoice
           </Button>
         </Modal.Footer>
-      </Modal>
+      </Modal> */}
+      <Invoice_appleholidays_modal
+        show={showPreviewModalAppleholidays}
+        onHide={() => setShowPreviewModalAppleholidays(false)}
+        formData={formatInvoiceData(currentInvoice)}
+        countryOptions={countryOptions}
+        currencySymbols={currencySymbols}
+        printInvoice={handlePrintInvoiceAppleHolidays}
+        formatDate={formatDate}
+        xeRate={xeRate}
+      />
 
       {/* Invoice Preview Modal Shirmila*/}
-      <Modal
+      {/* <Modal
         show={showPreviewModalShirmila}
         onHide={() => setShowPreviewModalShirmila(false)}
         size="lg"
@@ -1538,7 +1571,6 @@ const Invoice_list = () => {
           <div className="invoice-preview p-4" ref={receiptRef}>
             {currentInvoice && (
               <div className="invoice-preview p-4">
-                {/* Company Header */}
                 <div className="text-center mb-3">
                   <h4 className="mb-1 fw-bold text-danger">
                     Sharmila Tours & Travels
@@ -1554,7 +1586,6 @@ const Invoice_list = () => {
                   </h5>
                 </div>
 
-                {/* Invoice Meta and Customer Info */}
                 <div className="d-flex justify-content-between mb-4">
                   <div>
                     <div>
@@ -1562,7 +1593,6 @@ const Invoice_list = () => {
                       {currentInvoice.customer?.name || "N/A"}
                     </div>
                     <div>{currentInvoice.customer?.address || "N/A"}</div>
-                    {/* <div>GST NO: {currentInvoice.customer?.gst_no || "N/A"}</div> */}
                   </div>
                   <div className="text-start">
                     <div>
@@ -1591,7 +1621,6 @@ const Invoice_list = () => {
                   </div>
                 </div>
 
-                {/* Items Table */}
                 <table className="table table-bordered mb-3">
                   <thead>
                     <tr style={{ backgroundColor: "#343a40", color: "white" }}>
@@ -1620,7 +1649,6 @@ const Invoice_list = () => {
                   </tbody>
                 </table>
 
-                {/* Payment Instructions */}
                 {currentInvoice.payment_instructions && (
                   <div className="mb-3">
                     <strong>Payment Instructions:</strong>{" "}
@@ -1628,7 +1656,6 @@ const Invoice_list = () => {
                   </div>
                 )}
 
-                {/* Totals */}
                 <div className="row mb-4">
                   <div className="col-md-6 offset-md-6">
                     <table style={{ width: "100%" }}>
@@ -1713,7 +1740,6 @@ const Invoice_list = () => {
                   </div>
                 </div>
 
-                {/* Bottom left: Staff and Remark */}
                 <div className="row">
                   <div className="col-md-6">
                     {currentInvoice.staff && (
@@ -1721,12 +1747,9 @@ const Invoice_list = () => {
                         <strong>Staff:</strong> {currentInvoice.staff}
                       </div>
                     )}
-                    {/* <div>
-                    <strong>Remark:</strong> {currentInvoice.remarks || "N/A"}
-                  </div> */}
+                   
                     <div>
                       <strong>Remark:</strong>
-                      {/* {currentInvoice.remarks} <br /> */}
                       Please make payment before{" "}
                       {new Date(
                         new Date().setDate(new Date().getDate() + 5)
@@ -1750,20 +1773,7 @@ const Invoice_list = () => {
           <Button variant="success" onClick={downloadPDF}>
             <FaDownload /> Download PDF
           </Button>
-          {/* <PDFDownloadLink
-            document={
-              <InvoicePDF invoice={currentInvoice} company="sharmila" />
-            }
-            fileName={`sharmila_invoice_${currentInvoice?.invoice_number}.pdf`}
-            className="btn btn-success me-2"
-          >
-            {({ loading }) => (
-              <>
-                <FaDownload className="me-1" />
-                {loading ? "Generating..." : "Download PDF"}
-              </>
-            )}
-          </PDFDownloadLink> */}
+         
           <Button
             variant="primary"
             onClick={() => window.print()}
@@ -1772,7 +1782,17 @@ const Invoice_list = () => {
             <FaPrint className="me-1" /> Print Invoice
           </Button>
         </Modal.Footer>
-      </Modal>
+      </Modal> */}
+      <Invoice_sharmila_modal
+        show={showPreviewModalShirmila}
+        onHide={() => setShowPreviewModalShirmila(false)}
+        formData={formatInvoiceData(currentInvoice)}
+        countryOptions={countryOptions}
+        currencySymbols={currencySymbols}
+        printInvoice={handlePrintInvoiceSharmila}
+        formatDate={formatDate}
+        xeRate={xeRate}
+      />
 
       {/* Edit Invoice Modal */}
       <Modal

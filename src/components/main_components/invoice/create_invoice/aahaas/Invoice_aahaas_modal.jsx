@@ -82,7 +82,7 @@ const Invoice_aahaas_modal = ({
               {/* <div>{new Date().toLocaleDateString()}</div> */}
             </div>
             <div className="thank-you">
-              Dear {formData.customer.name || "Customer"}, Thank you for your
+              Dear {formData?.customer?.name || "Customer"}, Thank you for your
               order
             </div>
             <p>Please find below the receipt for your order</p>
@@ -99,14 +99,14 @@ const Invoice_aahaas_modal = ({
               <div className="meta-item">
                 <span className="meta-label pe-1">Order No:</span>
                 <span className="meta-value ">
-                  {formData.invoice.country + formData.invoice.number ||
+                  {formData?.invoice?.country + formData?.invoice?.number ||
                     "IS44641"}
                 </span>
               </div>
               <div className="meta-item">
                 <span className="meta-label pe-1">Order Date:</span>
                 <span className="meta-value">
-                  {formatDate(formData.invoice.issueDate) || "14th Jan 2025"} |{" "}
+                  {formatDate(formData.invoice?.issueDate) || "14th Jan 2025"} |{" "}
                   {new Date().toLocaleTimeString()}
                 </span>
               </div>
@@ -114,7 +114,7 @@ const Invoice_aahaas_modal = ({
                 <span className="meta-label pe-1">Payment Type:</span>
                 <span className="meta-value">
                   {/* {formData.payment.type === "credit" ? "Credit" : "Non-Credit"} | */}
-                  {formData.totals.balance <= 0
+                  {formData.totals?.balance <= 0
                     ? ""
                     : ""}{" "}
                   | {"Credit Card"}
@@ -138,10 +138,10 @@ const Invoice_aahaas_modal = ({
               </thead>
               <tbody>
                 <tr>
-                  <td>{formData.customer.name || "PICK YOUR TRAIL"}</td>
-                  <td>{formData.customer.address || "-"}</td>
-                  <td>{formData.customer.email || "-"}</td>
-                  <td>{formData.customer.phone || "-"}</td>
+                  <td>{formData.customer?.name || "PICK YOUR TRAIL"}</td>
+                  <td>{formData.customer?.address || "-"}</td>
+                  <td>{formData.customer?.email || "-"}</td>
+                  <td>{formData.customer?.phone || "-"}</td>
                 </tr>
               </tbody>
             </table>
@@ -159,11 +159,11 @@ const Invoice_aahaas_modal = ({
                 </tr>
               </thead>
               <tbody>
-                {formData.serviceItems.map((item, index) => (
+                {formData?.serviceItems?.map((item, index) => (
                   <tr key={index}>
                     <td>{item.description}</td>
                     <td>
-                      {currencySymbols[formData.currencyDetails.currency] ||
+                      {currencySymbols[formData.currencyDetails?.currency] ||
                         "$"}
                       {/* {item.price.toFixed(2)} */}
                       {item.price.toLocaleString("en-US", {
@@ -174,7 +174,7 @@ const Invoice_aahaas_modal = ({
                     <td>{item.discount}%</td>
                     <td>{item.qty}</td>
                     <td>
-                      {currencySymbols[formData.currencyDetails.currency] ||
+                      {currencySymbols[formData.currencyDetails?.currency] ||
                         "$"}
                       {/* {item.total.toFixed(2)} */}
                       {item.total.toLocaleString("en-US", {
@@ -184,7 +184,7 @@ const Invoice_aahaas_modal = ({
                     </td>
                   </tr>
                 ))}
-                {formData.currencyDetails.currency === "INR" ? (
+                {formData.currencyDetails?.currency === "INR" ? (
                   <tr>
                     <td>
                       <strong>Handling Fee:</strong>
@@ -193,9 +193,9 @@ const Invoice_aahaas_modal = ({
                       {/* <strong>Handling Fee:</strong> */}
                     </td>
                     <td>
-                      {currencySymbols[formData.currencyDetails.currency] ||
+                      {currencySymbols[formData.currencyDetails?.currency] ||
                         "$"}
-                      {formData.totals.handlingFee.toFixed(2)}
+                      {formData.totals?.handlingFee?.toFixed(2)}
                     </td>
                   </tr>
                 ) : null}
@@ -207,9 +207,9 @@ const Invoice_aahaas_modal = ({
               <tr>
                 <td>Sub Total:</td>
                 <td>
-                  {currencySymbols[formData.currencyDetails.currency] || "$"}
+                  {currencySymbols[formData.currencyDetails?.currency] || "$"}
                   {/* {formData.totals.subTotal.toFixed(2)} */}
-                  {formData.totals.subTotal.toLocaleString("en-US", {
+                  {formData.totals?.subTotal.toLocaleString("en-US", {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
                   })}
@@ -218,7 +218,7 @@ const Invoice_aahaas_modal = ({
               <tr>
                 <td>Total Delivery Charges:</td>
                 <td>
-                  {currencySymbols[formData.currencyDetails.currency] || "$"}
+                  {currencySymbols[formData.currencyDetails?.currency] || "$"}
                   {/* {formData.totals.subTotal.toFixed(2)} */}
                   0.00
                   {/* {formData.totals.subTotal.toLocaleString("en-US", {
@@ -230,7 +230,7 @@ const Invoice_aahaas_modal = ({
               <tr>
                 <td>Total Discount:</td>
                 <td>
-                  {currencySymbols[formData.currencyDetails.currency] || "$"}
+                  {currencySymbols[formData.currencyDetails?.currency] || "$"}
                   {/* {formData.totals.subTotal.toFixed(2)} */}
                   0.00
                   {/* {formData.totals.subTotal.toLocaleString("en-US", {
@@ -239,7 +239,7 @@ const Invoice_aahaas_modal = ({
                   })} */}
                 </td>
               </tr>
-              {formData.currencyDetails.currency === "INR" && (
+              {formData.currencyDetails?.currency === "INR" && (
                 <>
                   {/* <tr>
                     <td>CGST of 9.00%:</td>
@@ -265,7 +265,7 @@ const Invoice_aahaas_modal = ({
                     <td>GST of 18.00%:</td>
                     <td>
                       ₹
-                      {(formData.totals.gst).toLocaleString("en-IN", {
+                      {(formData.totals?.gst).toLocaleString("en-IN", {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
                       })}
@@ -279,9 +279,9 @@ const Invoice_aahaas_modal = ({
                 </td>
                 <td>
                   <strong>
-                    {currencySymbols[formData.currencyDetails.currency] || "$"}
+                    {currencySymbols[formData.currencyDetails?.currency] || "$"}
                     {/* {formData.totals.total.toFixed(2)} */}
-                    {formData.totals.total.toLocaleString("en-US", {
+                    {formData.totals?.total.toLocaleString("en-US", {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
                   })}
@@ -291,9 +291,9 @@ const Invoice_aahaas_modal = ({
               <tr>
                 <td>Amount Received:</td>
                 <td>
-                  {currencySymbols[formData.currencyDetails.currency] || "$"}
+                  {currencySymbols[formData.currencyDetails?.currency] || "$"}
                   {/* {formData.totals.amountReceived.toFixed(2)} */}
-                  {formData.totals.amountReceived.toLocaleString("en-US", {
+                  {formData.totals?.amountReceived.toLocaleString("en-US", {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
                   })}
@@ -305,9 +305,9 @@ const Invoice_aahaas_modal = ({
                 </td>
                 <td>
                   <strong>
-                    {currencySymbols[formData.currencyDetails.currency] || "$"}
+                    {currencySymbols[formData.currencyDetails?.currency] || "$"}
                     {/* {formData.totals.balance.toFixed(2)} */}
-                    {formData.totals.balance.toLocaleString("en-US", {
+                    {formData.totals?.balance.toLocaleString("en-US", {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
                   })}
@@ -316,14 +316,14 @@ const Invoice_aahaas_modal = ({
               </tr>
             </table>
             <p>
-              <strong>Start Date:</strong> {formData.invoice.startDate}{" "}
+              <strong>Start Date:</strong> {formData.invoice?.startDate}{" "}
               &nbsp;|&nbsp;
-              <strong>End Date:</strong> {formData.invoice.endDate}{" "}
+              <strong>End Date:</strong> {formData.invoice?.endDate}{" "}
               &nbsp;|&nbsp;
               <strong>Travel Period:</strong>{" "}
               {calculateTravelDays(
-                formData.invoice.startDate,
-                formData.invoice.endDate
+                formData.invoice?.startDate,
+                formData.invoice?.endDate
               )}{" "}
               days
             </p>

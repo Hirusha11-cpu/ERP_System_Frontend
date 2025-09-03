@@ -70,9 +70,14 @@ const Invoice_appleholidays_modal = ({
               style={{ width: "400px" }}
             />
             {/* <div>One Galle Face Tower, 2208, 1A Centre Road, Colombo 002</div> */}
-            <div>Apple Holidays, 148, Aluthmawatha Road, Colombo 15</div>
+            {/* <div>Apple Holidays, 148, Aluthmawatha Road, Colombo 15</div>
             <div>Tel: +94 11 2342400 | Web: www.appleholidaysds.com</div>
-            <div>Email: accounts5@appleholidaysds.com</div>
+            <div>Email: accounts5@appleholidaysds.com</div> */}
+            <div>
+                  One Galle Face Tower, 2208, 1A Centre Road, Colombo 002
+                </div>
+                <div>Tel: 011 2352 400 | Web: www.aahaas.com</div>
+                <div>Email: accounts5@appleholidaysds.com</div>
           </div>
 
           {/* Invoice Title */}
@@ -84,6 +89,10 @@ const Invoice_appleholidays_modal = ({
           <div className="d-flex justify-content-between mb-4">
             <div>
               <div>
+                <strong>To:</strong>{" "}
+               <strong>{ "PICK YOUR TRAVEL"}</strong> 
+              </div>
+              <div>
                 <strong>Date</strong> {formatDate(formData.invoice?.issueDate)}
               </div>
               <div>
@@ -94,7 +103,7 @@ const Invoice_appleholidays_modal = ({
                 {formData.customer?.name || "PICK YOUR TRAVEL"}
               </div>
               <div>
-                <strong>Customer Address: </strong>
+                <strong>Address: </strong>
                 {formData.customer?.address || "Madurai"}
               </div>
 
@@ -351,12 +360,12 @@ const Invoice_appleholidays_modal = ({
                   <strong>Bank Address:</strong>{" "}
                   {formData.accountDetails?.address}
                 </div>
-              </div>?
+              </div>
             </div>
           </div>
 
           <div className="row">
-            <div className="col-md-6">
+            <div className="col-md">
               <div>
                 <p>
                   <strong>Start Date:</strong> {formData.invoice?.startDate}{" "}
@@ -390,7 +399,7 @@ const Invoice_appleholidays_modal = ({
             </div>
           </div> */}
           <div className="row">
-            <div className="col-md-6">
+            <div className="col-md">
               {formData?.payment_instructions && (
                 <div className="mb-3">{formData?.payment_instructions}</div>
               )}
@@ -406,7 +415,7 @@ const Invoice_appleholidays_modal = ({
               <div className="remark">
                 <strong>Remark:</strong> Invoice amount is{" "}
                 {/* {formData.currencyDetails.currency !== "USD" ?? "USD"} {formData.totals.total}. */}
-                {"USD"} {formData.totals?.total}.
+                {formData?.currencyDetails?.currency} {formData.totals?.total}.
                 Payments made more than two (2) days after the invoice date will
                 be subject to the applicable Xe.com{" "}
                 {formData.currencyDetails?.currency !== "USD"

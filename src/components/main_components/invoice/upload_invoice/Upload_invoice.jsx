@@ -1,6 +1,6 @@
 import React, { useContext, useEffect, useState } from "react";
 import * as XLSX from "xlsx";
-import { Button, Table, Card, Form, Alert } from "react-bootstrap";
+import { Button, Table, Card, Form, Alert, Accordion } from "react-bootstrap";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { CompanyContext } from "../../../../contentApi/CompanyProvider";
 import axios from 'axios';
@@ -13,6 +13,7 @@ const Upload_invoice = () => {
   const [success, setSuccess] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [companyNo, setCompanyNo] = useState(null);
+  const [submissionResults, setSubmissionResults] = useState([]);
 
   useEffect(() => {
     const companyMap = {
@@ -23,7 +24,7 @@ const Upload_invoice = () => {
 
     setCompanyNo(companyMap[selectedCompany?.toLowerCase()] || null);
   }, [selectedCompany]);
-  
+
   const token =
     localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
 
@@ -44,28 +45,43 @@ const Upload_invoice = () => {
   ];
 
   const formatDateForBackend = (dateStr) => {
-    if (!dateStr) return null; // No date provided
-  const parsed = new Date(dateStr);
-  if (isNaN(parsed.getTime())) return null; // Invalid date
-  return parsed.toISOString().split('T')[0]; // Format as YYYY-MM-DD
-  }
-  const formatDateForBackend1 = (dateString) => {
-    if (!dateString) return null;
-    
-    // Try to parse the date (handles various Excel date formats)
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) {
-      // If parsing fails, try to extract date parts from string
-      const parts = dateString.split(/[/-]/);
-      if (parts.length === 3) {
-        const newDate = new Date(parts[2], parts[1] - 1, parts[0]);
-        if (!isNaN(newDate.getTime())) {
-          return newDate.toISOString().split('T')[0];
-        }
+    if (!dateStr) return null;
+
+    // Handle Excel serial dates (numeric values)
+    if (!isNaN(dateStr) && Number(dateStr) > 10000) {
+      // Excel dates are relative to 1900-01-01 (serial number 1)
+      const excelEpoch = new Date(1899, 11, 31); // 1900-01-01 minus 1 day
+      const date = new Date(excelEpoch.getTime() + Number(dateStr) * 24 * 60 * 60 * 1000);
+      if (!isNaN(date.getTime())) {
+        return date.toISOString().split('T')[0]; // YYYY-MM-DD
       }
       return null;
     }
-    return date.toISOString().split('T')[0];
+
+    // Handle DD/MM/YYYY or similar formats
+    const parts = dateStr.split(/[/\-]/);
+    if (parts.length === 3) {
+      const day = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1;
+      const year = parseInt(parts[2], 10);
+      const date = new Date(year, month, day);
+      if (!isNaN(date.getTime())) {
+        return date.toISOString().split('T')[0];
+      }
+    }
+
+    // Fallback to native Date parsing
+    const date = new Date(dateStr);
+    if (!isNaN(date.getTime())) {
+      return date.toISOString().split('T')[0];
+    }
+
+    return null;
+  };
+
+  const cleanAmount = (amountStr) => {
+    if (!amountStr) return 0;
+    return parseFloat(amountStr.replace(/[^0-9.-]+/g, '')) || 0;
   };
 
   const handleFileUpload = (e) => {
@@ -75,15 +91,16 @@ const Upload_invoice = () => {
     setIsLoading(true);
     setError(null);
     setSuccess(null);
+    setSubmissionResults([]);
 
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
         const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: "array" });
+        const workbook = XLSX.read(data, { type: "array", dateNF: "dd/mm/yyyy" });
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
-        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "" });
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "", raw: false, dateNF: "dd/mm/yyyy" });
 
         // Find header row dynamically
         let headerRowIndex = -1;
@@ -123,26 +140,46 @@ const Upload_invoice = () => {
             setProcessedData([]);
           } else {
             setExcelData(mappedData);
-            
+
             // Process data to match backend structure
             const processed = mappedData.map(row => {
-              const collectionDate = formatDateForBackend(9/8/2025);
-            //   const collectionDate = row["Promised Date"];
-              const startDate = formatDateForBackend(row["Date"]);
-              const endDate = formatDateForBackend(9/8/2025);
-              console.log("Processed Row:", row, "Collection Date:", collectionDate, "Start Date:", startDate, "End Date:", endDate);
+              const collectionDate = formatDateForBackend(row["Promised Date"]);
+              const invoiceDate = formatDateForBackend(row["Date"]);
+              // Parse Journal Memo for start/end dates
+              let startDate = null;
+              let endDate = null;
+              if (row["Journal Memo"]) {
+                const memoParts = row["Journal Memo"].split('-');
+                if (memoParts.length === 2) {
+                  startDate = formatDateForBackend(memoParts[0].trim());
+                  endDate = formatDateForBackend(memoParts[1].trim());
+                }
+              }
+              startDate = startDate || invoiceDate || new Date().toISOString().split('T')[0];
+              endDate = endDate || collectionDate || new Date().toISOString().split('T')[0];
 
               return {
-                customer_id: 1, // You'll need to implement customer lookup
+                invoice_number: row["Invoice #"] || "",
+                customer_po_number: row["Customer PO #"] || "",
+                customer_name: row["Customer Name"] || "",
+                amount: cleanAmount(row["Amount"]),
+                amount_due: cleanAmount(row["Amount Due"]),
+                status: row["Status"] || "Open",
+                ship_via: row["Ship Via"] || "",
+                promised_date: collectionDate,
+                journal_memo: row["Journal Memo"] || "",
+                salesperson: row["Salesperson"] || "",
+                referral: row["Referral"] || "",
+                customer_id: 1, // Implement lookup if needed
                 country_code: "IN",
                 currency: "USD",
-                exchange_rate: 87.52,
+                exchange_rate: cleanAmount(row["Exchange Rate"]) || 87.52,
                 tax_treatment: "exclusive",
                 payment_type: "non-credit",
-                collection_date: collectionDate || new Date().toISOString().split('T')[0] || "2025-07-26",
+                collection_date: collectionDate || new Date().toISOString().split('T')[0],
                 payment_instructions: "Please settle the invoice on or before the due date",
                 staff: row["Salesperson"] || "KAVIYA",
-                remarks: `Payable in USD (Rate 87.52)`,
+                remarks: `Payable in USD (Rate ${cleanAmount(row["Exchange Rate"]) || 87.52})`,
                 payment_methods: ["bankTransfer"],
                 items: [
                   {
@@ -150,24 +187,23 @@ const Upload_invoice = () => {
                     type: "hotel",
                     description: row["Journal Memo"] || "Service charge",
                     quantity: 1,
-                    price: parseFloat(row["Amount"]) || 0,
+                    price: cleanAmount(row["Amount"]),
                     discount: 0,
                   }
                 ],
                 additional_charges: row["Amount Due"] ? [
                   {
                     description: "Outstanding balance",
-                    amount: parseFloat(row["Amount Due"]) || 0,
+                    amount: cleanAmount(row["Amount Due"]),
                     taxable: false
                   }
                 ] : [],
-                company_id: selectedCompany?.id || 1, // Use selectedCompany from context
+                company_id: companyNo || 1,
                 account_id: 1,
                 booking_no: row["Customer PO #"] || "",
-                status: row["Status"] || "draft",
                 sales_id: row["Salesperson"] || "",
-                start_date: startDate || new Date().toISOString().split('T')[0],
-                end_date: endDate || new Date().toISOString().split('T')[0] || "2025-07-26" ,
+                start_date: startDate,
+                end_date: endDate,
                 travel_period: calculateTravelPeriod(startDate, endDate)
               };
             });
@@ -215,22 +251,21 @@ const Upload_invoice = () => {
     setIsLoading(true);
     setError(null);
     setSuccess(null);
+    setSubmissionResults([]);
 
     try {
-      // Submit each invoice individually
       const results = [];
       for (const invoice of processedData) {
-        // Ensure required fields are properly formatted
         const payload = {
           ...invoice,
           collection_date: invoice.collection_date || null,
           start_date: invoice.start_date || null,
           end_date: invoice.end_date || null,
-          company_id: companyNo // Ensure company_id is always set
+          promised_date: invoice.promised_date || null,
         };
 
         const response = await axios.post(
-          "/api/invoices",
+          "/api/invoices_new",
           payload,
           {
             headers: {
@@ -242,12 +277,12 @@ const Upload_invoice = () => {
         results.push(response.data);
       }
 
-      setSuccess(`${results.length} invoices submitted successfully!`);
+      setSubmissionResults(results);
+      setSuccess(`${results.length} invoices processed successfully!`);
       setExcelData([]);
       setProcessedData([]);
     } catch (err) {
       if (err.response?.data?.errors) {
-        // Format validation errors for display
         const errorMessages = Object.entries(err.response.data.errors)
           .map(([field, messages]) => `${field}: ${messages.join(', ')}`)
           .join('\n');
@@ -345,9 +380,9 @@ const Upload_invoice = () => {
                   <tbody>
                     {processedData.slice(0, 5).map((invoice, index) => (
                       <tr key={`processed-${index}`}>
-                        <td>{invoice.items[0]?.code || 'N/A'}</td>
-                        <td>{invoice.customer_id}</td>
-                        <td>{invoice.items.reduce((sum, item) => sum + (item.price * item.quantity), 0)}</td>
+                        <td>{invoice.invoice_number || 'N/A'}</td>
+                        <td>{invoice.customer_name}</td>
+                        <td>{invoice.amount}</td>
                         <td>{invoice.collection_date || 'N/A'}</td>
                         <td>{invoice.start_date || 'N/A'}</td>
                         <td>{invoice.end_date || 'N/A'}</td>
@@ -358,6 +393,36 @@ const Upload_invoice = () => {
                 </Table>
               </div>
             </>
+          )}
+
+          {submissionResults.length > 0 && (
+            <Accordion className="mt-4">
+              <Accordion.Item eventKey="0">
+                <Accordion.Header>Submission Results & Updates</Accordion.Header>
+                <Accordion.Body>
+                  {submissionResults.map((result, index) => (
+                    <Card key={index} className="mb-3">
+                      <Card.Header>
+                        Invoice #{result.invoice.invoice_number} - {result.action.charAt(0).toUpperCase() + result.action.slice(1)}
+                      </Card.Header>
+                      <Card.Body>
+                        {result.action === 'updated' && result.changes && Object.keys(result.changes).length > 0 ? (
+                          <ul>
+                            {Object.entries(result.changes).map(([field, {old, new: newVal}]) => (
+                              <li key={field}>
+                                {field}: Changed from "{old}" to "{newVal}"
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <p>No changes (or new invoice created).</p>
+                        )}
+                      </Card.Body>
+                    </Card>
+                  ))}
+                </Accordion.Body>
+              </Accordion.Item>
+            </Accordion>
           )}
         </Card.Body>
       </Card>

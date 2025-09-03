@@ -315,6 +315,44 @@ const Invoice_aahaas_modal = ({
                 </td>
               </tr>
             </table>
+              <div className="row">
+              {/* ACCOUNT DETAILS moved below */}
+              <div className="col-md-6">
+                {/* <div className="mb-3">
+                  <p className="mb-0">
+                    {formData.payment.type === "credit" ? (
+                      <span></span>
+                    ) : (
+                      <span>
+                        Please settle the invoice on or before{" "}
+                        {formatDate(formData.payment.collectionDate)}
+                      </span>
+                    )}
+                  </p>
+                </div> */}
+
+                <h6 className="fw-bold">ACCOUNT DETAILS</h6>
+                <div>
+                  <strong>ACCOUNT NAME:</strong> {formData.accountDetails?.name}
+                </div>
+                <div>
+                  <strong>ACCOUNT NO:</strong> {formData.accountDetails?.number}
+                </div>
+                <div>
+                  <strong>BANK:</strong> {formData.accountDetails?.bank}
+                </div>
+                <div>
+                  <strong>BRANCH:</strong> {formData.accountDetails?.branch}
+                </div>
+                <div>
+                  <strong>IFSC CODE:</strong> {formData.accountDetails?.ifsc}
+                </div>
+                <div>
+                  <strong>Bank Address:</strong>{" "}
+                  {formData.accountDetails?.address}
+                </div>
+              </div>
+            </div>
             <p>
               <strong>Start Date:</strong> {formData.invoice?.startDate}{" "}
               &nbsp;|&nbsp;

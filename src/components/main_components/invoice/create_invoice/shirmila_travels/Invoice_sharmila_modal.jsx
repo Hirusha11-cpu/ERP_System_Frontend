@@ -380,7 +380,7 @@ const Invoice_sharmila_modal = ({
             </div>
           </div> */}
            <div className="row">
-            <div className="col-md-6">
+            <div className="col-md">
               {formData?.payment_instructions && (
                 <div className="mb-3">{formData?.payment_instructions}</div>
               )}

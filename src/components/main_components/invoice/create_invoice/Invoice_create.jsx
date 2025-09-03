@@ -1837,7 +1837,7 @@ const Invoice_create = () => {
           </Row>
         </Card.Body>
       </Card>
-      <Card className="mb-4">
+      {/* <Card className="mb-4">
         <Card.Body>
           <h5 className="section-title fw-semibold mb-3 pb-2 border-bottom">
             Travel Period
@@ -1847,7 +1847,6 @@ const Invoice_create = () => {
             <Col>
               <Card>
                 <Card.Body>
-                  {/* <h6 className="card-title">Customer Details</h6> */}
                   <Form.Group className="mb-3">
                     <Form.Label>Start Date:</Form.Label>
                     <Form.Control
@@ -1862,17 +1861,6 @@ const Invoice_create = () => {
                       }
                     />
                   </Form.Group>
-
-                  {/* <Form.Group className="mb-3">
-                    <Form.Label>End Date:</Form.Label>
-                    <Form.Control
-                      type="date"
-                      value={formData.invoice.endDate}
-                      onChange={(e) =>
-                        handleInputChange("invoice", "endDate", e.target.value)
-                      }
-                    />
-                  </Form.Group> */}
                   <Form.Group className="mb-3">
                     <Form.Label>End Date:</Form.Label>
                     <Form.Control
@@ -1902,6 +1890,61 @@ const Invoice_create = () => {
                   </Form.Group>
                 </Card.Body>
               </Card>
+            </Col>
+          </Row>
+        </Card.Body>
+      </Card> */}
+      <Card className="mb-4">
+        <Card.Body>
+          <h5 className="section-title fw-semibold mb-3 pb-2 border-bottom">
+            Travel Period
+          </h5>
+
+          <Row className="mb-3">
+            <Col md={4}>
+              <Form.Group className="mb-3">
+                <Form.Label>Start Date:</Form.Label>
+                <Form.Control
+                  type="date"
+                  value={formData.invoice.startDate}
+                  onChange={(e) =>
+                    handleInputChange("invoice", "startDate", e.target.value)
+                  }
+                />
+              </Form.Group>
+            </Col>
+
+            <Col md={4}>
+              <Form.Group className="mb-3">
+                <Form.Label>End Date:</Form.Label>
+                <Form.Control
+                  type="date"
+                  value={formData.invoice.endDate}
+                  min={formData.invoice.startDate || ""}
+                  onChange={(e) =>
+                    handleInputChange("invoice", "endDate", e.target.value)
+                  }
+                />
+              </Form.Group>
+            </Col>
+
+            <Col md={4}>
+              <Form.Group className="mb-3">
+                <Form.Label>Travel Days:</Form.Label>
+                <Form.Control
+                  type="text"
+                  value={
+                    formData.invoice.startDate && formData.invoice.endDate
+                      ? `${calculateTravelDays(
+                          formData.invoice.startDate,
+                          formData.invoice.endDate
+                        )} day(s)`
+                      : "0 day(s)"
+                  }
+                  readOnly
+                  className="bg-light"
+                />
+              </Form.Group>
             </Col>
           </Row>
         </Card.Body>

@@ -1111,10 +1111,10 @@ const Invoice_create = () => {
   let calculatedHandlingFee = handlingFee;
   let calculatedTotal =
     calculatedSubTotal +
-    calculatedHandlingFee +
+    // calculatedHandlingFee +
     gst +
     additionalTax +
-    additionalChargeCost +
+    // additionalChargeCost +
     formData.totals.bankCharges;
 
   // Apply VAT
@@ -1134,8 +1134,8 @@ const Invoice_create = () => {
   if (vatInclude) {
     calculatedTotal =
       calculatedSubTotal +
-      calculatedHandlingFee +
-      calculatedSubTotal * 0.18 + // GST recalculated on new subtotal
+      // calculatedHandlingFee +
+      // calculatedSubTotal * 0.18 + // GST recalculated on new subtotal
       gst +
       additionalTax +
       additionalChargeCost +

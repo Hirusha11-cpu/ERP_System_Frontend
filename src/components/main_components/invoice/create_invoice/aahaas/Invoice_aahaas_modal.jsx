@@ -195,7 +195,7 @@ const Invoice_aahaas_modal = ({
                     <td>
                       {currencySymbols[formData.currencyDetails?.currency] ||
                         "$"}
-                      {formData.totals?.handlingFee?.toFixed(2)}
+                      {formData.totals?.handlingFee ? formData.totals?.handlingFee : 0}
                     </td>
                   </tr>
                 ) : null}

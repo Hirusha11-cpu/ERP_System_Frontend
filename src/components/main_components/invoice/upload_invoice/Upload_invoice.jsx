@@ -1,12 +1,12 @@
 import React, { useContext, useEffect, useState } from "react";
 import * as XLSX from "xlsx";
-import { Button, Table, Card, Form, Alert, Accordion } from "react-bootstrap";
+import { Button, Table, Card, Form, Alert, Accordion, Badge, Modal, ProgressBar } from "react-bootstrap";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { CompanyContext } from "../../../../contentApi/CompanyProvider";
 import axios from 'axios';
 
 const Upload_invoice = () => {
-  const { selectedCompany } = useContext(CompanyContext);
+   const { selectedCompany } = useContext(CompanyContext);
   const [excelData, setExcelData] = useState([]);
   const [processedData, setProcessedData] = useState([]);
   const [error, setError] = useState(null);
@@ -14,6 +14,12 @@ const Upload_invoice = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [companyNo, setCompanyNo] = useState(null);
   const [submissionResults, setSubmissionResults] = useState([]);
+  const [failedRecords, setFailedRecords] = useState([]);
+  const [showFailedModal, setShowFailedModal] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+  const [currentChunk, setCurrentChunk] = useState(0);
+  const [totalChunks, setTotalChunks] = useState(0);
 
   useEffect(() => {
     const companyMap = {
@@ -79,155 +85,336 @@ const Upload_invoice = () => {
     return null;
   };
 
-  const cleanAmount = (amountStr) => {
-    if (!amountStr) return 0;
-    return parseFloat(amountStr.replace(/[^0-9.-]+/g, '')) || 0;
-  };
+  // const cleanAmount = (amountStr) => {
+  //   if (!amountStr) return 0;
+  //   return parseFloat(amountStr.replace(/[^0-9.-]+/g, '')) || 0;
+  // };
+
+  // const handleFileUpload = (e) => {
+  //   const file = e.target.files[0];
+  //   if (!file) return;
+
+  //   setIsLoading(true);
+  //   setError(null);
+  //   setSuccess(null);
+  //   setSubmissionResults([]);
+  //   setFailedRecords([]);
+
+  //   const reader = new FileReader();
+  //   reader.onload = (e) => {
+  //     try {
+  //       const data = new Uint8Array(e.target.result);
+  //       const workbook = XLSX.read(data, { type: "array", dateNF: "dd/mm/yyyy" });
+  //       const firstSheetName = workbook.SheetNames[0];
+  //       const worksheet = workbook.Sheets[firstSheetName];
+  //       const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "", raw: false, dateNF: "dd/mm/yyyy" });
+
+  //       // Find header row dynamically
+  //       let headerRowIndex = -1;
+  //       for (let i = 0; i < jsonData.length; i++) {
+  //         if (jsonData[i].some(cell => cell === "Date") && jsonData[i].some(cell => cell === "Invoice #")) {
+  //           headerRowIndex = i;
+  //           break;
+  //         }
+  //       }
+
+  //       if (headerRowIndex === -1) {
+  //         throw new Error("Header row not found in the Excel file.");
+  //       }
+
+  //       const headers = jsonData[headerRowIndex].map((h, idx) => (h ? h.trim() : `Column${idx}`));
+  //       const dataRows = jsonData.slice(headerRowIndex + 1).filter(row => row.some(cell => cell));
+
+  //       // Map rows to objects using headers
+  //       const mappedData = dataRows.map(row => {
+  //         const rowObj = {};
+  //         headers.forEach((header, idx) => {
+  //           rowObj[header] = row[idx] !== undefined ? String(row[idx]).trim() : "";
+  //         });
+  //         return rowObj;
+  //       });
+
+  //       // Validate that all expected columns are present
+  //       if (mappedData.length > 0) {
+  //         const firstRow = mappedData[0];
+  //         const missingColumns = expectedColumns.filter(
+  //           (col) => !Object.keys(firstRow).includes(col)
+  //         );
+
+  //         if (missingColumns.length > 0) {
+  //           setError(`Missing required columns: ${missingColumns.join(", ")}`);
+  //           setExcelData([]);
+  //           setProcessedData([]);
+  //         } else {
+  //           setExcelData(mappedData);
+
+  //           // Process data to match backend structure
+  //           const processed = mappedData.map((row, index) => {
+  //             const collectionDate = formatDateForBackend(row["Promised Date"]);
+  //             const invoiceDate = formatDateForBackend(row["Date"]);
+  //             // Parse Journal Memo for start/end dates
+  //             let startDate = null;
+  //             let endDate = null;
+  //             if (row["Journal Memo"]) {
+  //               const memoParts = row["Journal Memo"].split('-');
+  //               if (memoParts.length === 2) {
+  //                 startDate = formatDateForBackend(memoParts[0].trim());
+  //                 endDate = formatDateForBackend(memoParts[1].trim());
+  //               }
+  //             }
+  //             startDate = startDate || invoiceDate || new Date().toISOString().split('T')[0];
+  //             endDate = endDate || collectionDate || new Date().toISOString().split('T')[0];
+
+  //             return {
+  //               invoice_number: row["Invoice #"] || "",
+  //               customer_po_number: row["Customer PO #"] || "",
+  //               customer_name: row["Customer Name"] || "",
+  //               amount: cleanAmount(row["Amount"]),
+  //               amount_due: cleanAmount(row["Amount Due"]),
+  //               status: row["Status"] || "Open",
+  //               ship_via: row["Ship Via"] || "",
+  //               promised_date: collectionDate,
+  //               journal_memo: row["Journal Memo"] || "",
+  //               salesperson: row["Salesperson"] || "",
+  //               referral: row["Referral"] || "",
+  //               customer_id: 1, // Implement lookup if needed
+  //               country_code: "IN",
+  //               currency: "USD",
+  //               exchange_rate: cleanAmount(row["Exchange Rate"]) || 87.52,
+  //               tax_treatment: "exclusive",
+  //               payment_type: "non-credit",
+  //               collection_date: collectionDate || new Date().toISOString().split('T')[0],
+  //               payment_instructions: "Please settle the invoice on or before the due date",
+  //               staff: row["Salesperson"] || "KAVIYA",
+  //               remarks: `Payable in USD (Rate ${cleanAmount(row["Exchange Rate"]) || 87.52})`,
+  //               payment_methods: ["bankTransfer"],
+  //               items: [
+  //                 {
+  //                   code: row["Customer PO #"] || "INV001",
+  //                   type: "hotel",
+  //                   description: row["Journal Memo"] || "Service charge",
+  //                   quantity: 1,
+  //                   price: cleanAmount(row["Amount"]),
+  //                   discount: 0,
+  //                 }
+  //               ],
+  //               additional_charges: row["Amount Due"] ? [
+  //                 {
+  //                   description: "Outstanding balance",
+  //                   amount: cleanAmount(row["Amount Due"]),
+  //                   taxable: false
+  //                 }
+  //               ] : [],
+  //               company_id: companyNo || 1,
+  //               account_id: 1,
+  //               booking_no: row["Customer PO #"] || "",
+  //               sales_id: row["Salesperson"] || "",
+  //               start_date: startDate,
+  //               end_date: endDate,
+  //               travel_period: calculateTravelPeriod(startDate, endDate)
+  //             };
+  //           });
+
+  //           setProcessedData(processed);
+  //           setSuccess("File uploaded and processed successfully!");
+  //         }
+  //       } else {
+  //         setError("No data rows found in the file.");
+  //         setExcelData([]);
+  //         setProcessedData([]);
+  //       }
+  //     } catch (err) {
+  //       setError(
+  //         err.message || "Error processing the file. Please make sure it is a valid Excel file."
+  //       );
+  //       setExcelData([]);
+  //       setProcessedData([]);
+  //     } finally {
+  //       setIsLoading(false);
+  //     }
+  //   };
+  //   reader.readAsArrayBuffer(file);
+  // };
 
   const handleFileUpload = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+  const file = e.target.files[0];
+  if (!file) return;
 
-    setIsLoading(true);
-    setError(null);
-    setSuccess(null);
-    setSubmissionResults([]);
+  setIsLoading(true);
+  setError(null);
+  setSuccess(null);
+  setSubmissionResults([]);
+  setFailedRecords([]);
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, { type: "array", dateNF: "dd/mm/yyyy" });
-        const firstSheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[firstSheetName];
-        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "", raw: false, dateNF: "dd/mm/yyyy" });
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: "array", dateNF: "dd/mm/yyyy" });
+      const firstSheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[firstSheetName];
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: "", raw: false, dateNF: "dd/mm/yyyy" });
 
-        // Find header row dynamically
-        let headerRowIndex = -1;
-        for (let i = 0; i < jsonData.length; i++) {
-          if (jsonData[i].some(cell => cell === "Date") && jsonData[i].some(cell => cell === "Invoice #")) {
-            headerRowIndex = i;
-            break;
-          }
+      // Find header row dynamically
+      let headerRowIndex = -1;
+      for (let i = 0; i < jsonData.length; i++) {
+        if (jsonData[i].some(cell => cell === "Date") && jsonData[i].some(cell => cell === "Invoice #")) {
+          headerRowIndex = i;
+          break;
         }
+      }
 
-        if (headerRowIndex === -1) {
-          throw new Error("Header row not found in the Excel file.");
-        }
+      if (headerRowIndex === -1) {
+        throw new Error("Header row not found in the Excel file.");
+      }
 
-        const headers = jsonData[headerRowIndex].map((h, idx) => (h ? h.trim() : `Column${idx}`));
-        const dataRows = jsonData.slice(headerRowIndex + 1).filter(row => row.some(cell => cell));
+      const headers = jsonData[headerRowIndex].map((h, idx) => (h ? h.trim() : `Column${idx}`));
+      const dataRows = jsonData.slice(headerRowIndex + 1).filter(row => row.some(cell => cell));
 
-        // Map rows to objects using headers
-        const mappedData = dataRows.map(row => {
-          const rowObj = {};
-          headers.forEach((header, idx) => {
-            rowObj[header] = row[idx] !== undefined ? String(row[idx]).trim() : "";
-          });
-          return rowObj;
+      // Map rows to objects using headers
+      const mappedData = dataRows.map(row => {
+        const rowObj = {};
+        headers.forEach((header, idx) => {
+          rowObj[header] = row[idx] !== undefined ? String(row[idx]).trim() : "";
         });
+        return rowObj;
+      });
 
-        // Validate that all expected columns are present
-        if (mappedData.length > 0) {
-          const firstRow = mappedData[0];
-          const missingColumns = expectedColumns.filter(
-            (col) => !Object.keys(firstRow).includes(col)
-          );
+      // Validate that all expected columns are present
+      if (mappedData.length > 0) {
+        const firstRow = mappedData[0];
+        const missingColumns = expectedColumns.filter(
+          (col) => !Object.keys(firstRow).includes(col)
+        );
 
-          if (missingColumns.length > 0) {
-            setError(`Missing required columns: ${missingColumns.join(", ")}`);
-            setExcelData([]);
-            setProcessedData([]);
-          } else {
-            setExcelData(mappedData);
-
-            // Process data to match backend structure
-            const processed = mappedData.map(row => {
-              const collectionDate = formatDateForBackend(row["Promised Date"]);
-              const invoiceDate = formatDateForBackend(row["Date"]);
-              // Parse Journal Memo for start/end dates
-              let startDate = null;
-              let endDate = null;
-              if (row["Journal Memo"]) {
-                const memoParts = row["Journal Memo"].split('-');
-                if (memoParts.length === 2) {
-                  startDate = formatDateForBackend(memoParts[0].trim());
-                  endDate = formatDateForBackend(memoParts[1].trim());
-                }
-              }
-              startDate = startDate || invoiceDate || new Date().toISOString().split('T')[0];
-              endDate = endDate || collectionDate || new Date().toISOString().split('T')[0];
-
-              return {
-                invoice_number: row["Invoice #"] || "",
-                customer_po_number: row["Customer PO #"] || "",
-                customer_name: row["Customer Name"] || "",
-                amount: cleanAmount(row["Amount"]),
-                amount_due: cleanAmount(row["Amount Due"]),
-                status: row["Status"] || "Open",
-                ship_via: row["Ship Via"] || "",
-                promised_date: collectionDate,
-                journal_memo: row["Journal Memo"] || "",
-                salesperson: row["Salesperson"] || "",
-                referral: row["Referral"] || "",
-                customer_id: 1, // Implement lookup if needed
-                country_code: "IN",
-                currency: "USD",
-                exchange_rate: cleanAmount(row["Exchange Rate"]) || 87.52,
-                tax_treatment: "exclusive",
-                payment_type: "non-credit",
-                collection_date: collectionDate || new Date().toISOString().split('T')[0],
-                payment_instructions: "Please settle the invoice on or before the due date",
-                staff: row["Salesperson"] || "KAVIYA",
-                remarks: `Payable in USD (Rate ${cleanAmount(row["Exchange Rate"]) || 87.52})`,
-                payment_methods: ["bankTransfer"],
-                items: [
-                  {
-                    code: row["Customer PO #"] || "INV001",
-                    type: "hotel",
-                    description: row["Journal Memo"] || "Service charge",
-                    quantity: 1,
-                    price: cleanAmount(row["Amount"]),
-                    discount: 0,
-                  }
-                ],
-                additional_charges: row["Amount Due"] ? [
-                  {
-                    description: "Outstanding balance",
-                    amount: cleanAmount(row["Amount Due"]),
-                    taxable: false
-                  }
-                ] : [],
-                company_id: companyNo || 1,
-                account_id: 1,
-                booking_no: row["Customer PO #"] || "",
-                sales_id: row["Salesperson"] || "",
-                start_date: startDate,
-                end_date: endDate,
-                travel_period: calculateTravelPeriod(startDate, endDate)
-              };
-            });
-
-            setProcessedData(processed);
-            setSuccess("File uploaded and processed successfully!");
-          }
-        } else {
-          setError("No data rows found in the file.");
+        if (missingColumns.length > 0) {
+          setError(`Missing required columns: ${missingColumns.join(", ")}`);
           setExcelData([]);
           setProcessedData([]);
+        } else {
+          setExcelData(mappedData);
+
+          // Process data to match backend structure
+          const processed = mappedData.map((row, index) => {
+            const collectionDate = formatDateForBackend(row["Promised Date"]);
+            const invoiceDate = formatDateForBackend(row["Date"]);
+            
+            // Parse Journal Memo for start/end dates
+            let startDate = null;
+            let endDate = null;
+            if (row["Journal Memo"]) {
+              const memoParts = row["Journal Memo"].split('-');
+              if (memoParts.length === 2) {
+                startDate = formatDateForBackend(memoParts[0].trim());
+                endDate = formatDateForBackend(memoParts[1].trim());
+              }
+            }
+            startDate = startDate || invoiceDate || new Date().toISOString().split('T')[0];
+            endDate = endDate || collectionDate || new Date().toISOString().split('T')[0];
+
+            // Detect currency and set company_id accordingly
+            const amountValue = row["Amount"] || "";
+            let currency = "USD";
+            let company_id = 2; // Default to appleholidays
+            
+            if (amountValue.includes('INR') || amountValue.includes('₹')) {
+              currency = "INR";
+              company_id = 1; // shirmila
+            } else if (amountValue.includes('Rs') || amountValue.includes('LKR')) {
+              currency = "LKR";
+              company_id = 3; // aahaas
+            } else if (amountValue.includes('SGD') || amountValue.includes('S$')) {
+              currency = "SGD";
+              company_id = 2; // appleholidays
+            } else if (amountValue.includes('MYR') || amountValue.includes('RM')) {
+              currency = "MYR";
+              company_id = 2; // appleholidays
+            }
+            
+            // Clean amount by removing currency symbols and commas
+            const cleanAmountValue = cleanAmount(amountValue);
+
+            return {
+              invoice_number: row["Invoice #"] || "",
+              customer_po_number: row["Customer PO #"] || "",
+              customer_name: row["Customer Name"] || "",
+              amount: cleanAmountValue,
+              amount_due: cleanAmount(row["Amount Due"]),
+              status: row["Status"] || "Open",
+              ship_via: row["Ship Via"] || "",
+              promised_date: collectionDate,
+              journal_memo: row["Journal Memo"] || "",
+              salesperson: row["Salesperson"] || "",
+              referral: row["Referral"] || "",
+              customer_id: 1, // Implement lookup if needed
+              country_code: "IN",
+              currency: currency,
+              currency_code: currency,
+              exchange_rate: cleanAmount(row["Exchange Rate"]) || (currency === "USD" ? 87.52 : 1),
+              tax_treatment: "exclusive",
+              payment_type: "non-credit",
+              collection_date: collectionDate || new Date().toISOString().split('T')[0],
+              payment_instructions: "Please settle the invoice on or before the due date",
+              staff: row["Salesperson"] || "KAVIYA",
+              remarks: `Payable in ${currency} (Rate ${cleanAmount(row["Exchange Rate"]) || (currency === "USD" ? 87.52 : 1)})`,
+              payment_methods: ["bankTransfer"],
+              items: [
+                {
+                  code: row["Customer PO #"] || "INV001",
+                  type: "hotel",
+                  description: row["Journal Memo"] || "Service charge",
+                  quantity: 1,
+                  price: cleanAmountValue,
+                  discount: 0,
+                }
+              ],
+              additional_charges: row["Amount Due"] ? [
+                {
+                  description: "Outstanding balance",
+                  amount: cleanAmount(row["Amount Due"]),
+                  taxable: false
+                }
+              ] : [],
+              company_id: company_id,
+              account_id: 1,
+              booking_no: row["Customer PO #"] || "",
+              sales_id: row["Salesperson"] || "",
+              start_date: startDate,
+              end_date: endDate,
+              travel_period: calculateTravelPeriod(startDate, endDate)
+            };
+          });
+
+          setProcessedData(processed);
+          setSuccess("File uploaded and processed successfully!");
         }
-      } catch (err) {
-        setError(
-          err.message || "Error processing the file. Please make sure it is a valid Excel file."
-        );
+      } else {
+        setError("No data rows found in the file.");
         setExcelData([]);
         setProcessedData([]);
-      } finally {
-        setIsLoading(false);
       }
-    };
-    reader.readAsArrayBuffer(file);
+    } catch (err) {
+      setError(
+        err.message || "Error processing the file. Please make sure it is a valid Excel file."
+      );
+      setExcelData([]);
+      setProcessedData([]);
+    } finally {
+      setIsLoading(false);
+    }
   };
+  reader.readAsArrayBuffer(file);
+};
+
+// Update the cleanAmount function to handle currency symbols better
+const cleanAmount = (amountStr) => {
+  if (!amountStr) return 0;
+  
+  // Remove all currency symbols and commas
+  const cleaned = amountStr.replace(/[$,₹RsINRLKRSGDMYR\s]/g, '');
+  
+  return parseFloat(cleaned) || 0;
+};
 
   const calculateTravelPeriod = (startDate, endDate) => {
     if (!startDate || !endDate) return "1 day";
@@ -242,61 +429,163 @@ const Upload_invoice = () => {
     }
   };
 
-  const handleSubmit = async () => {
+ const handleSubmit = async () => {
     if (processedData.length === 0) {
       setError("No data to submit. Please upload a valid file first.");
       return;
     }
 
     setIsLoading(true);
+    setIsUploading(true);
     setError(null);
     setSuccess(null);
     setSubmissionResults([]);
+    setFailedRecords([]);
+    setUploadProgress(0);
 
     try {
-      const results = [];
-      for (const invoice of processedData) {
-        const payload = {
-          ...invoice,
-          collection_date: invoice.collection_date || null,
-          start_date: invoice.start_date || null,
-          end_date: invoice.end_date || null,
-          promised_date: invoice.promised_date || null,
-        };
+      // Process data in chunks of 10
+      const chunkSize = 10;
+      const chunks = [];
+      
+      for (let i = 0; i < processedData.length; i += chunkSize) {
+        chunks.push(processedData.slice(i, i + chunkSize));
+      }
 
-        const response = await axios.post(
-          "/api/invoices_new",
-          payload,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
+      setTotalChunks(chunks.length);
+      setCurrentChunk(0);
+
+      const allResults = {
+        successful: [],
+        failed: []
+      };
+
+      for (let i = 0; i < chunks.length; i++) {
+        setCurrentChunk(i + 1);
+        setUploadProgress(Math.round(((i + 1) / chunks.length) * 100));
+
+        try {
+          const response = await axios.post(
+            "/api/invoices_new/bulk",
+            chunks[i],
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "application/json",
+              },
+            }
+          );
+
+          const results = response.data;
+          allResults.successful = [...allResults.successful, ...(results.successful || [])];
+          allResults.failed = [...allResults.failed, ...(results.failed || [])];
+
+          // Small delay between chunks
+          if (i < chunks.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 100));
           }
-        );
-        results.push(response.data);
+        } catch (err) {
+          // If a chunk fails, add all records in that chunk to failed
+          chunks[i].forEach((record, index) => {
+            allResults.failed.push({
+              index: (i * chunkSize) + index,
+              invoice_number: record.invoice_number || 'Unknown',
+              error: err.response?.data?.message || err.message || "Chunk processing failed",
+              data: record
+            });
+          });
+        }
       }
 
-      setSubmissionResults(results);
-      setSuccess(`${results.length} invoices processed successfully!`);
-      setExcelData([]);
-      setProcessedData([]);
-    } catch (err) {
-      if (err.response?.data?.errors) {
-        const errorMessages = Object.entries(err.response.data.errors)
-          .map(([field, messages]) => `${field}: ${messages.join(', ')}`)
-          .join('\n');
-        setError(`Validation errors:\n${errorMessages}`);
-      } else {
-        setError(
-          err.response?.data?.message || 
-          err.message || 
-          "Failed to submit invoice data. Please try again."
-        );
+      setSubmissionResults(allResults.successful);
+      setFailedRecords(allResults.failed);
+
+      if (allResults.failed.length > 0) {
+        setError(`${allResults.failed.length} records failed to process. Click to view details.`);
       }
+
+      if (allResults.successful.length > 0) {
+        setSuccess(`${allResults.successful.length} invoices processed successfully!`);
+      }
+
+      // Clear data if everything was successful
+      if (allResults.failed.length === 0) {
+        setExcelData([]);
+        setProcessedData([]);
+      }
+
+    } catch (err) {
+      setError(
+        err.response?.data?.message || 
+        err.message || 
+        "Failed to submit invoice data. Please try again."
+      );
+    } finally {
+      setIsLoading(false);
+      setIsUploading(false);
+      setUploadProgress(100);
+    }
+  };
+
+
+  const retryFailedRecords = async () => {
+    if (failedRecords.length === 0) return;
+
+    setIsLoading(true);
+    const retryData = failedRecords.map(record => record.data);
+    
+    try {
+      const response = await axios.post(
+        "/api/invoices_new/bulk",
+        retryData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      const results = response.data;
+      
+      // Update results
+      setSubmissionResults(prev => [...prev, ...(results.successful || [])]);
+      setFailedRecords(results.failed || []);
+
+      if (results.failed_count === 0) {
+        setShowFailedModal(false);
+        setSuccess("All records processed successfully!");
+      } else {
+        setError(`${results.failed_count} records still failed after retry.`);
+      }
+
+    } catch (err) {
+      setError("Failed to retry processing: " + (err.message || "Unknown error"));
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const manuallyUpdateFailedRecords = () => {
+    // This would open a modal or redirect to a manual update interface
+    alert("Manual update functionality would be implemented here");
+  };
+
+  const downloadFailedRecords = () => {
+    // Create a CSV of failed records for manual review
+    const csvContent = failedRecords.map(record => {
+      return {
+        'Row Index': record.index + 1,
+        'Invoice Number': record.invoice_number,
+        'Error': record.errors ? JSON.stringify(record.errors) : record.error,
+        'Data': JSON.stringify(record.data)
+      };
+    });
+    
+    const worksheet = XLSX.utils.json_to_sheet(csvContent);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Failed Records");
+    XLSX.writeFile(workbook, "failed_invoice_records.xlsx");
   };
 
   return (
@@ -320,23 +609,69 @@ const Upload_invoice = () => {
             </Form.Group>
           </Form>
 
+              {/* Upload Progress Bar */}
+          {isUploading && (
+            <div className="mb-3">
+              <div className="d-flex justify-content-between align-items-center mb-2">
+                <span>Uploading invoices...</span>
+                <span>{currentChunk}/{totalChunks} chunks ({uploadProgress}%)</span>
+              </div>
+              <ProgressBar now={uploadProgress} label={`${uploadProgress}%`} />
+              <div className="text-muted small mt-1">
+                Processing {currentChunk * 10} of {processedData.length} invoices
+              </div>
+            </div>
+          )}
+
           {error && (
             <Alert variant="danger" className="pre-wrap">
               {error}
+              {failedRecords.length > 0 && (
+                <>
+                  <br />
+                  <Button 
+                    variant="outline-danger" 
+                    size="sm" 
+                    onClick={() => setShowFailedModal(true)}
+                    className="mt-2 me-2"
+                  >
+                    View Failed Records ({failedRecords.length})
+                  </Button>
+                  <Button 
+                    variant="outline-secondary" 
+                    size="sm" 
+                    onClick={downloadFailedRecords}
+                    className="mt-2"
+                  >
+                    Download Failed Records
+                  </Button>
+                </>
+              )}
             </Alert>
           )}
+
           {success && <Alert variant="success">{success}</Alert>}
 
-          {excelData.length > 0 && (
+          
+          {excelData.length > 0 && !isUploading && (
             <>
               <div className="mb-3">
                 <Button
                   variant="primary"
                   onClick={handleSubmit}
-                  disabled={isLoading}
+                  disabled={isLoading || isUploading}
+                  className="me-2"
                 >
-                  {isLoading ? "Submitting..." : "Submit Invoice Data"}
+                  {isLoading ? "Processing..." : `Submit ${processedData.length} Invoices`}
                 </Button>
+                {failedRecords.length > 0 && (
+                  <Button
+                    variant="outline-warning"
+                    onClick={() => setShowFailedModal(true)}
+                  >
+                    Review Failed Records ({failedRecords.length})
+                  </Button>
+                )}
               </div>
 
               <div className="table-responsive mb-4">
@@ -395,27 +730,99 @@ const Upload_invoice = () => {
             </>
           )}
 
+          {/* Failed Records Modal */}
+          <Modal show={showFailedModal} onHide={() => setShowFailedModal(false)} size="lg">
+            <Modal.Header closeButton>
+              <Modal.Title>Failed Records</Modal.Title>
+            </Modal.Header>
+            <Modal.Body>
+              <p className="text-muted mb-3">
+                {failedRecords.length} records failed to process. You can retry or update them manually.
+              </p>
+              
+              <div className="table-responsive" style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                <Table striped bordered hover size="sm">
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Invoice #</th>
+                      <th>Error</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {failedRecords.map((record, index) => (
+                      <tr key={index}>
+                        <td>{record.index + 1}</td>
+                        <td>{record.invoice_number}</td>
+                        <td>
+                          {record.errors ? (
+                            Object.entries(record.errors).map(([field, messages]) => (
+                              <div key={field}>
+                                <strong>{field}:</strong> {messages.join(', ')}
+                              </div>
+                            ))
+                          ) : (
+                            record.error
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
+              </div>
+            </Modal.Body>
+            <Modal.Footer>
+              <Button variant="secondary" onClick={() => setShowFailedModal(false)}>
+                Close
+              </Button>
+              <Button variant="warning" onClick={manuallyUpdateFailedRecords}>
+                Update Manually
+              </Button>
+              <Button variant="primary" onClick={retryFailedRecords} disabled={isLoading}>
+                {isLoading ? 'Retrying...' : 'Retry Failed Records'}
+              </Button>
+            </Modal.Footer>
+          </Modal>
+
+          {/* Submission Results */}
           {submissionResults.length > 0 && (
             <Accordion className="mt-4">
               <Accordion.Item eventKey="0">
-                <Accordion.Header>Submission Results & Updates</Accordion.Header>
+                <Accordion.Header>
+                  Submission Results ({submissionResults.length} successful)
+                  {failedRecords.length > 0 && (
+                    <Badge bg="danger" className="ms-2">
+                      {failedRecords.length} failed
+                    </Badge>
+                  )}
+                </Accordion.Header>
                 <Accordion.Body>
                   {submissionResults.map((result, index) => (
                     <Card key={index} className="mb-3">
-                      <Card.Header>
-                        Invoice #{result.invoice.invoice_number} - {result.action.charAt(0).toUpperCase() + result.action.slice(1)}
+                      <Card.Header className="d-flex justify-content-between align-items-center">
+                        <span>
+                          Invoice #{result.invoice.invoice_number} - 
+                          <Badge bg={
+                            result.action === 'created' ? 'success' : 
+                            result.action === 'updated' ? 'warning' : 'info'
+                          } className="ms-2">
+                            {result.action}
+                          </Badge>
+                        </span>
+                        <small className="text-muted">Row {result.index + 1}</small>
                       </Card.Header>
                       <Card.Body>
-                        {result.action === 'updated' && result.changes && Object.keys(result.changes).length > 0 ? (
-                          <ul>
-                            {Object.entries(result.changes).map(([field, {old, new: newVal}]) => (
-                              <li key={field}>
-                                {field}: Changed from "{old}" to "{newVal}"
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <p>No changes (or new invoice created).</p>
+                        {result.action === 'updated' && result.changes && (
+                          <div className="small">
+                            <strong>Changes:</strong>
+                            <ul className="mb-0">
+                              {Object.entries(result.changes).map(([field, {old, new: newVal}]) => (
+                                <li key={field}>
+                                  <strong>{field}:</strong> "{old}" → "{newVal}"
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
                         )}
                       </Card.Body>
                     </Card>

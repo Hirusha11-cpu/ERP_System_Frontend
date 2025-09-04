@@ -306,7 +306,7 @@ const Invoice_create = () => {
       additional_charges: formData.additionalCharges.map((charge) => ({
         description: charge.description,
         amount: charge.amount,
-        taxable: true, // Double bang to force boolean
+        taxable: 1, 
       })),
       attachments: formData.attachments,
       // attachments: formData.attachments.forEach((file) => {
@@ -951,7 +951,7 @@ const Invoice_create = () => {
   //   });
   // };
   // Replace the entire calculateTotals function with this:
-  const calculateTotals = () => {
+  const calculateTotals1 = () => {
     const { currency, exchangeRate, taxTreatment } = formData.currencyDetails;
     const { serviceItems, additionalCharges, taxRates } = formData;
 
@@ -1015,9 +1015,14 @@ const Invoice_create = () => {
       formData.totals.bankCharges;
 
     // Apply VAT if enabled
-    if (vatInclude && vatComponent.taxBased !== "") {
-      const vatRate = 0.18; // 18% VAT
+    // if (vatInclude && vatComponent.taxBased !== "") {
+    console.log("Calculated SubTotal before VAT:", calculatedSubTotal);
+    console.log("VAT Include:", vatInclude);
 
+    if (vatInclude) {
+      const vatRate = 0.18; // 18% VAT
+      console.log("fff");
+      
       if (vatComponent.taxBased === "subtotal") {
         calculatedSubTotal = calculatedSubTotal + calculatedSubTotal * vatRate;
       } else if (vatComponent.taxBased === "total") {
@@ -1027,11 +1032,11 @@ const Invoice_create = () => {
           calculatedHandlingFee + calculatedHandlingFee * vatRate;
       }
     }
-
+    console.log("Calculated SubTotal after VAT:", calculatedSubTotal);
     // Recalculate total with VAT adjustments
     calculatedTotal =
       calculatedSubTotal +
-      // calculatedHandlingFee +
+      calculatedHandlingFee +
       gst +
       additionalTax +
       additionalChargeCost +
@@ -1052,6 +1057,107 @@ const Invoice_create = () => {
       },
     });
   };
+
+  const calculateTotals = () => {
+  const { currency } = formData.currencyDetails;
+  const { serviceItems, additionalCharges, taxRates, vatInclude, vatComponent } = formData;
+
+  let subTotal = 0;
+  let totalPax = 0;
+  let totalAmount = 0;
+
+  // Service items subtotal
+  serviceItems.forEach((item) => {
+    totalPax += item.qty;
+    totalAmount += item.total;
+  });
+
+  // Additional charges
+  let taxableCharges = 0;
+  additionalCharges.forEach((charge) => {
+    if (charge.taxable) {
+      taxableCharges += charge.amount;
+    }
+  });
+
+  // Handling fee (only INR)
+  let handlingFee = 0;
+  if (currency === "INR" && totalPax > 0) {
+    handlingFee = 5 * (xeRate + increaseAmount) * totalPax; // ensure xeRate is defined
+    subTotal = totalAmount; // reset subtotal to items only
+  } else {
+    subTotal = totalAmount;
+  }
+
+  // Taxes
+  let additionalTax = 0;
+  if (subTotal > 0 && taxRates.length > 0) {
+    additionalTax = subTotal * (parseFloat(Number(taxRates[0].rate)) / 100);
+  }
+
+  // GST (only INR)
+  let gst = 0;
+  if (currency === "INR") {
+    gst = handlingFee * 0.18;
+  }
+
+  const additionalChargeCost = additionalCharges.reduce(
+    (acc, item) => acc + parseFloat(item.amount || 0),
+    0
+  );
+
+  // Initial totals before VAT
+  let calculatedSubTotal = subTotal;
+  let calculatedHandlingFee = handlingFee;
+  let calculatedTotal =
+    calculatedSubTotal +
+    calculatedHandlingFee +
+    gst +
+    additionalTax +
+    additionalChargeCost +
+    formData.totals.bankCharges;
+
+  // Apply VAT
+  if (vatInclude) {
+    const vatRate = 0.18;
+    if (vatComponent.taxBased === "subtotal") {
+      calculatedSubTotal += calculatedSubTotal * vatRate;
+    } else if (vatComponent.taxBased === "handling") {
+      calculatedHandlingFee += calculatedHandlingFee * vatRate;
+    } else if (vatComponent.taxBased === "total") {
+      calculatedTotal += calculatedTotal * vatRate; // keep this final
+    }
+  }
+
+  // Recalculate total only if VAT wasn’t applied on total directly
+  // if (!(vatInclude && vatComponent.taxBased === "total")) {
+  if (vatInclude) {
+    calculatedTotal =
+      calculatedSubTotal +
+      calculatedHandlingFee +
+      calculatedSubTotal * 0.18 + // GST recalculated on new subtotal
+      gst +
+      additionalTax +
+      additionalChargeCost +
+      formData.totals.bankCharges;
+  }
+
+  const balance = calculatedTotal - formData.totals.amountReceived;
+
+  setFormData({
+    ...formData,
+    totals: {
+      ...formData.totals,
+      subTotal: calculatedSubTotal,
+      handlingFee: calculatedHandlingFee,
+      gst,
+      total: calculatedTotal,
+      balance,
+      additionalTax,
+    },
+  });
+};
+
 
   const toggleTaxRateStatus = async (taxId, isActive) => {
     try {

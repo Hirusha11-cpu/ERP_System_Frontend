@@ -29,11 +29,14 @@ import {
   FaBuilding,
   FaUser,
 } from "react-icons/fa";
-import { Bar, Pie, Line } from "react-chartjs-2";
+import { Bar, Pie, Doughnut, Line } from "react-chartjs-2";
 import Chart from "chart.js/auto";
+import * as XLSX from "xlsx";
+import jsPDF from "jspdf";
+import "jspdf-autotable";
 
 import axios from "axios";
-import { CompanyContext } from "../../../../contentApi/CompanyProvider";
+import { CompanyContext } from "../../../../contentApi/CompanyProvider"; // Adjust path if needed
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { format, subDays, startOfMonth, endOfMonth } from "date-fns";
@@ -59,18 +62,7 @@ const Invoice_summary = () => {
   const token =
     localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
 
-  // useEffect(() => {
-  //   const companyMap = {
-  //     appleholidays: 2,
-  //     aahaas: 3,
-  //     shirmila: 1,
-  //   };
-  //   setCompanyNo(companyMap[selectedCompany?.toLowerCase()] || null);
-  //   fetchData(companyNo);
-  // }, [selectedCompany]);
   useEffect(() => {
-    console.log("Selected Company:", selectedCompany);
-    
     if (!selectedCompany) return;
 
     const companyMap = {
@@ -87,41 +79,24 @@ const Invoice_summary = () => {
     }
   }, [selectedCompany]);
 
-  // Fetch invoices and summary data
-
   const fetchData = async (companyNumber) => {
-    console.log("Fetching data for company:", companyNumber);
     try {
       setLoading(true);
       const [invoicesRes, summaryRes] = await Promise.all([
-        // axios.get(`/api/invoicesss/all?company_id=${companyNumber}`, {
-        //   headers: {
-        //     Authorization: `Bearer ${token}`,
-        //   },
-        // }),
-        axios.get(
-                  `/api/invoices?company_id=${companyNumber}`,
-                  {
-                    headers: {
-                      Authorization: `Bearer ${token}`,
-                    },
-                  }
-                ),
+        axios.get(`/api/invoices?company_id=${companyNumber}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }),
         axios.get(`/api/invoicess/summary?company_id=${companyNumber}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         }),
-        //   axios.get(`/api/invoicess/all?company_id=${selectedCompany.id}`),
-        //   axios.get(`/api/invoicess/summary?company_id=${selectedCompany.id}`)
       ]);
-      console.log(invoicesRes.data);
 
-      setInvoices(invoicesRes.data);
-
-      console.log(invoicesRes.data, "Invoices xxxxx");
-      console.log(summaryRes.data, "Summary xxxxx");
-      setFilteredInvoices(invoicesRes.data.data);
+      setInvoices(invoicesRes.data.data || []);
+      setFilteredInvoices(invoicesRes.data.data || []);
       setSummaryData(summaryRes.data);
     } catch (err) {
       setError(err.message);
@@ -129,181 +104,30 @@ const Invoice_summary = () => {
       setLoading(false);
     }
   };
-  useEffect(() => {
-    console.log("Company No:", companyNo);
-    if (companyNo){
-      fetchData(companyNo);
-      console.log(filteredInvoices, "Filtered Invoices xxxxx");
-      
-    }else{
-      fetchData(3);
-    }
-  }, []);
 
   // Apply filters
   useEffect(() => {
-    let results = invoices;
+    let results = invoices || [];
 
-    if (results?.length > 0) {
-      if (startDate && endDate) {
-        results = results.filter((invoice) => {
-          const invoiceDate = new Date(invoice.issue_date);
-          return invoiceDate >= startDate && invoiceDate <= endDate;
-        });
-      }
-
-      // Search term filter
-      if (searchTerm) {
-        results = results.filter(
-          (invoice) =>
-            invoice.invoice_number
-              .toLowerCase()
-              .includes(searchTerm.toLowerCase()) ||
-            invoice.customer.name
-              .toLowerCase()
-              .includes(searchTerm.toLowerCase())
-        );
-      }
-
-      setFilteredInvoices(results);
+    if (startDate && endDate) {
+      results = results.filter((invoice) => {
+        const invoiceDate = new Date(invoice.issue_date);
+        return invoiceDate >= startDate && invoiceDate <= endDate;
+      });
     }
-    // Date filter
+
+    if (searchTerm) {
+      results = results.filter(
+        (invoice) =>
+          (invoice.invoice_number?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+          (invoice.customer?.name?.toLowerCase() || "").includes(searchTerm.toLowerCase())
+      );
+    }
+
+    setFilteredInvoices(results);
   }, [invoices, searchTerm, startDate, endDate]);
 
-  const BarChart = ({ data }) => {
-    const chartRef = useRef(null);
-    const chartInstance = useRef(null);
-
-    useEffect(() => {
-      if (chartRef.current && data) {
-        if (chartInstance.current) {
-          chartInstance.current.destroy();
-        }
-
-        const ctx = chartRef.current.getContext("2d");
-        chartInstance.current = new Chart(ctx, {
-          type: "bar",
-          data: {
-            labels: data.labels,
-            datasets: data.datasets,
-          },
-          options: {
-            responsive: true,
-            plugins: {
-              legend: {
-                position: "top",
-              },
-              tooltip: {
-                callbacks: {
-                  label: function (context) {
-                    return `${context.dataset.label}: ${context.raw} ${
-                      selectedCompany?.currency || "USD"
-                    }`;
-                  },
-                },
-              },
-            },
-            scales: {
-              y: {
-                beginAtZero: true,
-                ticks: {
-                  callback: function (value) {
-                    return `${value} ${selectedCompany?.currency || "USD"}`;
-                  },
-                },
-              },
-            },
-          },
-        });
-      }
-
-      return () => {
-        if (chartInstance.current) {
-          chartInstance.current.destroy();
-        }
-      };
-    }, [data, selectedCompany]);
-
-    return <canvas ref={chartRef} />;
-  };
-
-  const PieChart = ({ data }) => {
-    const chartRef = useRef(null);
-    const chartInstance = useRef(null);
-
-    useEffect(() => {
-      if (chartRef.current && data) {
-        if (chartInstance.current) {
-          chartInstance.current.destroy();
-        }
-
-        const ctx = chartRef.current.getContext("2d");
-        chartInstance.current = new Chart(ctx, {
-          type: "pie",
-          data: {
-            labels: data.labels,
-            datasets: data.datasets,
-          },
-          options: {
-            responsive: true,
-            plugins: {
-              legend: {
-                position: "right",
-              },
-            },
-          },
-        });
-      }
-
-      return () => {
-        if (chartInstance.current) {
-          chartInstance.current.destroy();
-        }
-      };
-    }, [data]);
-
-    return <canvas ref={chartRef} />;
-  };
-
-  const DoughnutChart = ({ data }) => {
-    const chartRef = useRef(null);
-    const chartInstance = useRef(null);
-
-    useEffect(() => {
-      if (chartRef.current && data) {
-        if (chartInstance.current) {
-          chartInstance.current.destroy();
-        }
-
-        const ctx = chartRef.current.getContext("2d");
-        chartInstance.current = new Chart(ctx, {
-          type: "doughnut",
-          data: {
-            labels: data.labels,
-            datasets: data.datasets,
-          },
-          options: {
-            responsive: true,
-            plugins: {
-              legend: {
-                position: "right",
-              },
-            },
-          },
-        });
-      }
-
-      return () => {
-        if (chartInstance.current) {
-          chartInstance.current.destroy();
-        }
-      };
-    }, [data]);
-
-    return <canvas ref={chartRef} />;
-  };
-
-  // Chart data for profit analysis with null checks
+  // Chart data for profit analysis
   const profitChartData = {
     labels: summaryData?.monthly_profit?.map((item) => item.month) || [
       "Jan",
@@ -312,22 +136,24 @@ const Invoice_summary = () => {
       "Apr",
       "May",
       "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
     ],
     datasets: [
       {
         label: "Revenue",
-        data: summaryData?.monthly_profit?.map((item) => item.revenue) || [
-          0, 0, 0, 0, 0, 0,
-        ],
+        data: summaryData?.monthly_profit?.map((item) => item.revenue) || Array(12).fill(0),
         backgroundColor: "rgba(54, 162, 235, 0.5)",
         borderColor: "rgba(54, 162, 235, 1)",
         borderWidth: 1,
       },
       {
         label: "Profit",
-        data: summaryData?.monthly_profit?.map((item) => item.profit) || [
-          0, 0, 0, 0, 0, 0,
-        ],
+        data: summaryData?.monthly_profit?.map((item) => item.profit) || Array(12).fill(0),
         backgroundColor: "rgba(75, 192, 192, 0.5)",
         borderColor: "rgba(75, 192, 192, 1)",
         borderWidth: 1,
@@ -335,22 +161,25 @@ const Invoice_summary = () => {
     ],
   };
 
-  // Chart data for country distribution with null checks
+  // Chart data for country distribution
   const countryChartData = {
-    labels: summaryData?.country_distribution?.map((item) => item.country) || [
-      "No Data",
-    ],
+    labels: summaryData?.country_distribution?.map((item) => item.country) || ["No Data"],
     datasets: [
       {
-        data: summaryData?.country_distribution?.map((item) => item.count) || [
-          1,
+        data: summaryData?.country_distribution?.map((item) => item.count) || [1],
+        backgroundColor: [
+          "#FF6384",
+          "#36A2EB",
+          "#FFCE56",
+          "#4BC0C0",
+          "#9966FF",
+          "#FF9F40",
         ],
-        backgroundColor: ["#FF6384"],
       },
     ],
   };
 
-  // Chart data for refund analysis with null checks
+  // Chart data for refund analysis
   const refundChartData = {
     labels: ["Completed", "Pending", "Cancelled"],
     datasets: [
@@ -367,7 +196,6 @@ const Invoice_summary = () => {
 
   // Handle view invoice details
   const handleViewInvoice = (invoice) => {
-    console.log("Selected Invoice:", invoice);
     setSelectedInvoice(invoice);
     setShowModal(true);
   };
@@ -377,10 +205,94 @@ const Invoice_summary = () => {
     window.print();
   };
 
-  // Handle export
-  const handleExport = () => {
-    // Export logic here
-    alert("Export functionality would be implemented here");
+  // Handle export to Excel
+  const handleExportExcel = (data, fileName) => {
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+    XLSX.writeFile(wb, `${fileName}.xlsx`);
+  };
+
+  // Handle export to PDF
+  const handleExportPdf = (data, fileName) => {
+    const doc = new jsPDF();
+    doc.autoTable({
+      head: [Object.keys(data[0] || {})],
+      body: data.map((row) => Object.values(row)),
+    });
+    doc.save(`${fileName}.pdf`);
+  };
+
+  // Handle report download
+  const handleReportDownload = (format, reportType) => {
+    let data = [];
+    let fileName = "";
+
+    switch (reportType) {
+      case "all-invoices":
+        data = filteredInvoices.map((inv) => ({
+          "Invoice #": inv.invoice_number,
+          Customer: inv.customer?.name,
+          Date: format(new Date(inv.issue_date), "MMM dd, yyyy"),
+          Amount: `${inv.total_amount} ${inv.currency}`,
+          Profit: `${inv.profit?.profit || 0} ${inv.currency}`,
+          Status: inv.status,
+        }));
+        fileName = "All_Invoices_Report";
+        break;
+      case "refund-requests":
+        data = filteredInvoices.filter((inv) => inv.refund).map((inv) => ({
+          "Invoice #": inv.invoice_number,
+          Customer: inv.customer?.name,
+          Amount: `${inv.total_amount} ${inv.currency}`,
+          "Refund Amount": `${inv.refund?.refund_amount} ${inv.currency}`,
+          Reason: inv.refund?.refund_reason,
+          Status: inv.refund?.refund_status,
+        }));
+        fileName = "Refund_Requests_Report";
+        break;
+      case "awaiting-payments":
+        data = filteredInvoices.filter((inv) => inv.balance > 0).map((inv) => ({
+          "Invoice #": inv.invoice_number,
+          Customer: inv.customer?.name,
+          Amount: `${inv.total_amount} ${inv.currency}`,
+          Balance: `${inv.balance} ${inv.currency}`,
+          Status: inv.status,
+        }));
+        fileName = "Awaiting_Payments_Report";
+        break;
+      case "monthly-revenue":
+        data = summaryData?.monthly_profit?.map((item) => ({
+          Month: item.month,
+          Revenue: item.revenue,
+          Profit: item.profit,
+        })) || [];
+        fileName = "Monthly_Revenue_Report";
+        break;
+      case "country-distribution":
+        data = summaryData?.country_distribution?.map((item) => ({
+          Country: item.country,
+          Count: item.count,
+        })) || [];
+        fileName = "Country_Distribution_Report";
+        break;
+      case "refund-analysis":
+        data = [
+          { Status: "Completed", Count: summaryData?.refund_summary?.completed || 0 },
+          { Status: "Pending", Count: summaryData?.refund_summary?.pending || 0 },
+          { Status: "Cancelled", Count: summaryData?.refund_summary?.cancelled || 0 },
+        ];
+        fileName = "Refund_Analysis_Report";
+        break;
+      default:
+        return;
+    }
+
+    if (format === "excel") {
+      handleExportExcel(data, fileName);
+    } else if (format === "pdf") {
+      handleExportPdf(data, fileName);
+    }
   };
 
   if (loading) return <div className="text-center py-5">Loading...</div>;
@@ -401,8 +313,11 @@ const Invoice_summary = () => {
           >
             <FaPrint className="me-1" /> Print
           </Button>
-          <Button variant="outline-success" onClick={handleExport}>
-            <FaDownload className="me-1" /> Export
+          <Button variant="outline-success" className="me-2" onClick={() => handleReportDownload("excel", "all-invoices")}>
+            <FaDownload className="me-1" /> Excel
+          </Button>
+          <Button variant="outline-danger" onClick={() => handleReportDownload("pdf", "all-invoices")}>
+            <FaDownload className="me-1" /> PDF
           </Button>
         </div>
       </div>
@@ -478,7 +393,7 @@ const Invoice_summary = () => {
       </Card>
 
       {/* Summary Cards */}
-      {/* <Row className="mb-4">
+      <Row className="mb-4">
         <Col md={3}>
           <Card className="text-white bg-primary">
             <Card.Body>
@@ -537,7 +452,7 @@ const Invoice_summary = () => {
             </Card.Body>
           </Card>
         </Col>
-      </Row> */}
+      </Row>
 
       {/* Main Content */}
       <Tabs
@@ -554,6 +469,14 @@ const Invoice_summary = () => {
                   Invoice List
                 </span>
                 <Badge bg="primary">{filteredInvoices.length} invoices</Badge>
+                <div>
+                  <Button variant="outline-success" className="me-2" onClick={() => handleReportDownload("excel", "all-invoices")}>
+                    <FaDownload className="me-1" /> Excel
+                  </Button>
+                  <Button variant="outline-danger" onClick={() => handleReportDownload("pdf", "all-invoices")}>
+                    <FaDownload className="me-1" /> PDF
+                  </Button>
+                </div>
               </div>
             </Card.Header>
             <Card.Body>
@@ -573,7 +496,7 @@ const Invoice_summary = () => {
                   {filteredInvoices.map((invoice) => (
                     <tr key={invoice.id}>
                       <td>{invoice.invoice_number}</td>
-                      <td>{invoice.customer.name}</td>
+                      <td>{invoice.customer?.name}</td>
                       <td>
                         {format(new Date(invoice.issue_date), "MMM dd, yyyy")}
                       </td>
@@ -644,9 +567,16 @@ const Invoice_summary = () => {
                   Refund Requests
                 </span>
                 <Badge bg="danger">
-                  {/* {0} pending */}
-                  {/* {summaryData?.refund_summary?.pending || 0} pending */}
+                  {summaryData?.refund_summary?.pending || 0} pending
                 </Badge>
+                <div>
+                  <Button variant="outline-success" className="me-2" onClick={() => handleReportDownload("excel", "refund-requests")}>
+                    <FaDownload className="me-1" /> Excel
+                  </Button>
+                  <Button variant="outline-danger" onClick={() => handleReportDownload("pdf", "refund-requests")}>
+                    <FaDownload className="me-1" /> PDF
+                  </Button>
+                </div>
               </div>
             </Card.Header>
             <Card.Body>
@@ -668,7 +598,7 @@ const Invoice_summary = () => {
                     .map((invoice) => (
                       <tr key={invoice.id}>
                         <td>{invoice.invoice_number}</td>
-                        <td>{invoice.customer.name}</td>
+                        <td>{invoice.customer?.name}</td>
                         <td>
                           {invoice.total_amount} {invoice.currency}
                         </td>
@@ -716,9 +646,16 @@ const Invoice_summary = () => {
                   Awaiting Payments
                 </span>
                 <Badge bg="secondary">
-                  {/* {0} awaiting */}
-                  {/* {summaryData?.refund_summary?.pending || 0} pending */}
+                  {filteredInvoices.filter((inv) => inv.balance > 0).length} awaiting
                 </Badge>
+                <div>
+                  <Button variant="outline-success" className="me-2" onClick={() => handleReportDownload("excel", "awaiting-payments")}>
+                    <FaDownload className="me-1" /> Excel
+                  </Button>
+                  <Button variant="outline-danger" onClick={() => handleReportDownload("pdf", "awaiting-payments")}>
+                    <FaDownload className="me-1" /> PDF
+                  </Button>
+                </div>
               </div>
             </Card.Header>
             <Card.Body>
@@ -728,34 +665,24 @@ const Invoice_summary = () => {
                     <th>Invoice #</th>
                     <th>Customer</th>
                     <th>Amount</th>
-                    {/* <th>Refund Amount</th>
-                    <th>Reason</th> */}
+                    <th>Balance</th>
                     <th>Status</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredInvoices
-                    .filter(
-                      (invoice) =>
-                        invoice.refund &&
-                        invoice.balance !== '""' &&
-                        invoice.balance !== "" &&
-                        invoice.balance !== null
-                    )
+                    .filter((invoice) => invoice.balance > 0)
                     .map((invoice) => (
                       <tr key={invoice.id}>
                         <td>{invoice.invoice_number}</td>
-                        <td>{invoice.customer.name}</td>
+                        <td>{invoice.customer?.name}</td>
                         <td>
                           {invoice.total_amount} {invoice.currency}
                         </td>
-                        {/* <td>
-                          {invoice.refund.refund_amount} {invoice.currency}
-                        </td>
                         <td>
-                          <small>{invoice.refund.refund_reason}</small>
-                        </td> */}
+                          {invoice.balance} {invoice.currency}
+                        </td>
                         <td>
                           <Badge
                             bg={
@@ -785,6 +712,88 @@ const Invoice_summary = () => {
             </Card.Body>
           </Card>
         </Tab>
+        {/* <Tab eventKey="reports" title="Reports & Analytics">
+          <Row>
+            <Col md={6}>
+              <Card>
+                <Card.Header>
+                  <FaChartLine className="me-2" />
+                  Monthly Profit Analysis
+                  <div className="float-end">
+                    <Button variant="outline-success" className="me-2" size="sm" onClick={() => handleReportDownload("excel", "monthly-revenue")}>
+                      Excel
+                    </Button>
+                    <Button variant="outline-danger" size="sm" onClick={() => handleReportDownload("pdf", "monthly-revenue")}>
+                      PDF
+                    </Button>
+                  </div>
+                </Card.Header>
+                <Card.Body>
+                  <Bar data={profitChartData} />
+                </Card.Body>
+              </Card>
+            </Col>
+            <Col md={6}>
+              <Card>
+                <Card.Header>
+                  <FaGlobe className="me-2" />
+                  Country Distribution
+                  <div className="float-end">
+                    <Button variant="outline-success" className="me-2" size="sm" onClick={() => handleReportDownload("excel", "country-distribution")}>
+                      Excel
+                    </Button>
+                    <Button variant="outline-danger" size="sm" onClick={() => handleReportDownload("pdf", "country-distribution")}>
+                      PDF
+                    </Button>
+                  </div>
+                </Card.Header>
+                <Card.Body>
+                  <Pie data={countryChartData} />
+                </Card.Body>
+              </Card>
+            </Col>
+          </Row>
+          <Row className="mt-4">
+            <Col md={6}>
+              <Card>
+                <Card.Header>
+                  <FaChartPie className="me-2" />
+                  Refund Status Distribution
+                  <div className="float-end">
+                    <Button variant="outline-success" className="me-2" size="sm" onClick={() => handleReportDownload("excel", "refund-analysis")}>
+                      Excel
+                    </Button>
+                    <Button variant="outline-danger" size="sm" onClick={() => handleReportDownload("pdf", "refund-analysis")}>
+                      PDF
+                    </Button>
+                  </div>
+                </Card.Header>
+                <Card.Body>
+                  <Doughnut data={refundChartData} />
+                </Card.Body>
+              </Card>
+            </Col>
+            <Col md={6}>
+              <Card>
+                <Card.Header>
+                  <FaChartLine className="me-2" />
+                  Revenue Trend
+                  <div className="float-end">
+                    <Button variant="outline-success" className="me-2" size="sm" onClick={() => handleReportDownload("excel", "monthly-revenue")}>
+                      Excel
+                    </Button>
+                    <Button variant="outline-danger" size="sm" onClick={() => handleReportDownload("pdf", "monthly-revenue")}>
+                      PDF
+                    </Button>
+                  </div>
+                </Card.Header>
+                <Card.Body>
+                  <Line data={profitChartData} />
+                </Card.Body>
+              </Card>
+            </Col>
+          </Row>
+        </Tab> */}
       </Tabs>
 
       {/* Invoice Detail Modal */}
@@ -801,23 +810,20 @@ const Invoice_summary = () => {
                 <Col md={6}>
                   <h5>Customer Information</h5>
                   <p>
-                    <strong>Name:</strong> {selectedInvoice.customer.name}
+                    <strong>Name:</strong> {selectedInvoice.customer?.name}
                   </p>
                   <p>
-                    <strong>Address:</strong> {selectedInvoice.customer.address}
+                    <strong>Address:</strong> {selectedInvoice.customer?.address}
                   </p>
                   <p>
-                    <strong>Contact:</strong> {selectedInvoice.customer.mobile}
+                    <strong>Contact:</strong> {selectedInvoice.customer?.mobile}
                   </p>
                 </Col>
                 <Col md={6}>
                   <h5>Invoice Summary</h5>
                   <p>
                     <strong>Date:</strong>{" "}
-                    {format(
-                      new Date(selectedInvoice.issue_date),
-                      "MMM dd, yyyy"
-                    )}
+                    {format(new Date(selectedInvoice.issue_date), "MMM dd, yyyy")}
                   </p>
                   <p>
                     <strong>Total Amount:</strong>{" "}
@@ -859,7 +865,7 @@ const Invoice_summary = () => {
                 </Col>
               </Row>
 
-              {/* <h5 className="mt-4">Items</h5>
+              <h5 className="mt-4">Items</h5>
               <Table striped bordered>
                 <thead>
                   <tr>
@@ -872,7 +878,7 @@ const Invoice_summary = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {selectedInvoice.items.map((item, idx) => (
+                  {selectedInvoice.items?.map((item, idx) => (
                     <tr key={idx}>
                       <td>{item.code}</td>
                       <td>{item.description}</td>
@@ -885,11 +891,11 @@ const Invoice_summary = () => {
                         {item.total_amount} {selectedInvoice.currency}
                       </td>
                     </tr>
-                  ))}
+                  )) || <tr><td colSpan="6">No items</td></tr>}
                 </tbody>
-              </Table> */}
-              {/* 
-              {selectedInvoice.additional_charges.length > 0 && (
+              </Table>
+
+              {selectedInvoice.additional_charges?.length > 0 && (
                 <>
                   <h5 className="mt-4">Additional Charges</h5>
                   <Table striped bordered>
@@ -913,7 +919,7 @@ const Invoice_summary = () => {
                     </tbody>
                   </Table>
                 </>
-              )} */}
+              )}
 
               {selectedInvoice.refund && (
                 <>

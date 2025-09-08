@@ -89,7 +89,7 @@ const Home = () => {
   const [filteredCreditCount, setFilteredCreditCount] = useState(0);
   const [gracePeriod, setGracePeriod] = useState(15); // default 15 days
 
-    const [appleSyncStats, setAppleSyncStats] = useState({
+  const [appleSyncStats, setAppleSyncStats] = useState({
     sync_created: 0,
     sync_updated: 0,
     last_sync_time: "Never",
@@ -97,8 +97,8 @@ const Home = () => {
     last_invoice: {
       id: 0,
       quotation_no: 0,
-      created_at: null
-    }
+      created_at: null,
+    },
   });
   const [syncLoading, setSyncLoading] = useState(false);
   const token =
@@ -121,6 +121,81 @@ const Home = () => {
   const [customEndDate, setCustomEndDate] = useState(null);
   const [showDateModal, setShowDateModal] = useState(false);
 
+  // Add these states for loading/error (optional, but recommended)
+  const [ratesLoading, setRatesLoading] = useState(false);
+  const [ratesError, setRatesError] = useState(null);
+
+  // Function to fetch and update exchange rates
+  const fetchAllRates = async () => {
+    if (!token) return; // Skip if no auth
+
+    setRatesLoading(true);
+    setRatesError(null);
+    try {
+      const response = await axios.get("/api/currency/rates?from=USD", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const data = response.data;
+      if (data.rates && data.base === "USD") {
+        const usdToInr = data.rates.INR || 88.2484; // Fallback if missing
+        if (usdToInr === 0) {
+          throw new Error("Invalid USD to INR rate from API");
+        }
+
+        // Normalize all rates to INR base (divide USD-to-Curr by USD-to-INR)
+        const newRates = {
+          INR: 1, // Always 1 for base
+          USD: 1 / usdToInr, // e.g., 1 / 88.2484 ≈ 0.01133
+          EUR: (data.rates.EUR || 0.8538) / usdToInr, // e.g., 0.8538 / 88.2484 ≈ 0.00967
+          MYR: (data.rates.MYR || 4.225) / usdToInr, // e.g., 4.225 / 88.2484 ≈ 0.0479
+          SGD: (data.rates.SGD || 1.2856) / usdToInr, // e.g., 1.2856 / 88.2484 ≈ 0.0146
+          LKR: (data.rates.LKR || 301.7489) / usdToInr, // e.g., 301.7489 / 88.2484 ≈ 3.419
+        };
+
+        // Assign the new rates to state (overwrites hardcoded)
+        setExchangeRates(newRates);
+        console.log("Exchange rates updated from API:", newRates);
+      } else {
+        throw new Error("Invalid API response structure");
+      }
+    } catch (error) {
+      console.error("Error fetching exchange rates:", error);
+      setRatesError("Failed to update rates. Using fallback values.");
+      // Keep hardcoded/fallback rates on error
+    } finally {
+      setRatesLoading(false);
+    }
+  };
+
+  // Function to fetch specific rate (fallback for individual currencies)
+  const fetchSpecificRate = async (from, to) => {
+    if (!token) return null;
+
+    try {
+      const response = await axios.get(
+        `/api/currency/rate?from=${from}&to=${to}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      const data = response.data;
+      if (data.rate) {
+        return data.rate; // Direct rate (e.g., USD to INR = 88.2484)
+      }
+      return null;
+    } catch (error) {
+      console.error(`Error fetching ${from} to ${to} rate:`, error);
+      return null;
+    }
+  };
+
+  // Optional: Refresh button handler
+  const refreshRates = () => {
+    fetchAllRates();
+  };
+
   useEffect(() => {
     const companyMap = {
       appleholidays: 2,
@@ -130,13 +205,13 @@ const Home = () => {
     setCompanyNo(companyMap[selectedCompany?.toLowerCase()] || null);
   }, [selectedCompany]);
 
-    // Add function to fetch Apple sync stats
+  // Add function to fetch Apple sync stats
   const fetchAppleSyncStats = async () => {
     // if (selectedCompany?.toLowerCase() !== "appleholidays") return;
-    
+
     try {
       setSyncLoading(true);
-      const response = await axios.get('/api/apple-quotations/sync-stats', {
+      const response = await axios.get("/api/apple-quotations/sync-stats", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -153,17 +228,21 @@ const Home = () => {
   const triggerAppleSync = async () => {
     try {
       setSyncLoading(true);
-      const response = await axios.post('/api/apple-quotations/sync', {}, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await axios.post(
+        "/api/apple-quotations/sync",
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
       // Refresh the sync stats after sync
       await fetchAppleSyncStats();
-      alert('Sync completed successfully!');
+      alert("Sync completed successfully!");
     } catch (error) {
       console.error("Error triggering Apple sync:", error);
-      alert('Sync failed. Please try again.');
+      alert("Sync failed. Please try again.");
     } finally {
       setSyncLoading(false);
     }
@@ -172,7 +251,7 @@ const Home = () => {
   // Add useEffect to fetch sync stats when company is Apple Holidays
   useEffect(() => {
     // if (selectedCompany?.toLowerCase() === "appleholidays") {
-      fetchAppleSyncStats();
+    fetchAppleSyncStats();
     // }
   }, [selectedCompany]);
 
@@ -499,7 +578,7 @@ const Home = () => {
     if (companyNo) {
       fetchInvoices();
       fetchAppleSyncStats();
-
+      fetchAllRates(); // Add this line to fetch rates
     }
   }, [companyNo, token]);
 
@@ -846,18 +925,35 @@ const Home = () => {
               </Dropdown.Item>
             </Dropdown.Menu>
           </Dropdown>
-          <Button
+          {/* <Button
             variant="primary"
             className="d-flex align-items-center"
             onClick={fetchInvoices}
           >
             <FiRefreshCw className="me-2" />
             Refresh
+          </Button> */}
+          <Button
+            variant="outline-info"
+            size="sm"
+            onClick={refreshRates}
+            disabled={ratesLoading}
+            className="ms-2"
+          >
+            {ratesLoading ? (
+              <>
+                <span className="spinner-border spinner-border-sm me-1" />
+                Updating Rates...
+              </>
+            ) : (
+              <>
+                <FiRefreshCw className="me-1" />
+                Refresh Rates
+              </>
+            )}
           </Button>
         </Col>
       </Row>
-
-   
 
       {/* Filter Summary */}
       {(dateFilter !== "all" || paymentTypeFilter !== "all") && (
@@ -1129,8 +1225,8 @@ const Home = () => {
         </Col>
       </Row>
 
-          {/* Apple Holidays Sync Stats Card - Only show for Apple Holidays */}
-      {selectedCompany?.toLowerCase() === "appleholidays" || "aahaas" && (
+      {/* Apple Holidays Sync Stats Card - Only show for Apple Holidays */}
+      {/* {selectedCompany?.toLowerCase() === "appleholidays" || "aahaas" && (
         <Row className="mb-4">
           <Col>
             <Card className="shadow-sm">
@@ -1207,7 +1303,7 @@ const Home = () => {
             </Card>
           </Col>
         </Row>
-      )}
+      )} */}
 
       {/* Main Content */}
       <Row>

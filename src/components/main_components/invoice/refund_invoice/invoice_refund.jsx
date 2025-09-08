@@ -206,7 +206,7 @@ const Invoice_refund = () => {
         refund: {
           ...selectedInvoice.refund,
           status: "refund", // Change from "non-refund" to "refund"
-          refund_status: "pending", // Set initial refund status
+          refund_status: "", // Set initial refund status
           remark: refundData.remark || "Status updated to refundable",
           // Include other required fields
           refund_amount: 0, // Initialize with 0

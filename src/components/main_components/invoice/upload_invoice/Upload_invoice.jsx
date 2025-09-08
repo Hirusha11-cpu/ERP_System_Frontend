@@ -335,6 +335,7 @@ const Upload_invoice = () => {
             const cleanAmountValue = cleanAmount(amountValue);
 
             return {
+              issue_date: row["Date"] || "",
               invoice_number: row["Invoice #"] || "",
               customer_po_number: row["Customer PO #"] || "",
               customer_name: row["Customer Name"] || "",
@@ -343,7 +344,11 @@ const Upload_invoice = () => {
               status: row["Status"] || "Open",
               ship_via: row["Ship Via"] || "",
               promised_date: collectionDate,
+              original_amount: cleanAmount(row["Original Amount"]),
+              freight_amt: cleanAmount(row["Freight Amt"]),
+              tax_amt: cleanAmount(row["Tax Amt"]),
               journal_memo: row["Journal Memo"] || "",
+              custom_list_1: row["Custom List #1"] || "",
               salesperson: row["Salesperson"] || "",
               referral: row["Referral"] || "",
               customer_id: 1, // Implement lookup if needed

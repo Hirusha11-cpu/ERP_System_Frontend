@@ -946,7 +946,7 @@ const Invoice_list = () => {
                     <th>Invoice No.</th>
                     <th>Tour Ref No.</th>
                     <th>Customer</th>
-                    <th>Date</th>
+                    <th>Issue Date</th>
                     <th>Travel Period</th>
                     <th>Credit/Non-Credit</th>
                     <th>Balance</th>
@@ -1000,7 +1000,7 @@ const Invoice_list = () => {
                           </small>
                         </td>
                         <td>
-                          {formatDate(invoice.due_date)} -{" "}
+                          {formatDate(invoice.start_date)} -{" "}
                           {formatDate(invoice.end_date)}
                         </td>
                         <td>{invoice?.payment_type}</td>

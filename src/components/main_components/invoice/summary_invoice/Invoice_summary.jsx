@@ -731,7 +731,7 @@ const Invoice_summary = () => {
                         ))}
                     </tbody>
                   </Table>
-                  <Bar data={getChartData(reportPeriod, category)} />
+                  {/* <Bar data={getChartData(reportPeriod, category)} /> */}
                 </div>
               ))}
             </Card.Body>

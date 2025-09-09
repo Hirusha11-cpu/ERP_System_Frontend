@@ -87,7 +87,7 @@ const Invoice_appleholidays_modal = ({
 
           {/* Invoice Meta and Customer Info */}
           <div className="d-flex justify-content-between mb-4">
-            <div>
+            {/* <div>
               <div>
                 <strong>To:</strong>{" "}
                <strong>{ "PICK YOUR TRAVEL"}</strong> 
@@ -111,6 +111,32 @@ const Invoice_appleholidays_modal = ({
                 {formData.currencyDetails?.currency === "INR"
                   ? "GST - 4500"
                   : ""}
+              </div>
+            </div> */}
+
+            <div>
+              <div>
+                <strong>To:</strong>{" "}
+               <strong>{formData.customer?.name || "PICK YOUR TRAIL"}</strong> 
+              </div>
+              <div>
+                <strong>Address:</strong>{" "}
+                {formData.customer?.address || "Madurai"}
+              </div>
+                <div>
+                <strong>Date:</strong> {formatDate(formData.invoice?.issueDate)}
+              </div>
+              {/* <div> */}
+                {/* <strong>Customer Info</strong>{" "} */}
+                {/* {formData.customer.name || "PICK YOUR TRAIL"} */}
+              {/* </div> */}
+              <div>
+                <strong>Customer:</strong>{" "}
+                {formData.customer?.customer || "PICK YOUR TRAIL"}
+              </div>
+            
+              <div>
+                {/* <strong>GST:</strong> {"7895"} */}
               </div>
             </div>
             <div className="text-start">

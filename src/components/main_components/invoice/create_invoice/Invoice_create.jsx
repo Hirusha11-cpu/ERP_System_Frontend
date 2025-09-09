@@ -29,6 +29,7 @@ import { useNavigate } from "react-router-dom";
 import Invoice_sharmila_modal from "./shirmila_travels/Invoice_sharmila_modal";
 import Invoice_appleholidays_modal from "./appleholidays/Invoice_appleholidays_modal";
 import Invoice_aahaas_modal from "./aahaas/Invoice_aahaas_modal";
+import { add } from "date-fns";
 
 const Invoice_create = () => {
   const { selectedCompany } = useContext(CompanyContext);
@@ -43,12 +44,22 @@ const Invoice_create = () => {
   const [editingItem, setEditingItem] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [xeRate, setXeRate] = useState(88.66);
-  const [increaseAmount, setIncreaseAmount] = useState(1);
+  const [increaseAmount, setIncreaseAmount] = useState(0);
 
   const [currency, setCurrency] = useState("USD");
   const [attachments, setAttachments] = useState([]);
   const [companyNo, setCompanyNo] = useState(null);
   const [component, setComponent] = useState(null);
+
+  const [fromCurrency, setFromCurrency] = useState("USD");
+  const [toCurrency, setToCurrency] = useState("LKR");
+  const [exchangeRates, setExchangeRates] = useState({});
+  const [isLoadingRates, setIsLoadingRates] = useState(false);
+
+  const [convertFromCurrency, setConvertFromCurrency] = useState("USD");
+  const [convertToCurrency, setConvertToCurrency] = useState("USD");
+  const [originalAmount, setOriginalAmount] = useState(0);
+  const [convertedAmount, setConvertedAmount] = useState(0);
 
   // Fetch customers and tax rates on component mount
   useEffect(() => {
@@ -287,6 +298,22 @@ const Invoice_create = () => {
       start_date: formData.invoice.startDate,
       sales_id: formData.invoice.salesId,
       end_date: formData.invoice.endDate,
+      sub_total: formData.totals.subTotal.toFixed(2),
+      handling_fee: formData.totals.handlingFee.toFixed(2),
+      gst_amount: formData.totals.handlingFee * 0.18,
+      total_amount: formData.totals.total.toFixed(2),
+
+      additional_tax: formData.totals.additionalTax.toFixed(2),
+      bank_charges: formData.totals.additionalTax.toFixed(2),
+      amount_received: formData.totals.amountReceived.toFixed(2),
+      balance: formData.totals.balance.toFixed(2),
+      // bank_charges:formData.additionalCharges
+      //                   .reduce(
+      //                     (sum, charge) => sum + parseFloat(charge.amount || 0),
+      //                     0
+      //                   )
+      //                   .toFixed(2),
+
       travel_period: calculateTravelDays(
         formData.invoice.startDate,
         formData.invoice.endDate
@@ -306,7 +333,7 @@ const Invoice_create = () => {
       additional_charges: formData.additionalCharges.map((charge) => ({
         description: charge.description,
         amount: charge.amount,
-        taxable: 1, 
+        taxable: 1,
       })),
       attachments: formData.attachments,
       // attachments: formData.attachments.forEach((file) => {
@@ -335,6 +362,108 @@ const Invoice_create = () => {
       );
     }
   };
+
+  const handleSubmit1 = async () => {
+  console.log(formData);
+
+  const paymentMethodArray = Object.entries(formData.payment.methods)
+    .filter(([_, value]) => value)
+    .map(([key]) => key);
+
+  // Create FormData object for file uploads
+  const formDataToSend = new FormData();
+
+  // Add all the data fields
+  formDataToSend.append('customer_id', formData.customer.id);
+  formDataToSend.append('country_code', formData.invoice.country);
+  formDataToSend.append('currency', formData.currencyDetails.currency);
+  formDataToSend.append('exchange_rate', formData.currencyDetails.exchangeRate);
+  formDataToSend.append('tax_treatment', formData.currencyDetails.taxTreatment);
+  formDataToSend.append('payment_type', formData.payment.type);
+  formDataToSend.append('collection_date', formData.payment.collectionDate);
+  formDataToSend.append('payment_instructions', formData.payment.instructions);
+  formDataToSend.append('staff', formData.payment.staff);
+  formDataToSend.append('remarks', formData.payment.remarks);
+  formDataToSend.append('payment_methods', JSON.stringify(paymentMethodArray));
+  formDataToSend.append('company_id', companyNo);
+  formDataToSend.append('account_id', formData.selectedAccountId || 1);
+  formDataToSend.append('booking_no', formData.invoice.bookingId || '');
+  formDataToSend.append('start_date', formData.invoice.startDate || '');
+  formDataToSend.append('sales_id', formData.invoice.salesId || '');
+  formDataToSend.append('end_date', formData.invoice.endDate || '');
+
+  formDataToSend.append('end_date', formData.invoice.endDate || '');
+  formDataToSend.append('end_date', formData.invoice.endDate || '');
+  formDataToSend.append('end_date', formData.invoice.endDate || '');
+  formDataToSend.append('travel_period', calculateTravelDays(
+    formData.invoice.startDate,
+    formData.invoice.endDate
+  ) || '');
+  formDataToSend.append('status', 'draft'); // Add status field
+
+  // Add items
+  formDataToSend.append('items', JSON.stringify(
+    formData.serviceItems.map((item) => ({
+      code: item.code,
+      type: item.type,
+      description: item.description,
+      quantity: item.qty,
+      price: item.price,
+      discount: item.discount,
+      checkin_time: item.checkin_time || null,
+      checkout_time: item.checkout_time || null,
+    }))
+  ));
+
+  // Add additional charges
+  formDataToSend.append('additional_charges', JSON.stringify(
+    formData.additionalCharges.map((charge) => ({
+      description: charge.description,
+      amount: charge.amount,
+      taxable: charge.taxable ? 1 : 0, // Convert to 1/0 for boolean
+    }))
+  ));
+
+  // Add empty refund object (as required by your backend)
+  formDataToSend.append('refund', JSON.stringify([{
+    refund_amount: null,
+    total_amount: null,
+    refund_reason: null,
+    attachments: [],
+    payment_methods: [],
+    remark: null,
+    status: 'non-refund',
+    refund_status: null
+  }]));
+
+  // Add attachments
+  if (formData.attachments && formData.attachments.length > 0) {
+    formData.attachments.forEach((file) => {
+      formDataToSend.append('attachments[]', file);
+    });
+  }
+
+  console.log("Formatted Data to Send =>", Object.fromEntries(formDataToSend));
+
+  try {
+    const response = await axios.post("/api/invoices", formDataToSend, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    console.log(response.data);
+    alert("Invoice created successfully!");
+    resetForm();
+    setAttachments([]);
+  } catch (error) {
+    console.error("Error creating invoice:", error);
+    alert(
+      "Error creating invoice: " +
+        (error.response?.data?.message || error.message)
+    );
+  }
+};
 
   // const handleSubmit = async () => {
   //   console.log(selectedCompany);
@@ -392,6 +521,7 @@ const Invoice_create = () => {
       mobile: "",
       code: "",
       gstNo: "",
+      customer: "",
     },
     invoice: {
       country: "IS",
@@ -576,6 +706,7 @@ const Invoice_create = () => {
         mobile: customer.mobile,
         code: customer.code,
         gstNo: customer.gstNo || "",
+        customer: customer.customer || "",
       },
     });
     setCustomerSearch("");
@@ -600,6 +731,7 @@ const Invoice_create = () => {
         address: "",
         mobile: "",
         gstNo: "",
+        customer: "",
       });
     } catch (error) {
       console.error("Error creating customer:", error);
@@ -1022,7 +1154,7 @@ const Invoice_create = () => {
     if (vatInclude) {
       const vatRate = 0.18; // 18% VAT
       console.log("fff");
-      
+
       if (vatComponent.taxBased === "subtotal") {
         calculatedSubTotal = calculatedSubTotal + calculatedSubTotal * vatRate;
       } else if (vatComponent.taxBased === "total") {
@@ -1059,105 +1191,115 @@ const Invoice_create = () => {
   };
 
   const calculateTotals = () => {
-  const { currency } = formData.currencyDetails;
-  const { serviceItems, additionalCharges, taxRates, vatInclude, vatComponent } = formData;
+    const { currency } = formData.currencyDetails;
+    const {
+      serviceItems,
+      additionalCharges,
+      taxRates,
+      vatInclude,
+      vatComponent,
+    } = formData;
 
-  let subTotal = 0;
-  let totalPax = 0;
-  let totalAmount = 0;
+    let subTotal = 0;
+    let totalPax = 0;
+    let totalAmount = 0;
 
-  // Service items subtotal
-  serviceItems.forEach((item) => {
-    totalPax += item.qty;
-    totalAmount += item.total;
-  });
+    // Service items subtotal
+    serviceItems.forEach((item) => {
+      totalPax += item.qty;
+      totalAmount += item.total;
+    });
 
-  // Additional charges
-  let taxableCharges = 0;
-  additionalCharges.forEach((charge) => {
-    if (charge.taxable) {
-      taxableCharges += charge.amount;
+    // Additional charges
+    let taxableCharges = 0;
+    additionalCharges.forEach((charge) => {
+      if (charge.taxable) {
+        taxableCharges += charge.amount;
+      }
+    });
+
+    // Handling fee (only INR)
+    let handlingFee = 0;
+    if (currency === "INR" && totalPax > 0) {
+      handlingFee = 5 * xeRate * totalPax; // ensure xeRate is defined
+      subTotal = totalAmount; // reset subtotal to items only
+    } else {
+      subTotal = totalAmount;
     }
-  });
+    console.log("Handling Fee:", handlingFee);
+    console.log("Increase Amount:", increaseAmount);
+    console.log("Increase Amount:", increaseAmount + xeRate);
+    console.log("Total Pax:", totalPax);
+    console.log("xeRate:", xeRate);
 
-  // Handling fee (only INR)
-  let handlingFee = 0;
-  if (currency === "INR" && totalPax > 0) {
-    handlingFee = 5 * (xeRate + increaseAmount) * totalPax; // ensure xeRate is defined
-    subTotal = totalAmount; // reset subtotal to items only
-  } else {
-    subTotal = totalAmount;
-  }
-
-  // Taxes
-  let additionalTax = 0;
-  if (subTotal > 0 && taxRates.length > 0) {
-    additionalTax = subTotal * (parseFloat(Number(taxRates[0].rate)) / 100);
-  }
-
-  // GST (only INR)
-  let gst = 0;
-  if (currency === "INR") {
-    gst = handlingFee * 0.18;
-  }
-
-  const additionalChargeCost = additionalCharges.reduce(
-    (acc, item) => acc + parseFloat(item.amount || 0),
-    0
-  );
-
-  // Initial totals before VAT
-  let calculatedSubTotal = subTotal;
-  let calculatedHandlingFee = handlingFee;
-  let calculatedTotal =
-    calculatedSubTotal +
-    // calculatedHandlingFee +
-    gst +
-    additionalTax +
-    // additionalChargeCost +
-    formData.totals.bankCharges;
-
-  // Apply VAT
-  if (vatInclude) {
-    const vatRate = 0.18;
-    if (vatComponent.taxBased === "subtotal") {
-      calculatedSubTotal += calculatedSubTotal * vatRate;
-    } else if (vatComponent.taxBased === "handling") {
-      calculatedHandlingFee += calculatedHandlingFee * vatRate;
-    } else if (vatComponent.taxBased === "total") {
-      calculatedTotal += calculatedTotal * vatRate; // keep this final
+    // Taxes
+    let additionalTax = 0;
+    if (subTotal > 0 && taxRates.length > 0) {
+      additionalTax = subTotal * (parseFloat(Number(taxRates[0].rate)) / 100);
     }
-  }
 
-  // Recalculate total only if VAT wasn’t applied on total directly
-  // if (!(vatInclude && vatComponent.taxBased === "total")) {
-  if (vatInclude) {
-    calculatedTotal =
+    // GST (only INR)
+    let gst = 0;
+    if (currency === "INR") {
+      gst = handlingFee * 0.18;
+    }
+
+    const additionalChargeCost = additionalCharges.reduce(
+      (acc, item) => acc + parseFloat(item.amount || 0),
+      0
+    );
+
+    // Initial totals before VAT
+    let calculatedSubTotal = subTotal;
+    let calculatedHandlingFee = handlingFee;
+    let calculatedTotal =
       calculatedSubTotal +
       // calculatedHandlingFee +
-      // calculatedSubTotal * 0.18 + // GST recalculated on new subtotal
       gst +
       additionalTax +
-      additionalChargeCost +
+      // additionalChargeCost +
       formData.totals.bankCharges;
-  }
 
-  const balance = calculatedTotal - formData.totals.amountReceived;
+    // Apply VAT
+    if (vatInclude) {
+      const vatRate = 0.18;
+      if (vatComponent.taxBased === "subtotal") {
+        calculatedSubTotal += calculatedSubTotal * vatRate;
+      } else if (vatComponent.taxBased === "handling") {
+        calculatedHandlingFee += calculatedHandlingFee * vatRate;
+      } else if (vatComponent.taxBased === "total") {
+        calculatedTotal += calculatedTotal * vatRate; // keep this final
+      }
+    }
 
-  setFormData({
-    ...formData,
-    totals: {
-      ...formData.totals,
-      subTotal: calculatedSubTotal,
-      handlingFee: calculatedHandlingFee,
-      gst,
-      total: calculatedTotal,
-      balance,
-      additionalTax,
-    },
-  });
-};
+    // Recalculate total only if VAT wasn’t applied on total directly
+    // if (!(vatInclude && vatComponent.taxBased === "total")) {
+    if (vatInclude) {
+      calculatedTotal =
+        calculatedSubTotal +
+        // calculatedHandlingFee +
+        // calculatedSubTotal * 0.18 + // GST recalculated on new subtotal
+        gst +
+        additionalTax +
+        additionalChargeCost +
+        formData.totals.bankCharges;
+    }
 
+    const balance = calculatedTotal - formData.totals.amountReceived;
+
+    setFormData({
+      ...formData,
+      totals: {
+        ...formData.totals,
+        subTotal: calculatedSubTotal,
+        handlingFee: calculatedHandlingFee,
+        gst,
+        total: calculatedTotal,
+        balance,
+        additionalTax,
+      },
+    });
+  };
 
   const toggleTaxRateStatus = async (taxId, isActive) => {
     try {
@@ -1288,7 +1430,171 @@ const Invoice_create = () => {
     }
   };
 
+  // Add this function to handle currency conversion
+  // const handleCurrencyConversion = () => {
+  //   if (convertFromCurrency === convertToCurrency) {
+  //     setConvertedAmount(originalAmount);
+  //     return;
+  //   }
+
+  //   // Get exchange rates (you'll need to fetch these from your API)
+  //   const exchangeRates = {
+  //     USD: 1,
+  //     INR: 88.0852,
+  //     LKR: 301.7202,
+  //     SGD: 1.2835,
+  //     MYR: 4.2188,
+  //     EUR: 0.8511,
+  //     GBP: 0.7385,
+  //   };
+
+  //   // Convert currency
+  //   const amountInUSD =
+  //     originalAmount / (exchangeRates[convertFromCurrency] || 1);
+  //   const converted = amountInUSD * (exchangeRates[convertToCurrency] || 1);
+
+  //   setConvertedAmount(parseFloat(converted.toFixed(2)));
+  // };
+  const handleCurrencyConversion = async () => {
+    if (convertFromCurrency === convertToCurrency) {
+      setConvertedAmount(originalAmount);
+      return;
+    }
+
+    try {
+      // Fetch exchange rates from your API
+      const rates = await fetchExchangeRates(convertFromCurrency);
+
+      if (rates && rates[convertToCurrency]) {
+        const converted =
+          originalAmount * (rates[convertToCurrency] + increaseAmount);
+        setConvertedAmount(parseFloat(converted.toFixed(2)));
+      } else {
+        console.error("Exchange rate not available for target currency");
+        // Fallback to hardcoded rates if API fails
+        const fallbackRates = {
+          USD: 1,
+          INR: 88.0852,
+          LKR: 301.7202,
+          SGD: 1.2835,
+          MYR: 4.2188,
+        };
+
+        const converted =
+          originalAmount * (fallbackRates[convertToCurrency] || 1);
+        setConvertedAmount(parseFloat(converted.toFixed(2)));
+      }
+    } catch (error) {
+      console.error("Error fetching exchange rates:", error);
+      // Fallback logic here
+    }
+  };
+
+  // const fetchExchangeRates = async (baseCurrency = "USD") => {
+  //   try {
+  //     const response = await axios.get(
+  //       `/api/currency/rates?base=${baseCurrency}`,
+  //       {
+  //         headers: {
+  //           Authorization: `Bearer ${token}`,
+  //         },
+  //       }
+  //     );
+
+  //     if (response.data && response.data.rates) {
+  //       return response.data.rates;
+  //     }
+  //     // if (response.data && response.data.rates) {
+  //     //   const rate = response.data.rates; // e.g. "INR"
+  //     //   if (!rate) throw new Error("Target currency not found");
+
+  //     //   return rate + increaseAmount;
+  //     // }
+  //     throw new Error("Invalid response format");
+  //   } catch (error) {
+  //     console.error("Error fetching exchange rates:", error);
+
+  //     // Return comprehensive default rates for fallback
+  //     const defaultRates = {
+  //       USD: 1,
+  //       INR: 88.0852,
+  //       LKR: 301.7202,
+  //       SGD: 1.2835,
+  //       MYR: 4.2188,
+  //       EUR: 0.8511,
+  //       GBP: 0.7385,
+  //       AED: 3.6725,
+  //       CAD: 1.3808,
+  //       AUD: 1.5174,
+  //       JPY: 147.5733,
+  //       CNY: 7.1276,
+  //       CHF: 0.7942,
+  //     };
+
+  //     // If base currency is not USD, convert the rates
+  //     if (baseCurrency !== "USD") {
+  //       const baseRate = defaultRates[baseCurrency] || 1;
+  //       const convertedRates = {};
+  //       Object.keys(defaultRates).forEach((currency) => {
+  //         convertedRates[currency] = defaultRates[currency] / baseRate;
+  //       });
+  //       return convertedRates;
+  //     }
+
+  //     return defaultRates;
+  //   }
+  // };
+
   // Delete item from table
+
+  const fetchExchangeRates = async (baseCurrency = "USD") => {
+    try {
+      const response = await axios.get(
+        `/api/currency/rates?base=${baseCurrency}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.data && response.data.rates) {
+        return response.data.rates;
+      }
+      throw new Error("Invalid response format");
+    } catch (error) {
+      console.error("Error fetching exchange rates:", error);
+
+      // Return comprehensive default rates for fallback
+      const defaultRates = {
+        USD: 1,
+        INR: 88.0852,
+        LKR: 301.7202,
+        SGD: 1.2835,
+        MYR: 4.2188,
+        EUR: 0.8511,
+        GBP: 0.7385,
+        AED: 3.6725,
+        CAD: 1.3808,
+        AUD: 1.5174,
+        JPY: 147.5733,
+        CNY: 7.1276,
+        CHF: 0.7942,
+      };
+
+      // If base currency is not USD, convert the rates
+      if (baseCurrency !== "USD") {
+        const baseRate = defaultRates[baseCurrency] || 1;
+        const convertedRates = {};
+        Object.keys(defaultRates).forEach((currency) => {
+          convertedRates[currency] = defaultRates[currency] / baseRate;
+        });
+        return convertedRates;
+      }
+
+      return defaultRates;
+    }
+  };
   const deleteItem = async (id, type) => {
     if (type === "service") {
       setFormData({
@@ -1580,6 +1886,50 @@ const Invoice_create = () => {
     }
   }, [xeRate, increaseAmount]);
 
+  useEffect(() => {
+    const fetchRates = async () => {
+      setIsLoadingRates(true);
+      try {
+        const rates = await fetchExchangeRates(fromCurrency);
+        setExchangeRates(rates);
+
+        // Calculate and set the conversion rate
+        if (rates[toCurrency]) {
+          const baseRate = rates[toCurrency];
+          const finalRate = baseRate + increaseAmount;
+          setXeRate(parseFloat(finalRate.toFixed(4)));
+        }
+      } catch (error) {
+        console.error("Error fetching exchange rates:", error);
+      } finally {
+        setIsLoadingRates(false);
+      }
+    };
+
+    fetchRates();
+  }, [fromCurrency, toCurrency]);
+
+  useEffect(() => {
+    if (exchangeRates[toCurrency]) {
+      const baseRate = exchangeRates[toCurrency];
+      const finalRate = baseRate + increaseAmount;
+      setXeRate(parseFloat(finalRate.toFixed(4)));
+    }
+  }, [increaseAmount, exchangeRates, toCurrency]);
+
+  const handleClick = () => {
+    console.log("Form Data Submitted:", formData);
+
+    axios
+      .put(`/api/customers/${formData.customer.id}`, formData.customer)
+      .then((response) => {
+        console.log("Customer updated:", response.data);
+      })
+      .catch((error) => {
+        console.error("Error updating customer:", error);
+      });
+  };
+
   return (
     <div className="container py-4">
       {/* Header */}
@@ -1628,7 +1978,7 @@ const Invoice_create = () => {
               </Form.Group>
             </Col>
           </Row> */}
-          <Row className="mb-3">
+          {/* <Row className="mb-3">
             <Col md={6}>
               <Form.Group>
                 <Form.Label>XE Rate</Form.Label>
@@ -1654,10 +2004,206 @@ const Invoice_create = () => {
                 />
               </Form.Group>
             </Col>
-          </Row>
+          </Row> */}
+
+          <Card className="mb-4">
+            <Card.Body>
+              <h5 className="section-title fw-semibold mb-3 pb-2 border-bottom">
+                Exchange Rate Configuration
+              </h5>
+
+              <Row className="mb-3">
+                <Col md={3} className="mb-3">
+                  <Form.Group>
+                    <Form.Label>Currency:</Form.Label>
+                    <Form.Select
+                      value={formData.currencyDetails.currency}
+                      onChange={(e) => handleCurrencyChange(e.target.value)}
+                    >
+                      {currencyOptions.map((currency) => (
+                        <option key={currency} value={currency}>
+                          {currency}
+                        </option>
+                      ))}
+                    </Form.Select>
+                  </Form.Group>
+                </Col>
+                <Col md={4}>
+                  <Form.Group>
+                    <Form.Label>From Currency</Form.Label>
+                    <Form.Select
+                      value={fromCurrency}
+                      onChange={(e) => setFromCurrency(e.target.value)}
+                      disabled={isLoadingRates}
+                    >
+                      {currencyOptions.map((currency) => (
+                        <option key={currency} value={currency}>
+                          {currency}
+                        </option>
+                      ))}
+                    </Form.Select>
+                  </Form.Group>
+                </Col>
+
+                <Col md={4}>
+                  <Form.Group>
+                    <Form.Label>To Currency</Form.Label>
+                    <Form.Select
+                      value={toCurrency}
+                      onChange={(e) => setToCurrency(e.target.value)}
+                      disabled={isLoadingRates}
+                    >
+                      {currencyOptions.map((currency) => (
+                        <option key={currency} value={currency}>
+                          {currency}
+                        </option>
+                      ))}
+                    </Form.Select>
+                  </Form.Group>
+                </Col>
+
+                <Col md={4}>
+                  <Form.Group>
+                    <Form.Label>Current Rate</Form.Label>
+                    <Form.Control
+                      type="text"
+                      readOnly
+                      value={
+                        isLoadingRates
+                          ? "Loading..."
+                          : `1 ${fromCurrency} = ${xeRate} ${toCurrency}`
+                      }
+                      className="fw-bold text-center bg-light"
+                    />
+                  </Form.Group>
+                </Col>
+              </Row>
+
+              <Row className="mb-3">
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label>Base Exchange Rate</Form.Label>
+                    <Form.Control
+                      type="number"
+                      step="0.0001"
+                      readOnly
+                      value={
+                        exchangeRates[toCurrency]
+                          ? exchangeRates[toCurrency].toFixed(4)
+                          : "0.0000"
+                      }
+                      className="bg-light"
+                    />
+                    <Form.Text className="text-muted">
+                      1 {fromCurrency} ={" "}
+                      {exchangeRates[toCurrency]
+                        ? exchangeRates[toCurrency].toFixed(4)
+                        : "0.0000"}{" "}
+                      {toCurrency}
+                    </Form.Text>
+                  </Form.Group>
+                </Col>
+
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label>Increase Amount</Form.Label>
+                    <Form.Control
+                      type="number"
+                      step="1"
+                      value={increaseAmount}
+                      onChange={(e) =>
+                        setIncreaseAmount(parseFloat(e.target.value) || 0)
+                      }
+                    />
+                    <Form.Text className="text-muted">
+                      Amount to add to base rate
+                    </Form.Text>
+                  </Form.Group>
+                </Col>
+              </Row>
+
+              <Row className="mb-3">
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label>Final XE Rate</Form.Label>
+                    <Form.Control
+                      type="number"
+                      step="0.0001"
+                      value={xeRate}
+                      onChange={(e) =>
+                        setXeRate(parseFloat(e.target.value) || 0)
+                      }
+                    />
+                    <Form.Text className="text-muted">
+                      Base Rate + Increase Amount
+                    </Form.Text>
+                  </Form.Group>
+                </Col>
+
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label>Calculation</Form.Label>
+                    <div className="p-2 bg-light rounded">
+                      <small>
+                        1 {fromCurrency} ={" "}
+                        {exchangeRates[toCurrency]
+                          ? exchangeRates[toCurrency].toFixed(4)
+                          : "0.0000"}{" "}
+                        {toCurrency}
+                        <br />+ {increaseAmount} (Increase)
+                        <br />={" "}
+                        <strong>
+                          {xeRate} {toCurrency}
+                        </strong>
+                      </small>
+                    </div>
+                  </Form.Group>
+                </Col>
+              </Row>
+
+              {isLoadingRates && (
+                <div className="text-center">
+                  <div
+                    className="spinner-border spinner-border-sm"
+                    role="status"
+                  >
+                    <span className="visually-hidden">
+                      Loading exchange rates...
+                    </span>
+                  </div>
+                  <span className="ms-2">Loading exchange rates...</span>
+                </div>
+              )}
+
+              <Button
+                variant="outline-secondary"
+                size="sm"
+                onClick={async () => {
+                  setIsLoadingRates(true);
+                  try {
+                    const rates = await fetchExchangeRates(fromCurrency);
+                    setExchangeRates(rates);
+                    if (rates[toCurrency]) {
+                      const baseRate = rates[toCurrency];
+                      const finalRate = baseRate + increaseAmount;
+                      setXeRate(parseFloat(finalRate.toFixed(4)));
+                    }
+                  } catch (error) {
+                    console.error("Error refreshing rates:", error);
+                  } finally {
+                    setIsLoadingRates(false);
+                  }
+                }}
+                disabled={isLoadingRates}
+              >
+                <FaSyncAlt className="me-1" />
+                Refresh Rates
+              </Button>
+            </Card.Body>
+          </Card>
 
           {/* Add this new section to show the handling fee calculation */}
-          {formData.currencyDetails.currency === "INR" && (
+          {/* {formData.currencyDetails.currency === "INR" && (
             <Card className="mb-3">
               <Card.Body>
                 <h6 className="card-title">Handling Fee Calculation</h6>
@@ -1686,15 +2232,15 @@ const Invoice_create = () => {
                 </div>
               </Card.Body>
             </Card>
-          )}
+          )} */}
 
           <Row className="mb-3">
             <Col md={6}>
               <Card>
                 <Card.Body>
-                  <h6 className="card-title">Customer Details</h6>
+                  <h6 className="card-title">Agent Details</h6>
                   <Form.Group className="mb-3">
-                    <Form.Label>Search Customer:</Form.Label>
+                    <Form.Label>Search Agent:</Form.Label>
                     <div className="input-group">
                       <Form.Control
                         type="text"
@@ -1737,7 +2283,7 @@ const Invoice_create = () => {
                     <Form.Label>To:</Form.Label>
                     <Form.Control
                       type="text"
-                      placeholder="Customer Name"
+                      placeholder="Agent Name"
                       value={formData.customer.name}
                       onChange={(e) =>
                         handleInputChange("customer", "name", e.target.value)
@@ -1750,7 +2296,7 @@ const Invoice_create = () => {
                     <Form.Control
                       as="textarea"
                       rows={3}
-                      placeholder="Customer Address"
+                      placeholder="Agent Address"
                       value={formData.customer.address}
                       onChange={(e) =>
                         handleInputChange("customer", "address", e.target.value)
@@ -1762,7 +2308,7 @@ const Invoice_create = () => {
                     <Form.Label>Mobile:</Form.Label>
                     <Form.Control
                       type="text"
-                      placeholder="Customer Mobile"
+                      placeholder="Agent Mobile"
                       value={formData.customer.mobile}
                       onChange={(e) =>
                         handleInputChange("customer", "mobile", e.target.value)
@@ -1771,16 +2317,44 @@ const Invoice_create = () => {
                   </Form.Group>
 
                   {/* <Form.Group className="mb-3">
-                    <Form.Label>GST No:</Form.Label>
+                    <Form.Label>Customer Name:</Form.Label>
                     <Form.Control
                       type="text"
-                      placeholder="Customer GST Number"
-                      value={formData.customer.gstNo}
+                      placeholder="Customer Name"
+                      value={formData.customer.customer}
                       onChange={(e) =>
-                        handleInputChange("customer", "gstNo", e.target.value)
+                        handleInputChange("customer", "customer", e.target.value)
                       }
                     />
                   </Form.Group> */}
+                  <Row className="align-items-end mb-3">
+                    <Col>
+                      <Form.Group>
+                        <Form.Label>Customer Name:</Form.Label>
+                        <Form.Control
+                          type="text"
+                          placeholder="Customer Name"
+                          value={formData.customer.customer}
+                          onChange={(e) =>
+                            handleInputChange(
+                              "customer",
+                              "customer",
+                              e.target.value
+                            )
+                          }
+                        />
+                      </Form.Group>
+                    </Col>
+                    <Col xs="auto">
+                      <Button
+                        variant="primary"
+                        className="mt-2"
+                        onClick={handleClick}
+                      >
+                        Submit
+                      </Button>
+                    </Col>
+                  </Row>
                 </Card.Body>
               </Card>
             </Col>
@@ -1853,7 +2427,7 @@ const Invoice_create = () => {
                       </Form.Group>
                     </Col>
 
-                    <Col md={6} className="mb-3">
+                    {/* <Col md={6} className="mb-3">
                       <Form.Group>
                         <Form.Label>Due Date:</Form.Label>
                         <Form.Control
@@ -1868,7 +2442,7 @@ const Invoice_create = () => {
                           }
                         />
                       </Form.Group>
-                    </Col>
+                    </Col> */}
 
                     <Col md={6} className="mb-3">
                       <Form.Group>
@@ -2057,7 +2631,7 @@ const Invoice_create = () => {
       </Card>
 
       {/* Currency Details */}
-      <Card className="mb-4">
+      {/* <Card className="mb-4">
         <Card.Body>
           <h5 className="section-title fw-semibold mb-3 pb-2 border-bottom">
             Currency Details
@@ -2127,7 +2701,7 @@ const Invoice_create = () => {
             </Col>
           </Row>
         </Card.Body>
-      </Card>
+      </Card> */}
       {/* Service Details */}
       {/* <Card className="mb-4">
         <Card.Body>
@@ -2223,7 +2797,8 @@ const Invoice_create = () => {
                     <td>{item.checkin_time || "-"}</td>
                     <td>{item.checkout_time || "-"}</td>
                     <td>{item.qty}</td>
-                    <td>{item.price.toFixed(2)}</td>
+                    {/* <td>{item.price.toFixed(2)}</td> */}
+                    <td>{item.price}</td>
                     <td>{item.discount}%</td>
                     <td>
                       {(
@@ -2962,7 +3537,7 @@ const Invoice_create = () => {
               </Card>
             </Col>
             <Col md={4}>
-              <Card>
+              {/* <Card>
                 <Card.Body>
                   <h5 className="mb-3 border-bottom pb-2">Profit Calculator</h5>
                   {(() => {
@@ -3026,7 +3601,7 @@ const Invoice_create = () => {
                     );
                   })()}
                 </Card.Body>
-              </Card>
+              </Card> */}
             </Col>
           </Row>
 
@@ -3293,6 +3868,18 @@ const Invoice_create = () => {
                   <Form.Group>
                     <Form.Label>Price:</Form.Label>
                     <Form.Control
+                      type="number"
+                      step="0.01" // allows decimal numbers
+                      inputMode="decimal"
+                      value={newItem.price}
+                      onChange={(e) =>
+                        setNewItem({
+                          ...newItem,
+                          price: parseFloat(e.target.value) || 0,
+                        })
+                      }
+                    />
+                    {/* <Form.Control
                       inputMode="decimal"
                       pattern="[0-9]*"
                       value={newItem.price}
@@ -3302,7 +3889,7 @@ const Invoice_create = () => {
                           price: parseFloat(e.target.value) || 0,
                         })
                       }
-                    />
+                    /> */}
                   </Form.Group>
                 </Col>
 
@@ -3744,7 +4331,190 @@ const Invoice_create = () => {
                   </Form.Group>
                 </Col>
 
+                {/* <Col md={4} className="mb-3">
+  <Form.Group>
+    <Form.Label>Price:</Form.Label>
+    <Form.Control
+      type="number"
+      step="0.01"        // allows decimals
+      min="0"            // optional: prevents negative prices
+      inputMode="decimal"
+      value={newItem.price}
+      onChange={(e) =>
+        setNewItem({
+          ...newItem,
+          price: e.target.value,  // keep as string for smooth typing
+        })
+      }
+      onBlur={(e) =>
+        setNewItem({
+          ...newItem,
+          price: parseFloat(e.target.value || 0).toFixed(2), // format only when leaving field
+        })
+      }
+    />
+  </Form.Group>
+</Col> */}
+
                 <Col md={4} className="mb-3">
+                  <Form.Group>
+                    <Form.Label>Price:</Form.Label>
+
+                    {/* Currency Conversion Row */}
+                    {/* <Row className="mb-2">
+      <Col md={5}>
+        <Form.Control
+          type="number"
+          step="0.01"
+          placeholder="Amount"
+          value={originalAmount}
+          onChange={(e) => setOriginalAmount(parseFloat(e.target.value) || 0)}
+        />
+      </Col>
+      <Col md={3}>
+        <Form.Select
+          value={convertFromCurrency}
+          onChange={(e) => setConvertFromCurrency(e.target.value)}
+          size="sm"
+        >
+          <option value="USD">USD</option>
+          <option value="INR">INR</option>
+          <option value="LKR">LKR</option>
+          <option value="SGD">SGD</option>
+          <option value="MYR">MYR</option>
+        </Form.Select>
+      </Col>
+      <Col md={1} className="text-center pt-1">
+        <span>→</span>
+      </Col>
+      <Col md={3}>
+        <Form.Select
+          value={convertToCurrency}
+          onChange={(e) => setConvertToCurrency(e.target.value)}
+          size="sm"
+        >
+          <option value="USD">USD</option>
+          <option value="INR">INR</option>
+          <option value="LKR">LKR</option>
+          <option value="SGD">SGD</option>
+          <option value="MYR">MYR</option>
+        </Form.Select>
+      </Col>
+    </Row> */}
+                    <Row className="mb-2">
+                      {/* Amount Input */}
+                      <Col xs={12} className="mb-2">
+                        <Form.Control
+                          type="number"
+                          step="0.01"
+                          placeholder="Amount"
+                          value={originalAmount}
+                          onChange={(e) =>
+                            setOriginalAmount(parseFloat(e.target.value) || 0)
+                          }
+                        />
+                      </Col>
+
+                      {/* From Currency */}
+                      <Col xs={12} className="mb-2">
+                        <Form.Label>From</Form.Label>
+                        <Form.Select
+                          value={convertFromCurrency}
+                          onChange={(e) =>
+                            setConvertFromCurrency(e.target.value)
+                          }
+                          size="sm"
+                        >
+                          <option value="USD">USD</option>
+                          <option value="INR">INR</option>
+                          <option value="LKR">LKR</option>
+                          <option value="SGD">SGD</option>
+                          <option value="MYR">MYR</option>
+                        </Form.Select>
+                      </Col>
+
+                      {/* Arrow */}
+                      <Col xs={12} className="text-center mb-2">
+                        <span style={{ fontSize: "18px" }}>↓</span>
+                      </Col>
+
+                      {/* To Currency */}
+                      <Col xs={12}>
+                        <Form.Label>To</Form.Label>
+                        <Form.Select
+                          value={convertToCurrency}
+                          onChange={(e) => setConvertToCurrency(e.target.value)}
+                          size="sm"
+                        >
+                          <option value="USD">USD</option>
+                          <option value="INR">INR</option>
+                          <option value="LKR">LKR</option>
+                          <option value="SGD">SGD</option>
+                          <option value="MYR">MYR</option>
+                        </Form.Select>
+                      </Col>
+                    </Row>
+
+                    {/* Convert Button and Result */}
+                    <Row className="mb-2">
+                      <Col md={6}>
+                        <Button
+                          variant="outline-primary"
+                          size="sm"
+                          onClick={handleCurrencyConversion}
+                          className="w-100"
+                          disabled={!originalAmount || originalAmount <= 0}
+                        >
+                          Convert
+                        </Button>
+                      </Col>
+                      <Col md={6}>
+                        <Form.Control
+                          type="text"
+                          readOnly
+                          value={convertedAmount.toFixed(2)}
+                          className="text-center fw-bold bg-light"
+                        />
+                      </Col>
+                    </Row>
+
+                    {/* Final Price Field */}
+                    <Form.Control
+                      type="number"
+                      step="0.01"
+                      value={newItem.price}
+                      onChange={(e) =>
+                        setNewItem({
+                          ...newItem,
+                          price: parseFloat(e.target.value) || 0,
+                        })
+                      }
+                      placeholder="Enter price or use conversion above"
+                    />
+
+                    {/* Apply Converted Price Button */}
+                    {convertedAmount > 0 && (
+                      <Button
+                        variant="success"
+                        size="sm"
+                        className="mt-2 w-100"
+                        onClick={() => {
+                          setNewItem({
+                            ...newItem,
+                            price: convertedAmount,
+                          });
+                          setOriginalAmount(0);
+                          setConvertedAmount(0);
+                        }}
+                      >
+                        Apply Converted Price ({convertToCurrency}{" "}
+                        {convertedAmount.toFixed(2)})
+                      </Button>
+                    )}
+                  </Form.Group>
+                </Col>
+
+                {/* <Col md={4} className="mb-3">
                   <Form.Group>
                     <Form.Label>Price:</Form.Label>
                     <Form.Control
@@ -3759,7 +4529,7 @@ const Invoice_create = () => {
                       }
                     />
                   </Form.Group>
-                </Col>
+                </Col> */}
 
                 <Col md={4} className="mb-3">
                   <Form.Group>
@@ -3818,11 +4588,11 @@ const Invoice_create = () => {
         onHide={() => setShowCustomerModal(false)}
       >
         <Modal.Header closeButton>
-          <Modal.Title>Create New Customer</Modal.Title>
+          <Modal.Title>Create New Agent</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           <Form.Group className="mb-3">
-            <Form.Label>Customer Code:</Form.Label>
+            <Form.Label>Agent Code:</Form.Label>
             <Form.Control
               type="text"
               value={newCustomer.code}
@@ -3833,7 +4603,7 @@ const Invoice_create = () => {
           </Form.Group>
 
           <Form.Group className="mb-3">
-            <Form.Label>Customer Name:</Form.Label>
+            <Form.Label>Agent Name:</Form.Label>
             <Form.Control
               type="text"
               value={newCustomer.name}
@@ -3895,7 +4665,7 @@ const Invoice_create = () => {
             Cancel
           </Button>
           <Button variant="primary" onClick={createNewCustomer}>
-            Create Customer
+            Create Agent
           </Button>
         </Modal.Footer>
       </Modal>

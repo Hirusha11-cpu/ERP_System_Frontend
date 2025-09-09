@@ -96,20 +96,24 @@ const Invoice_sharmila_modal = ({
           {/* Invoice Meta and Customer Info */}
           <div className="d-flex justify-content-between mb-4">
             <div>
-                <div>
-                <strong>Date:</strong> {formatDate(formData.invoice?.issueDate)}
-              </div>
               <div>
-                <strong>Customer Info</strong>{" "}
-                {/* {formData.customer.name || "PICK YOUR TRAIL"} */}
-              </div>
-              <div>
-                <strong>Name:</strong>{" "}
-                {formData.customer?.name || "PICK YOUR TRAIL"}
+                <strong>To:</strong>{" "}
+               <strong>{formData.customer?.name || "PICK YOUR TRAIL"}</strong> 
               </div>
               <div>
                 <strong>Address:</strong>{" "}
                 {formData.customer?.address || "Madurai"}
+              </div>
+                <div>
+                <strong>Date:</strong> {formatDate(formData.invoice?.issueDate)}
+              </div>
+              {/* <div> */}
+                {/* <strong>Customer Info</strong>{" "} */}
+                {/* {formData.customer.name || "PICK YOUR TRAIL"} */}
+              {/* </div> */}
+              <div>
+                <strong>Customer:</strong>{" "}
+                {formData.customer?.customer || "PICK YOUR TRAIL"}
               </div>
             
               <div>
@@ -400,11 +404,11 @@ const Invoice_sharmila_modal = ({
                 Payments made more than two (2) days after the invoice date will
                 be subject to the applicable Xe.com{" "}
                 {formData.currencyDetails?.currency !== "USD"
-                  ? `${xeRate} + 1`
+                  ? `${xeRate}`
                   : ""}{" "}
                 exchange rate. The payment deadline shall be in accordance with
                 the booking confirmation or{" "}
-                {formData.invoice?.startDate
+                {/* {formData.invoice?.startDate
                   ? new Date(
                       new Date(formData.invoice?.startDate).setDate(
                         new Date(formData.invoice?.startDate).getDate() - 15
@@ -412,7 +416,25 @@ const Invoice_sharmila_modal = ({
                     )
                       .toISOString()
                       .split("T")[0]
-                  : "15 days"}{" "}
+                  : "15 days"}{" "} */}
+                  {
+  formData.invoice?.startDate
+    ? (() => {
+        const startDate = new Date(formData.invoice.startDate);
+        const today = new Date();
+
+        // subtract 15 days
+        const newDate = new Date(startDate);
+        newDate.setDate(startDate.getDate() - 15);
+
+        // if newDate < today, use today
+        const finalDate = newDate < today ? today : newDate;
+
+        return finalDate.toISOString().split("T")[0];
+      })()
+    : "15 days"
+}{" "}
+
                  prior to arrival, whichever occurs earlier.
               </div>
             </div>

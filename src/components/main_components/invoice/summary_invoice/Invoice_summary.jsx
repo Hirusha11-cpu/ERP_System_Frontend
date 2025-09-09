@@ -214,27 +214,27 @@ const Invoice_summary = () => {
         addToCategory("new_invoices", "weekly", weekStart);
         addToCategory("new_invoices", "monthly", monthKey);
       }
-      if (invoice.status.toLowerCase() === "cancelled") {
+      if (invoice?.status.toLowerCase() === "cancelled") {
         addToCategory("cancelled_invoices", "daily", dayKey);
         addToCategory("cancelled_invoices", "weekly", weekStart);
         addToCategory("cancelled_invoices", "monthly", monthKey);
       }
-      if (invoice.payment_type === "credit") {
+      if (invoice?.payment_type === "credit") {
         addToCategory("credit_invoices", "daily", dayKey);
         addToCategory("credit_invoices", "weekly", weekStart);
         addToCategory("credit_invoices", "monthly", monthKey);
       }
-      if (invoice.payment_type === "non-credit") {
+      if (invoice?.payment_type === "non-credit") {
         addToCategory("non_credit_invoices", "daily", dayKey);
         addToCategory("non_credit_invoices", "weekly", weekStart);
         addToCategory("non_credit_invoices", "monthly", monthKey);
       }
-      if (parseFloat(invoice.balance) === 0) {
+      if (parseFloat(invoice?.balance) === 0) {
         addToCategory("fully_paid_invoices", "daily", dayKey);
         addToCategory("fully_paid_invoices", "weekly", weekStart);
         addToCategory("fully_paid_invoices", "monthly", monthKey);
       }
-      if (parseFloat(invoice.balance) > 0) {
+      if (parseFloat(invoice?.balance) > 0) {
         addToCategory("payment_pending_invoices", "daily", dayKey);
         addToCategory("payment_pending_invoices", "weekly", weekStart);
         addToCategory("payment_pending_invoices", "monthly", monthKey);

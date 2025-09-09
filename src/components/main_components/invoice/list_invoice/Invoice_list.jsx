@@ -402,6 +402,7 @@ const Invoice_list = () => {
         mobile: invoice.customer?.mobile || "",
         code: invoice.customer?.code || "",
         gstNo: invoice.customer?.gst_no || "",
+        customer: invoice.customer?.customer || "",
       },
       invoice: {
         country: invoice.country_code || "IN",

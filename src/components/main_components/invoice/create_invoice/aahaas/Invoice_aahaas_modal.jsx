@@ -138,7 +138,7 @@ const Invoice_aahaas_modal = ({
               </thead>
               <tbody>
                 <tr>
-                  <td>{formData.customer?.name || "PICK YOUR TRAIL"}</td>
+                  <td>{formData.customer?.customer || "PICK YOUR TRAIL"}</td>
                   <td>{formData.customer?.address || "-"}</td>
                   <td>{formData.customer?.email || "-"}</td>
                   <td>{formData.customer?.phone || "-"}</td>

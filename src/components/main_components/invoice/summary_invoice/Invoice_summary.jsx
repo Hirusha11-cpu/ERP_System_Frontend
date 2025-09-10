@@ -214,7 +214,7 @@ const Invoice_summary = () => {
         addToCategory("new_invoices", "weekly", weekStart);
         addToCategory("new_invoices", "monthly", monthKey);
       }
-      if (invoice?.status.toLowerCase() === "cancelled") {
+      if (invoice?.status?.toLowerCase() === "cancelled") {
         addToCategory("cancelled_invoices", "daily", dayKey);
         addToCategory("cancelled_invoices", "weekly", weekStart);
         addToCategory("cancelled_invoices", "monthly", monthKey);

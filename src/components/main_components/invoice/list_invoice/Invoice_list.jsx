@@ -13,7 +13,6 @@ import {
   OverlayTrigger,
   Tooltip,
 } from "react-bootstrap";
-
 import {
   FaEye,
   FaTrash,
@@ -48,18 +47,18 @@ import Invoice_sharmila_modal from "../create_invoice/shirmila_travels/Invoice_s
 const Invoice_list = () => {
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [loadingDelete, setLoadingDelete] = useState(true);
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showPreviewModalAahaas, setShowPreviewModalAahaas] = useState(false);
-  const [showPreviewModalAppleholidays, setShowPreviewModalAppleholidays] =
-    useState(false);
-  const [showPreviewModalShirmila, setShowPreviewModalShirmila] =
-    useState(false);
+  const [showPreviewModalAppleholidays, setShowPreviewModalAppleholidays] = useState(false);
+  const [showPreviewModalShirmila, setShowPreviewModalShirmila] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [isEditingPayments, setIsEditingPayments] = useState(false); // New state for edit mode
   const [currentInvoice, setCurrentInvoice] = useState(null);
   const [invoiceToDelete, setInvoiceToDelete] = useState(null);
+  const [selectedInvoicePayments, setSelectedInvoicePayments] = useState([]); // Payments for modal
   const [companyNo, setCompanyNo] = useState(null);
   const [success, setSuccess] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
@@ -74,33 +73,18 @@ const Invoice_list = () => {
   });
   const navigate = useNavigate();
   const receiptRef = useRef();
-  const token =
-    localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
-  const {
-    user,
-    company,
-    role,
-    loading: userLoading,
-    error: userError,
-  } = useUser();
+  const token = localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+  const { user, company, role, loading: userLoading, error: userError } = useUser();
   const [cancelRemark, setCancelRemark] = useState("");
   const [cancelAttachment, setCancelAttachment] = useState(null);
 
-  // useEffect(() => {
-  //   fetchInvoices();
-  // }, []);
-
   useEffect(() => {
-    // Map selected company to ID
     const companyMap = {
       appleholidays: 2,
       aahaas: 3,
       shirmila: 1,
     };
-
-    // Default to 3 (aahaas) if selectedCompany is not set
     const defaultCompanyNo = companyMap[selectedCompany?.toLowerCase()] || 3;
-
     setCompanyNo(defaultCompanyNo);
   }, [selectedCompany]);
 
@@ -113,47 +97,13 @@ const Invoice_list = () => {
   const fetchInvoices = async () => {
     try {
       setLoading(true);
-      // console.log(refreshUser);
       if (user) {
-        console.log(user.role.name);
         setIsAdmin(user.role.name === "admin");
       }
-
-      // const cacheKey = `invoices_company_${companyNo}`;
-      // const cacheExpiryKey = `${cacheKey}_expiry`;
-
-      // const cachedData = localStorage.getItem(cacheKey);
-      // const cacheExpiry = localStorage.getItem(cacheExpiryKey);
-
-      // // If we have cached data and it's not expired
-      // if (cachedData && cacheExpiry && Date.now() < Number(cacheExpiry)) {
-      //   console.log("Loaded invoices from cache");
-      //   setInvoices(JSON.parse(cachedData));
-      //   setLoading(false);
-      //   return;
-      // }
-
-      // Otherwise, fetch from API
-      // const response = await axios.get("/api/invoices", {
-      //   params: { company_id: companyNo },
-      //   headers: { Authorization: `Bearer ${token}` },
-      // });
-
-      const response = await axios.get(
-        `/api/invoices?company_id=${companyNo}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
+      const response = await axios.get(`/api/invoices?company_id=${companyNo}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       const invoicesData = response.data.data || [];
-
-      // Save to cache
-      // localStorage.setItem(cacheKey, JSON.stringify(invoicesData));
-      // localStorage.setItem(cacheExpiryKey, Date.now() + 10 * 60 * 1000); // 10 minutes expiry
-
       setInvoices(invoicesData);
     } catch (error) {
       console.error("Error fetching invoices:", error);
@@ -165,30 +115,20 @@ const Invoice_list = () => {
   const filteredInvoices = invoices.filter((invoice) => {
     const matchesSearch =
       invoice.invoice_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (invoice.customer?.name || "")
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase());
-
-    // const matchesStatus =
-    //   filterStatus === "all" || invoice.status === filterStatus;
+      (invoice.customer?.name || "").toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCreditType =
       filterCreditType === "all" ||
       (filterCreditType === "credit" && invoice.payment_type === "credit") ||
       (filterCreditType === "non-credit" && invoice.payment_type !== "credit");
-
-    // Date filtering logic
     const matchesDate =
       (!dateFilter.startDate ||
         new Date(invoice.issue_date) >= new Date(dateFilter.startDate)) &&
       (!dateFilter.endDate ||
         new Date(invoice.issue_date) <= new Date(dateFilter.endDate));
-
     return matchesSearch && matchesCreditType && matchesDate;
   });
 
   const handleViewInvoice = (invoice) => {
-    console.log("Viewing invoice:", invoice);
-
     setCurrentInvoice(invoice);
     if (companyNo === 2) {
       setShowPreviewModalAppleholidays(true);
@@ -199,8 +139,6 @@ const Invoice_list = () => {
     } else {
       setShowPreviewModalAahaas(true);
     }
-    // setShowPreviewModalAppleholidays(true);
-    // setShowPreviewModalShirmila(true);
   };
 
   const handleEditInvoice = (invoice) => {
@@ -208,60 +146,120 @@ const Invoice_list = () => {
     setShowEditModal(true);
   };
 
+  const handleViewPayments = (invoice) => {
+    console.log("Viewing payments for invoice:", invoice);
+    
+    setSelectedInvoicePayments(invoice.payments || []);
+    setCurrentInvoice(invoice);
+    setShowPaymentModal(true);
+    setIsEditingPayments(false); // Reset to view mode
+  };
+
+  const handleAddPayment = () => {
+    setSelectedInvoicePayments([
+      ...selectedInvoicePayments,
+      {
+        id: null,
+        amount: 0,
+        payment_date: new Date().toISOString().split("T")[0],
+        method: "",
+        note: "",
+        created_at: null,
+        updated_at: null,
+      },
+    ]);
+    setIsEditingPayments(true);
+  };
+
+  const handleRemovePayment = (index) => {
+    const updatedPayments = selectedInvoicePayments.filter((_, i) => i !== index);
+    setSelectedInvoicePayments(updatedPayments);
+  };
+
+  const handlePaymentChange = (index, field, value) => {
+    const updatedPayments = [...selectedInvoicePayments];
+    updatedPayments[index] = { ...updatedPayments[index], [field]: value };
+    setSelectedInvoicePayments(updatedPayments);
+  };
+
+ const handleUpdatePayments = async () => {
+  try {
+    const totalAmountReceived = selectedInvoicePayments.reduce(
+      (sum, payment) => sum + (parseFloat(payment.amount) || 0),
+      0
+    );
+    
+    // Format payments for API
+    const payments = selectedInvoicePayments.map((payment) => ({
+      id: payment.id,
+      amount: parseFloat(payment.amount) || 0,
+      payment_date: payment.payment_date,
+      method: payment.method || null,
+      note: payment.note || null,
+    }));
+
+    // Calculate new balance based on current invoice totals
+    const currentTotal = parseFloat(currentInvoice.total_amount) || 0;
+    const newBalance = (currentTotal - totalAmountReceived).toFixed(2);
+    
+    // Build updated data with all financial fields
+    const updatedData = {
+      sub_total: currentInvoice.sub_total || "0.00",
+      handling_fee: currentInvoice.handling_fee || "0.00",
+      gst_amount: currentInvoice.gst_amount || "0.00",
+      additional_tax: currentInvoice.additional_tax || "0.00",
+      bank_charges: currentInvoice.bank_charges || "0.00",
+      total_amount: currentInvoice.total_amount || "0.00",
+      balance: newBalance,
+      amount_received: totalAmountReceived.toFixed(2),
+      payments: payments,
+    };
+
+    await axios.put(`/api/invoices/by-number/${currentInvoice.invoice_number}`, updatedData, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    
+    setSuccess(`Payments for invoice ${currentInvoice.invoice_number} updated successfully.`);
+    fetchInvoices();
+    setShowPaymentModal(false);
+    setIsEditingPayments(false);
+  } catch (error) {
+    console.error("Error updating payments:", error);
+    setError(error.response?.data?.error || "Failed to update payments. Please try again.");
+  } finally {
+    setIsLoading(false);
+  }
+};
+
   const downloadPDF = () => {
     const element = receiptRef.current;
     const opt = {
       margin: 0.3,
-      filename: `receipt_"order".pdf`,
+      filename: `receipt_${currentInvoice?.invoice_number}.pdf`,
       image: { type: "jpeg", quality: 0.98 },
       html2canvas: { scale: 2 },
       jsPDF: {
         unit: "in",
-        format: [8.5, 13], // width x height (inches) → makes a tall portrait page
+        format: [8.5, 13],
         orientation: "portrait",
       },
     };
-
     html2pdf().set(opt).from(element).save();
   };
 
-  const printInvoice = () => {
-    const printContent = document.getElementById(
-      "invoice-preview-content"
-    ).innerHTML;
-    const originalContent = document.body.innerHTML;
-
-    document.body.innerHTML = printContent;
-    window.print();
-    document.body.innerHTML = originalContent;
-  };
-
   const handlePrintInvoice = (invoice) => {
-    // Set the current invoice to generate the PDF for
     setCurrentInvoice(invoice);
-
-    // Create a download link using the PDFDownloadLink component
     const pdfLink = (
       <PDFDownloadLink
         document={<InvoicePDF invoice={invoice} />}
         fileName={`invoice_${invoice.invoice_number}.pdf`}
       >
-        {({ blob, url, loading, error }) =>
-          loading ? "Loading document..." : "Download now!"
-        }
+        {({ blob, url, loading, error }) => (loading ? "Loading document..." : "Download now!")}
       </PDFDownloadLink>
     );
-
-    // Programmatically trigger the download
-    // Since we can't directly access the download link in this way,
-    // we'll need to create a temporary button and click it
     const tempDiv = document.createElement("div");
     document.body.appendChild(tempDiv);
-
-    // Render the PDFDownloadLink to our temp div
     ReactDOM.render(pdfLink, tempDiv);
-
-    // Find the anchor tag and click it
     setTimeout(() => {
       const downloadLink = tempDiv.querySelector("a");
       if (downloadLink) {
@@ -270,12 +268,9 @@ const Invoice_list = () => {
       document.body.removeChild(tempDiv);
     }, 100);
   };
-  const handleDownloadInvoiceAahaas = (invoice) => {
-    // Set the current invoice to generate the PDF for
-    setCurrentInvoice(invoice);
-    console.log("Printing invoice for Aahaas:", invoice);
 
-    // Create a download link using the PDFDownloadLink component
+  const handleDownloadInvoiceAahaas = (invoice) => {
+    setCurrentInvoice(invoice);
     const pdfLink = (
       <PDFDownloadLink
         document={<InvoicePDF invoice={invoice} company="aahaas" />}
@@ -284,17 +279,9 @@ const Invoice_list = () => {
         {({ loading }) => (loading ? "Loading document..." : "Download now!")}
       </PDFDownloadLink>
     );
-
-    // Programmatically trigger the download
-    // Since we can't directly access the download link in this way,
-    // we'll need to create a temporary button and click it
     const tempDiv = document.createElement("div");
     document.body.appendChild(tempDiv);
-
-    // Render the PDFDownloadLink to our temp div
     ReactDOM.render(pdfLink, tempDiv);
-
-    // Find the anchor tag and click it
     setTimeout(() => {
       const downloadLink = tempDiv.querySelector("a");
       if (downloadLink) {
@@ -303,11 +290,9 @@ const Invoice_list = () => {
       document.body.removeChild(tempDiv);
     }, 100);
   };
-  const handleDownloadInvoiceAppleHolidays = (invoice) => {
-    // Set the current invoice to generate the PDF for
-    setCurrentInvoice(invoice);
 
-    // Create a download link using the PDFDownloadLink component
+  const handleDownloadInvoiceAppleHolidays = (invoice) => {
+    setCurrentInvoice(invoice);
     const pdfLink = (
       <PDFDownloadLink
         document={<InvoicePDF invoice={invoice} company="appleholidays" />}
@@ -316,17 +301,9 @@ const Invoice_list = () => {
         {({ loading }) => (loading ? "Loading document..." : "Download now!")}
       </PDFDownloadLink>
     );
-
-    // Programmatically trigger the download
-    // Since we can't directly access the download link in this way,
-    // we'll need to create a temporary button and click it
     const tempDiv = document.createElement("div");
     document.body.appendChild(tempDiv);
-
-    // Render the PDFDownloadLink to our temp div
     ReactDOM.render(pdfLink, tempDiv);
-
-    // Find the anchor tag and click it
     setTimeout(() => {
       const downloadLink = tempDiv.querySelector("a");
       if (downloadLink) {
@@ -335,11 +312,9 @@ const Invoice_list = () => {
       document.body.removeChild(tempDiv);
     }, 100);
   };
-  const handleDownloadInvoiceSharmila = (invoice) => {
-    // Set the current invoice to generate the PDF for
-    setCurrentInvoice(invoice);
 
-    // Create a download link using the PDFDownloadLink component
+  const handleDownloadInvoiceSharmila = (invoice) => {
+    setCurrentInvoice(invoice);
     const pdfLink = (
       <PDFDownloadLink
         document={<InvoicePDF invoice={invoice} company="sharmila" />}
@@ -348,17 +323,9 @@ const Invoice_list = () => {
         {({ loading }) => (loading ? "Loading document..." : "Download now!")}
       </PDFDownloadLink>
     );
-
-    // Programmatically trigger the download
-    // Since we can't directly access the download link in this way,
-    // we'll need to create a temporary button and click it
     const tempDiv = document.createElement("div");
     document.body.appendChild(tempDiv);
-
-    // Render the PDFDownloadLink to our temp div
     ReactDOM.render(pdfLink, tempDiv);
-
-    // Find the anchor tag and click it
     setTimeout(() => {
       const downloadLink = tempDiv.querySelector("a");
       if (downloadLink) {
@@ -370,9 +337,6 @@ const Invoice_list = () => {
 
   const handlePrintInvoiceAahaas = (invoice) => {
     setCurrentInvoice(invoice);
-    console.log("Printing invoice for Aahaas:", invoice);
-
-    // Create a modal or component that shows the PDF with print button
     setShowPreviewModalAahaas(true);
   };
 
@@ -383,7 +347,7 @@ const Invoice_list = () => {
 
   const handlePrintInvoiceSharmila = (invoice) => {
     setCurrentInvoice(invoice);
-    setShowPreviewModalSharmila(true);
+    setShowPreviewModalShirmila(true);
   };
 
   const confirmDelete = (invoice) => {
@@ -393,7 +357,6 @@ const Invoice_list = () => {
 
   const formatInvoiceData = (invoice) => {
     if (!invoice) return {};
-
     return {
       customer: {
         id: invoice.customer_id || null,
@@ -406,14 +369,9 @@ const Invoice_list = () => {
       },
       invoice: {
         country: invoice.country_code || "IN",
-        // number: invoice.invoice_number ? invoice.invoice_number.replace(/^INV-/, "") : "",
         number: invoice.invoice_number || "",
         issueDate: invoice.issue_date || new Date().toISOString().split("T")[0],
-        dueDate:
-          invoice.due_date ||
-          new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-            .toISOString()
-            .split("T")[0],
+        dueDate: invoice.due_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
         salesId: invoice.sales_id || "",
         printedBy: invoice.printed_by || "",
         yourRef: invoice.your_ref || "",
@@ -430,28 +388,25 @@ const Invoice_list = () => {
         addTenToRate: false,
         taxTreatment: invoice.tax_treatment || "exclusive",
       },
-      serviceItems:
-        invoice.items?.map((item) => ({
-          id: item.id || Date.now(),
-          code: item.code || "",
-          type: item.type || "hotel",
-          description: item.description || "",
-          checkin_time: item.checkin_time || "",
-          checkout_time: item.checkout_time || "",
-          qty: item.quantity || 1,
-          price: item.price || 0,
-          discount: item.discount || 0,
-          total:
-            item.price * item.quantity * (1 - (item.discount || 0) / 100) || 0,
-        })) || [],
-      additionalCharges:
-        invoice.additional_charges?.map((charge) => ({
-          id: charge.id || Date.now(),
-          description: charge.description || "",
-          amount: charge.amount || 0,
-          taxable: charge.taxable || false,
-        })) || [],
-      taxRates: [], // This would need to be populated from your tax rates API
+      serviceItems: invoice.items?.map((item) => ({
+        id: item.id || Date.now(),
+        code: item.code || "",
+        type: item.type || "hotel",
+        description: item.description || "",
+        checkin_time: item.checkin_time || "",
+        checkout_time: item.checkout_time || "",
+        qty: item.quantity || 1,
+        price: item.price || 0,
+        discount: item.discount || 0,
+        total: item.price * item.quantity * (1 - (item.discount || 0) / 100) || 0,
+      })) || [],
+      additionalCharges: invoice.additional_charges?.map((charge) => ({
+        id: charge.id || Date.now(),
+        description: charge.description || "",
+        amount: charge.amount || 0,
+        taxable: charge.taxable || false,
+      })) || [],
+      taxRates: [],
       accountDetails: {
         name: invoice.account?.account_name || "",
         number: invoice.account?.account_no || "",
@@ -462,27 +417,13 @@ const Invoice_list = () => {
       },
       payment: {
         type: invoice.payment_type || "non-credit",
-        collectionDate:
-          invoice.collection_date ||
-          new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-            .toISOString()
-            .split("T")[0],
-        instructions:
-          invoice.payment_instructions ||
-          "Please settle the invoice on or before",
+        collectionDate: invoice.collection_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+        instructions: invoice.payment_instructions || "Please settle the invoice on or before",
         methods: {
-          bankTransfer: Array.isArray(invoice.payment_methods)
-            ? invoice.payment_methods.includes("bankTransfer")
-            : true,
-          amex: Array.isArray(invoice.payment_methods)
-            ? invoice.payment_methods.includes("amex")
-            : false,
-          googlePay: Array.isArray(invoice.payment_methods)
-            ? invoice.payment_methods.includes("googlePay")
-            : false,
-          usdPortal: Array.isArray(invoice.payment_methods)
-            ? invoice.payment_methods.includes("usdPortal")
-            : false,
+          bankTransfer: Array.isArray(invoice.payment_methods) ? invoice.payment_methods.includes("bankTransfer") : true,
+          amex: Array.isArray(invoice.payment_methods) ? invoice.payment_methods.includes("amex") : false,
+          googlePay: Array.isArray(invoice.payment_methods) ? invoice.payment_methods.includes("googlePay") : false,
+          usdPortal: Array.isArray(invoice.payment_methods) ? invoice.payment_methods.includes("usdPortal") : false,
         },
         staff: invoice.staff || "KAVIYA",
         remarks: invoice.remarks || "Payable in INR(Rate 87.52)",
@@ -500,8 +441,6 @@ const Invoice_list = () => {
       attachments: invoice.attachments || [],
     };
   };
-
-  const [formData, setFormData] = useState(formatInvoiceData(currentInvoice));
 
   const currencySymbols = {
     INR: "₹",
@@ -526,124 +465,27 @@ const Invoice_list = () => {
   const handleDeleteInvoiceAdmin = async () => {
     try {
       setIsLoading(true);
-
       await axios.delete(`/api/invoices/${invoiceToDelete.id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
-
-      setSuccess(
-        `Invoice ${invoiceToDelete.invoice_number} cancelled successfully.`
-      );
+      setSuccess(`Invoice ${invoiceToDelete.invoice_number} cancelled successfully.`);
       fetchInvoices();
       setShowDeleteModal(false);
       setSuccess("");
     } catch (error) {
       console.error("Error cancelling invoice:", error);
-      setError(
-        error.response?.data?.error ||
-          "Failed to cancel invoice. Please try again."
-      );
+      setError(error.response?.data?.error || "Failed to cancel invoice. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
-  // const handleDeleteInvoice = async () => {
-  //   try {
-  //     setIsLoading(true);
-
-  //     const emailResponse = await axios.post(
-  //       "/api/send-email",
-  //       {
-  //         to: "nightvine121@gmail.com",
-  //         subject: `Invoice Cancellation: ${invoiceToDelete.invoice_number}`,
-  //         invoice_number: invoiceToDelete.invoice_number,
-  //         customer_name: invoiceToDelete.customer?.name || "N/A",
-  //         currency: invoiceToDelete.currency,
-  //         amount: invoiceToDelete.total_amount,
-  //         date: formatDate(invoiceToDelete.issue_date),
-  //       },
-  //       {
-  //         headers: {
-  //           Authorization: `Bearer ${token}`,
-  //         },
-  //       }
-  //     );
-
-  //     if (emailResponse.status === 200) {
-  //       // Only delete if email sent successfully
-  //       await axios.delete(`/api/invoices/${invoiceToDelete.id}`, {
-  //         headers: {
-  //           Authorization: `Bearer ${token}`,
-  //         },
-  //       });
-  //     }
-
-  //     fetchInvoices();
-  //     setShowDeleteModal(false);
-  //     setSuccess(
-  //       `Invoice ${invoiceToDelete.invoice_number} cancelled successfully and notification sent.`
-  //     );
-  //   } catch (error) {
-  //     console.error("Error cancelling invoice:", error);
-  //     setError(
-  //       error.response?.data?.error ||
-  //         "Failed to cancel invoice. Please try again."
-  //     );
-  //   } finally {
-  //     setIsLoading(false);
-  //   }
-  // };
-
-  // const handleDeleteInvoice = async () => {
-  //   try {
-  //     setIsLoading(true);
-
-  //     const emailResponse = await axios.post(
-  //       "/api/send-email",
-  //       {
-  //         to: "nightvine121@gmail.com",
-  //         subject: `Invoice Cancellation Request: ${invoiceToDelete.invoice_number}`,
-  //         invoice_number: invoiceToDelete.invoice_number,
-  //         customer_name: invoiceToDelete.customer?.name || "N/A",
-  //         currency: invoiceToDelete.currency,
-  //         amount: invoiceToDelete.total_amount,
-  //         date: formatDate(invoiceToDelete.issue_date),
-  //         invoice_id: invoiceToDelete.id,
-  //       },
-  //       {
-  //         headers: {
-  //           Authorization: `Bearer ${token}`,
-  //         },
-  //       }
-  //     );
-
-  //     setShowDeleteModal(false);
-  //     setSuccess(
-  //       `Cancellation request for invoice ${invoiceToDelete.invoice_number} has been sent for approval.`
-  //     );
-  //   } catch (error) {
-  //     console.error("Error requesting invoice cancellation:", error);
-  //     setError(
-  //       error.response?.data?.error ||
-  //         "Failed to request invoice cancellation. Please try again."
-  //     );
-  //   } finally {
-  //     setIsLoading(false);
-  //   }
-  // };
 
   const handleDeleteInvoice = async () => {
     try {
       setIsLoading(true);
-
       const formData = new FormData();
       formData.append("to", "nightvine121@gmail.com");
-      formData.append(
-        "subject",
-        `Invoice Cancellation Request: ${invoiceToDelete.invoice_number}`
-      );
+      formData.append("subject", `Invoice Cancellation Request: ${invoiceToDelete.invoice_number}`);
       formData.append("invoice_number", invoiceToDelete.invoice_number);
       formData.append("customer_name", invoiceToDelete.customer?.name || "N/A");
       formData.append("currency", invoiceToDelete.currency);
@@ -651,30 +493,22 @@ const Invoice_list = () => {
       formData.append("date", formatDate(invoiceToDelete.issue_date));
       formData.append("invoice_id", invoiceToDelete.id);
       formData.append("remark", cancelRemark);
-
       if (cancelAttachment) {
         formData.append("attachment", cancelAttachment);
       }
-
       const emailResponse = await axios.post("/api/send-email", formData, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data",
         },
       });
-
       setShowDeleteModal(false);
-      setCancelRemark(""); // Reset remark
-      setCancelAttachment(null); // Reset attachment
-      setSuccess(
-        `Cancellation request for invoice ${invoiceToDelete.invoice_number} has been sent for approval.`
-      );
+      setCancelRemark("");
+      setCancelAttachment(null);
+      setSuccess(`Cancellation request for invoice ${invoiceToDelete.invoice_number} has been sent for approval.`);
     } catch (error) {
       console.error("Error requesting invoice cancellation:", error);
-      setError(
-        error.response?.data?.error ||
-          "Failed to request invoice cancellation. Please try again."
-      );
+      setError(error.response?.data?.error || "Failed to request invoice cancellation. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -682,7 +516,6 @@ const Invoice_list = () => {
 
   const handleUpdateInvoice = async (formData) => {
     try {
-      // Convert items from form data to array format
       const items = [];
       for (let key in formData) {
         if (key.startsWith("items[")) {
@@ -690,17 +523,11 @@ const Invoice_list = () => {
           if (matches) {
             const index = matches[1];
             const field = matches[2];
-            if (!items[index])
-              items[index] = { id: currentInvoice.items?.[index]?.id };
-            items[index][field] =
-              field === "quantity" || field === "price" || field === "discount"
-                ? parseFloat(formData[key])
-                : formData[key];
+            if (!items[index]) items[index] = { id: currentInvoice.items?.[index]?.id };
+            items[index][field] = field === "quantity" || field === "price" || field === "discount" ? parseFloat(formData[key]) : formData[key];
           }
         }
       }
-
-      // Convert additional charges if present
       const additionalCharges = [];
       for (let key in formData) {
         if (key.startsWith("additional_charges[")) {
@@ -708,17 +535,11 @@ const Invoice_list = () => {
           if (matches) {
             const index = matches[1];
             const field = matches[2];
-            if (!additionalCharges[index])
-              additionalCharges[index] = {
-                id: currentInvoice.additional_charges?.[index]?.id,
-              };
-            additionalCharges[index][field] =
-              field === "amount" ? parseFloat(formData[key]) : formData[key];
+            if (!additionalCharges[index]) additionalCharges[index] = { id: currentInvoice.additional_charges?.[index]?.id };
+            additionalCharges[index][field] = field === "amount" ? parseFloat(formData[key]) : formData[key];
           }
         }
       }
-
-      // Prepare the data for API
       const updatedData = {
         customer_id: currentInvoice.customer?.id,
         country_code: formData.country_code || currentInvoice.country_code,
@@ -730,23 +551,14 @@ const Invoice_list = () => {
         payment_instructions: formData.payment_instructions,
         staff: formData.staff,
         remarks: formData.remarks,
-        payment_methods: formData.payment_methods
-          ? formData.payment_methods.split(",")
-          : currentInvoice.payment_methods,
+        payment_methods: formData.payment_methods ? formData.payment_methods.split(",") : currentInvoice.payment_methods,
         items: items.filter((item) => item),
         additional_charges: additionalCharges.filter((charge) => charge),
         amount_received: parseFloat(formData.amount_received) || 0,
       };
-
-      await axios.put(
-        `/api/invoices/by-number/${currentInvoice.invoice_number}`,
-        updatedData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      await axios.put(`/api/invoices/by-number/${currentInvoice.invoice_number}`, updatedData, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       fetchInvoices();
       setShowEditModal(false);
     } catch (error) {
@@ -777,7 +589,7 @@ const Invoice_list = () => {
       default:
         return (
           <Badge bg="secondary" className="d-flex align-items-center">
-            <FaInfoCircle className="me-1" /> Unknown
+            <FaInfoCircle className="me-1" /> {status || "Unknown"}
           </Badge>
         );
     }
@@ -802,21 +614,9 @@ const Invoice_list = () => {
     }
   };
 
-  const ActionButton = ({
-    icon,
-    label,
-    variant = "primary",
-    onClick,
-    disabled = false,
-  }) => (
+  const ActionButton = ({ icon, label, variant = "primary", onClick, disabled = false }) => (
     <OverlayTrigger placement="top" overlay={<Tooltip>{label}</Tooltip>}>
-      <Button
-        variant={variant}
-        size="sm"
-        className="me-2"
-        onClick={onClick}
-        disabled={disabled}
-      >
+      <Button variant={variant} size="sm" className="me-2" onClick={onClick} disabled={disabled}>
         {icon} <span className="d-none d-md-inline">{label}</span>
       </Button>
     </OverlayTrigger>
@@ -830,17 +630,12 @@ const Invoice_list = () => {
             <FaFileInvoiceDollar className="me-2" />
             Invoice Management
           </h5>
-          <Button
-            variant="light"
-            onClick={() => navigate("/invoice/create")}
-            className="d-flex align-items-center"
-          >
+          <Button variant="light" onClick={() => navigate("/invoice/create")} className="d-flex align-items-center">
             <FaPlus className="me-1" /> New Invoice
           </Button>
         </Card.Header>
 
         <Card.Body>
-          {/* Search and Filter Bar */}
           <div className="d-flex mb-4">
             <div className="input-group me-3" style={{ width: "300px" }}>
               <span className="input-group-text">
@@ -853,8 +648,6 @@ const Invoice_list = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-
-            {/* Add this to your existing filter section */}
             <div className="d-flex align-items-center me-3">
               <span className="me-2">
                 <FaCalendarAlt />
@@ -864,9 +657,7 @@ const Invoice_list = () => {
                 placeholder="From"
                 name="startDate"
                 value={dateFilter.startDate}
-                onChange={(e) =>
-                  setDateFilter({ ...dateFilter, startDate: e.target.value })
-                }
+                onChange={(e) => setDateFilter({ ...dateFilter, startDate: e.target.value })}
                 style={{ width: "150px", marginRight: "10px" }}
               />
               <span className="me-2">to</span>
@@ -875,29 +666,10 @@ const Invoice_list = () => {
                 placeholder="To"
                 name="endDate"
                 value={dateFilter.endDate}
-                onChange={(e) =>
-                  setDateFilter({ ...dateFilter, endDate: e.target.value })
-                }
+                onChange={(e) => setDateFilter({ ...dateFilter, endDate: e.target.value })}
                 style={{ width: "150px" }}
               />
             </div>
-
-            {/* <div className="d-flex align-items-center me-3">
-              <span className="me-2">
-                <FaFilter />
-              </span>
-              <Form.Select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                style={{ width: "150px" }}
-              >
-                <option value="all">All Status</option>
-                <option value="paid">Paid</option>
-                <option value="pending">Pending</option>
-                <option value="cancelled">Cancelled</option>
-              </Form.Select>
-            </div> */}
-
             <div className="d-flex align-items-center me-3">
               <span className="me-2">
                 <FaCreditCard />
@@ -912,21 +684,11 @@ const Invoice_list = () => {
                 <option value="non-credit">Non-Credit</option>
               </Form.Select>
             </div>
-
-            <Button
-              variant="outline-secondary"
-              onClick={fetchInvoices}
-              className="d-flex align-items-center"
-            >
+            <Button variant="outline-secondary" onClick={fetchInvoices} className="d-flex align-items-center">
               Refresh
             </Button>
             {dateFilter.startDate || dateFilter.endDate ? (
-              <Button
-                variant="outline-secondary"
-                onClick={() => setDateFilter({ startDate: "", endDate: "" })}
-                className="ms-2"
-                size="sm"
-              >
+              <Button variant="outline-secondary" onClick={() => setDateFilter({ startDate: "", endDate: "" })} className="ms-2" size="sm">
                 Clear Dates
               </Button>
             ) : null}
@@ -953,6 +715,7 @@ const Invoice_list = () => {
                     <th>Balance</th>
                     <th>Total</th>
                     <th>Status</th>
+                    <th>Payments</th>
                     <th className="text-end">Actions</th>
                   </tr>
                 </thead>
@@ -977,17 +740,12 @@ const Invoice_list = () => {
                         </td>
                         <td>
                           <div className="d-flex align-items-center">
-                            <div
-                              className="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2"
-                              style={{ width: "32px", height: "32px" }}
-                            >
+                            <div className="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style={{ width: "32px", height: "32px" }}>
                               <FaUser />
                             </div>
                             <div>
                               <div>{invoice.customer?.name || "N/A"}</div>
-                              <small className="text-muted">
-                                {invoice.customer?.email || ""}
-                              </small>
+                              <small className="text-muted">{invoice.customer?.email || ""}</small>
                             </div>
                           </div>
                         </td>
@@ -996,48 +754,49 @@ const Invoice_list = () => {
                             <FaCalendarAlt className="me-2 text-muted" />
                             {formatDate(invoice.issue_date)}
                           </div>
-                          <small className="text-muted">
-                            Due: {formatDate(invoice.due_date)}
-                          </small>
+                          <small className="text-muted">Due: {formatDate(invoice.due_date)}</small>
                         </td>
                         <td>
-                          {formatDate(invoice.start_date)} -{" "}
-                          {formatDate(invoice.end_date)}
+                          {formatDate(invoice.start_date)} - {formatDate(invoice.end_date)}
                         </td>
                         <td>{invoice?.payment_type}</td>
                         <td>
-                          {invoice.currency} {invoice?.balance}
+                          {currencySymbols[invoice.currency] || invoice.currency} {invoice?.balance}
                         </td>
                         <td>
                           <div className="d-flex align-items-center">
-                            {/* <FaReceipt className="me-2 text-muted" /> */}
-                            {invoice.currency} {invoice.total_amount}
+                            {currencySymbols[invoice.currency] || invoice.currency} {invoice.total_amount}
                           </div>
                         </td>
-                        <td>{invoice.status}</td>
+                        <td>{getStatusBadge(invoice.status)}</td>
+                        <td>
+                          <ActionButton
+                            icon={<FaMoneyBillWave />}
+                            label="View Payments"
+                            variant="info"
+                            onClick={() => handleViewPayments(invoice)}
+                            // disabled={!invoice.payments || invoice.payments.length === 0}
+                          />
+                        </td>
                         <td className="text-start">
                           <div className="d-flex justify-content-start">
                             <ActionButton
                               icon={<FaEye />}
-                              // label="View"
                               variant="info"
                               onClick={() => handleViewInvoice(invoice)}
                             />
                             <ActionButton
                               icon={<FaEdit />}
-                              // label="Edit"
                               variant="primary"
                               onClick={() => handleEditInvoice(invoice)}
                             />
                             <ActionButton
                               icon={<FaPrint />}
-                              // label="Print"
                               variant="secondary"
                               onClick={() => handlePrintInvoice(invoice.id)}
                             />
                             <ActionButton
                               icon={<FaTrash />}
-                              // label="Cancel"
                               variant="danger"
                               onClick={() => handleCancelInvoice(invoice)}
                               disabled={invoice.status === "cancelled"}
@@ -1048,21 +807,12 @@ const Invoice_list = () => {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan="6" className="text-center py-4">
+                      <td colSpan="11" className="text-center py-4">
                         <div className="d-flex flex-column align-items-center">
-                          <FaFileInvoiceDollar
-                            size={48}
-                            className="text-muted mb-3"
-                          />
+                          <FaFileInvoiceDollar size={48} className="text-muted mb-3" />
                           <h5>No invoices found</h5>
-                          <p className="text-muted">
-                            Try adjusting your search or create a new invoice
-                          </p>
-                          <Button
-                            variant="primary"
-                            onClick={() => navigate("/invoice/create")}
-                            className="mt-2"
-                          >
+                          <p className="text-muted">Try adjusting your search or create a new invoice</p>
+                          <Button variant="primary" onClick={() => navigate("/invoice/create")} className="mt-2">
                             <FaPlus className="me-1" /> Create Invoice
                           </Button>
                         </div>
@@ -1078,8 +828,7 @@ const Invoice_list = () => {
         {filteredInvoices.length > 0 && (
           <Card.Footer className="d-flex justify-content-between align-items-center">
             <div>
-              Showing <strong>{filteredInvoices.length}</strong> of{" "}
-              <strong>{invoices.length}</strong> invoices
+              Showing <strong>{filteredInvoices.length}</strong> of <strong>{invoices.length}</strong> invoices
             </div>
             <div className="d-flex">
               <Button variant="outline-primary" size="sm" className="me-2">
@@ -1093,180 +842,6 @@ const Invoice_list = () => {
         )}
       </Card>
 
-      {/* Invoice Preview Modal Aahaas*/}
-      {/* <Modal
-        show={showPreviewModalAahaas}
-        onHide={() => setShowPreviewModalAahaas(false)}
-        size="lg"
-        fullscreen="lg-down"
-      >
-        <Modal.Header closeButton className="bg-primary text-white">
-          <Modal.Title className="d-flex align-items-center">
-            <FaFileInvoiceDollar className="me-2" />
-            Order Confirmation - {currentInvoice?.order_no}
-          </Modal.Title>
-        </Modal.Header>
-
-        <Modal.Body className="p-0">
-          {currentInvoice && (
-            <div className="order-preview p-4" ref={receiptRef}>
-              <div className="text-center mb-3">
-                <img
-                  src="/images/logo/aahaas.png"
-                  alt="Aahaas Logo"
-                  style={{ width: "200px" }}
-                />
-                <div>
-                  One Galle Face Tower, 2208, 1A Centre Road, Colombo 002
-                </div>
-                <div>Tel: +9411 2352 400 | Web: www.appleholidaysds.com</div>
-              </div>
-
-              <div className="thank-you mb-2">
-                Dear {currentInvoice.customer?.name || "Customer"}, Thank you for
-                your order
-              </div>
-              <p>Please find below the receipt for your order</p>
-
-              <div className="order-meta mb-3">
-                <div>
-                  <strong>Order No:</strong> {currentInvoice.order_no}
-                </div>
-                <div>
-                  <strong>Order Date:</strong>{" "}
-                  {formatDate(currentInvoice.order_date)} |{" "}
-                  {new Date().toLocaleTimeString()}
-                </div>
-                <div>
-                  <strong>Payment Type:</strong> {currentInvoice.payment_type} |{" "}
-                  {Number(currentInvoice.balance) <= 0
-                    ? "Full Payment"
-                    : "Partial Payment"}
-                </div>
-              </div>
-
-              <h5>Customer Details</h5>
-              <table className="table table-bordered mb-4">
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Address</th>
-                    <th>Email</th>
-                    <th>Contact</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td>{currentInvoice.customer?.name || "-"}</td>
-                    <td>{currentInvoice.customer?.address || "-"}</td>
-                    <td>{currentInvoice.customer?.email || "-"}</td>
-                    <td>{currentInvoice.customer?.phone || "-"}</td>
-                  </tr>
-                </tbody>
-              </table>
-
-              <h5>Service Details</h5>
-              <table className="table table-bordered mb-4">
-                <thead style={{ backgroundColor: "#343a40", color: "white" }}>
-                  <tr>
-                    <th>ID</th>
-                    <th>Service</th>
-                    <th>Date</th>
-                    <th>Time</th>
-                    <th>Location</th>
-                    <th style={{ textAlign: "right" }}>Rate</th>
-                    <th style={{ textAlign: "right" }}>Total</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {currentInvoice.items?.map((item, index) => (
-                    <tr key={index}>
-                      <td>{item.id}</td>
-                      <td>{item.service}</td>
-                      <td>{item.date}</td>
-                      <td>{item.time}</td>
-                      <td>{item.location}</td>
-                      <td style={{ textAlign: "right" }}>
-                        {currentInvoice.currency} {item.rate}
-                      </td>
-                      <td style={{ textAlign: "right" }}>
-                        {currentInvoice.currency} {item.total}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-
-              <table className="table totals-table mb-4">
-                <tbody>
-                  <tr>
-                    <td>
-                      <strong>Sub Total:</strong>
-                    </td>
-                    <td style={{ textAlign: "right" }}>
-                      {currentInvoice.currency} {currentInvoice.sub_total}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>
-                      <strong>Grand Total:</strong>
-                    </td>
-                    <td style={{ textAlign: "right" }}>
-                      {currentInvoice.currency} {currentInvoice.grand_total}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>
-                      <strong>Paid Amount:</strong>
-                    </td>
-                    <td style={{ textAlign: "right" }}>
-                      {currentInvoice.currency} {currentInvoice.paid_amount}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>
-                      <strong>Balance:</strong>
-                    </td>
-                    <td style={{ textAlign: "right" }}>
-                      {currentInvoice.currency} {currentInvoice.balance}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-
-              <div className="contact-info mt-4">
-                <p>
-                  Should you have any questions regarding your order, please
-                  send an email to <strong>info@aahaas.com</strong>.
-                </p>
-                <p>
-                  Or contact us at <strong>+94 70 722 4227</strong>
-                </p>
-              </div>
-            </div>
-          )}
-        </Modal.Body>
-
-        <Modal.Footer>
-          <Button
-            variant="secondary"
-            onClick={() => setShowPreviewModalAahaas(false)}
-          >
-            Close
-          </Button>
-          <Button variant="success" onClick={downloadPDF}>
-            <FaDownload /> Download PDF
-          </Button>
-          <Button
-            variant="primary"
-            onClick={() => window.print()}
-            className="d-flex align-items-center"
-          >
-            <FaPrint className="me-1" /> Print
-          </Button>
-        </Modal.Footer>
-      </Modal> */}
-
       <Invoice_aahaas_modal
         show={showPreviewModalAahaas}
         onHide={() => setShowPreviewModalAahaas(false)}
@@ -1278,272 +853,6 @@ const Invoice_list = () => {
         xeRate={xeRate}
       />
 
-      {/* Aahaas Invoice Preview Modal */}
-      {/* <Invoice_aahaas_modal
-        show={showPreviewModalAahaas}
-        onHide={() => setShowPreviewModalAahaas(false)}
-        formData={currentInvoice ? {
-          customer: {
-            name: currentInvoice.customer?.name || "",
-            address: currentInvoice.customer?.address || "",
-            email: currentInvoice.customer?.email || "",
-            phone: currentInvoice.customer?.mobile || ""
-          },
-          invoice: {
-            country: currentInvoice.country_code || "IN",
-            number: currentInvoice.invoice_number || "",
-            issueDate: currentInvoice.issue_date || new Date().toISOString().split('T')[0],
-            startDate: currentInvoice.start_date || "",
-            endDate: currentInvoice.end_date || ""
-          },
-          currencyDetails: {
-            currency: currentInvoice.currency || "USD"
-          },
-          serviceItems: currentInvoice.items?.map(item => ({
-            description: item.description || "",
-            price: item.price || 0,
-            discount: item.discount || 0,
-            qty: item.quantity || 0,
-            total: (item.price * item.quantity * (1 - (item.discount || 0) / 100)) || 0
-          })) || [],
-          totals: {
-            subTotal: currentInvoice.sub_total || 0,
-            handlingFee: currentInvoice.handling_fee || 0,
-            gst: currentInvoice.gst_amount || 0,
-            total: currentInvoice.total_amount || 0,
-            amountReceived: currentInvoice.amount_received || 0,
-            balance: currentInvoice.balance || 0
-          },
-          payment: {
-            type: currentInvoice.payment_type || "non-credit"
-          }
-        } : {}}
-        formatDate={formatDate}
-        currencySymbols={currencySymbols}
-        printInvoice={() => window.print()}
-      /> */}
-      {/* <Invoice_aahaas_modal
-  show={showPreviewModalAahaas}
-  onHide={() => setShowPreviewModalAahaas(false)}
-  formData={formatInvoiceData(currentInvoice)}
-  formatDate={formatDate}
-  currencySymbols={currencySymbols}
-  printInvoice={() => window.print()}
-/> */}
-
-      {/* Invoice Preview Modal Appleholidays*/}
-      {/* <Modal
-        show={showPreviewModalAppleholidays}
-        onHide={() => setShowPreviewModalAppleholidays(false)}
-        size="lg"
-        fullscreen="lg-down"
-      >
-        <Modal.Header closeButton className="bg-primary text-white">
-          <Modal.Title className="d-flex align-items-center">
-            <FaFileInvoiceDollar className="me-2" />
-            Invoice Preview - {currentInvoice?.invoice_number}
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body className="p-0">
-          <div className="invoice-preview p-4" ref={receiptRef}>
-            {currentInvoice && (
-              <div className="invoice-preview p-4">
-                <div className="company-header text-center mb-4">
-                  <img
-                    src="/images/logo/appleholidays_extend.png"
-                    alt="Apple Holidays Destination Services"
-                    className="img-fluid mb-3"
-                    style={{ width: "400px" }}
-                  />
-                  <div>
-                    One Galle Face Tower, 2208, 1A Centre Road, Colombo 002
-                  </div>
-                  <div>Tel: 011 2352 400 | Web: www.appleholidaysds.com</div>
-                </div>
-
-                <div className="text-center mb-3">
-                  <h5 className="fw-bold">INVOICE - {currentInvoice.id}</h5>
-                </div>
-
-                <div className="d-flex justify-content-between mb-4">
-                  <div>
-                    <div>
-                      <strong>To:</strong>{" "}
-                      {currentInvoice.customer?.name || "N/A"}
-                    </div>
-                    <div>{currentInvoice.customer?.address || "N/A"}</div>
-                  </div>
-                  <div className="text-start">
-                    <div>
-                      <strong>Tour confirmation No.</strong>{" "}
-                      {currentInvoice.invoice_number}
-                    </div>
-                    <div>
-                      <strong>Invoice No.</strong> {currentInvoice.id}
-                    </div>
-                    <div>
-                      <strong>Date</strong>{" "}
-                      {formatDate(currentInvoice.issue_date)}
-                    </div>
-                    <div>
-                      <strong>Your Ref.</strong>{" "}
-                      {currentInvoice.your_ref || "N/A"}
-                    </div>
-                    <div>
-                      <strong>Sales ID</strong>{" "}
-                      {currentInvoice.sales_id || "N/A"}
-                    </div>
-                    <div>
-                      <strong>Printed By</strong>{" "}
-                      {currentInvoice.printed_by || "N/A"}
-                    </div>
-                    <div>
-                      <strong>Booking No</strong>{" "}
-                      {currentInvoice.booking_no || "N/A"}
-                    </div>
-                  </div>
-                </div>
-
-                <table className="invoice-table mb-3">
-                  <thead>
-                    <tr>
-                      <th>Description</th>
-                      <th style={{ textAlign: "right" }}>Unit Fare</th>
-                      <th style={{ textAlign: "right" }}>Discount</th>
-                      <th style={{ textAlign: "right" }}>Qty</th>
-                      <th style={{ textAlign: "right" }}>Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {currentInvoice.items?.map((item, index) => (
-                      <tr key={index}>
-                        <td>Cost per Adult</td>
-                        <td style={{ textAlign: "right" }}>
-                          {currentInvoice.currency} {item.price}
-                        </td>
-                        <td style={{ textAlign: "right" }}>{item.discount}%</td>
-                        <td style={{ textAlign: "right" }}>{item.quantity}</td>
-                        <td style={{ textAlign: "right" }}>
-                          {currentInvoice.currency}{" "}
-                          {calculateItemTotal(item).toFixed(2)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-
-                <div className="row mb-4">
-                  <div className="col-md-6 offset-md-6">
-                    <table className="invoice-totals w-100">
-                      <tbody>
-                        <tr>
-                          <td style={{ textAlign: "right" }}>
-                            <strong>SUB TOTAL:</strong>
-                          </td>
-                          <td style={{ textAlign: "right" }}>
-                            {currentInvoice.currency} {currentInvoice.sub_total}
-                          </td>
-                        </tr>
-                        <tr>
-                          <td style={{ textAlign: "right" }}>
-                            <strong>TOTAL:</strong>
-                          </td>
-                          <td style={{ textAlign: "right" }}>
-                            {currentInvoice.currency}{" "}
-                            {currentInvoice.total_amount}
-                          </td>
-                        </tr>
-                        <tr>
-                          <td style={{ textAlign: "right" }}>
-                            <strong>AMOUNT RECEIVED:</strong>
-                          </td>
-                          <td style={{ textAlign: "right" }}>
-                            {currentInvoice.currency}{" "}
-                            {currentInvoice.amount_received}
-                          </td>
-                        </tr>
-                        <tr>
-                          <td style={{ textAlign: "right" }}>
-                            <strong>BALANCE DUE:</strong>
-                          </td>
-                          <td style={{ textAlign: "right" }}>
-                            {currentInvoice.currency} {currentInvoice.balance}
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                <div className="mb-4">
-                  <h6 className="fw-bold">ACCOUNT DETAILS</h6>
-                  <div>
-                    <strong>ACCOUNT NAME:</strong>{" "}
-                    {currentInvoice.account?.account_name || "N/A"}
-                  </div>
-                  <div>
-                    <strong>ACCOUNT NO:</strong>{" "}
-                    {currentInvoice.account?.account_no || "N/A"}
-                  </div>
-                  <div>
-                    <strong>BANK:</strong>{" "}
-                    {currentInvoice.account?.bank || "N/A"}
-                  </div>
-                  <div>
-                    <strong>BRANCH:</strong>{" "}
-                    {currentInvoice.account?.branch || "N/A"}
-                  </div>
-                  <div>
-                    <strong>IFSC CODE:</strong>{" "}
-                    {currentInvoice.account?.ifsc_code || "N/A"}
-                  </div>
-                  <div>
-                    <strong>Bank Address:</strong>{" "}
-                    {currentInvoice.account?.bank_address || "N/A"}
-                  </div>
-                </div>
-
-                <div className="row">
-                  <div className="col-md-6">
-                    {currentInvoice.payment_instructions && (
-                      <div className="mb-3">
-                        {currentInvoice.payment_instructions}
-                      </div>
-                    )}
-                    <div>
-                      <strong>Remark:</strong>
-                      Please make payment before{" "}
-                      {new Date(
-                        new Date().setDate(new Date().getDate() + 5)
-                      ).toLocaleDateString()}{" "}
-                      (XE rate - 1 USD = LKR 365)
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </Modal.Body>
-
-        <Modal.Footer>
-          <Button
-            variant="secondary"
-            onClick={() => setShowPreviewModalAppleholidays(false)}
-          >
-            Close
-          </Button>
-          <Button variant="success" onClick={downloadPDF}>
-            <FaDownload /> Download PDF
-          </Button>
-          <Button
-            variant="primary"
-            onClick={() => window.print()}
-            className="d-flex align-items-center"
-          >
-            <FaPrint className="me-1" /> Print Invoice
-          </Button>
-        </Modal.Footer>
-      </Modal> */}
       <Invoice_appleholidays_modal
         show={showPreviewModalAppleholidays}
         onHide={() => setShowPreviewModalAppleholidays(false)}
@@ -1555,235 +864,6 @@ const Invoice_list = () => {
         xeRate={xeRate}
       />
 
-      {/* Invoice Preview Modal Shirmila*/}
-      {/* <Modal
-        show={showPreviewModalShirmila}
-        onHide={() => setShowPreviewModalShirmila(false)}
-        size="lg"
-        fullscreen="lg-down"
-      >
-        <Modal.Header closeButton className="bg-primary text-white">
-          <Modal.Title className="d-flex align-items-center">
-            <FaFileInvoiceDollar className="me-2" />
-            Invoice Preview - {currentInvoice?.invoice_number}
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body className="p-0">
-          <div className="invoice-preview p-4" ref={receiptRef}>
-            {currentInvoice && (
-              <div className="invoice-preview p-4">
-                <div className="text-center mb-3">
-                  <h4 className="mb-1 fw-bold text-danger">
-                    Sharmila Tours & Travels
-                  </h4>
-                  <div className="mb-1">
-                    No: 148, Aluthmawatha Road, Colombo - 15, Sri Lanka
-                  </div>
-                  <div className="mb-1">Tel: 011 23 52 400 | 011 23 45 800</div>
-                  <div className="mb-1">E-mail: fares@sharmilatravels.com</div>
-
-                  <h5 className="fw-bold mb-3 mt-4">
-                    INVOICE - {currentInvoice?.invoice_number}
-                  </h5>
-                </div>
-
-                <div className="d-flex justify-content-between mb-4">
-                  <div>
-                    <div>
-                      <strong>To:</strong>{" "}
-                      {currentInvoice.customer?.name || "N/A"}
-                    </div>
-                    <div>{currentInvoice.customer?.address || "N/A"}</div>
-                  </div>
-                  <div className="text-start">
-                    <div>
-                      <strong>No.</strong> {currentInvoice.invoice_number}
-                    </div>
-                    <div>
-                      <strong>Date:</strong>{" "}
-                      {formatDate(currentInvoice.issue_date)}
-                    </div>
-                    <div>
-                      <strong>Your Ref.</strong>{" "}
-                      {currentInvoice.your_ref || "N/A"}
-                    </div>
-                    <div>
-                      <strong>Sales ID:</strong>{" "}
-                      {currentInvoice.sales_id || "N/A"}
-                    </div>
-                    <div>
-                      <strong>Printed By:</strong>{" "}
-                      {currentInvoice.printed_by || "N/A"}
-                    </div>
-                    <div>
-                      <strong>Booking ID:</strong>{" "}
-                      {currentInvoice.booking_id || "N/A"}
-                    </div>
-                  </div>
-                </div>
-
-                <table className="table table-bordered mb-3">
-                  <thead>
-                    <tr style={{ backgroundColor: "#343a40", color: "white" }}>
-                      <th>Description</th>
-                      <th style={{ textAlign: "right" }}>Unit Fare</th>
-                      <th style={{ textAlign: "right" }}>Discount</th>
-                      <th style={{ textAlign: "right" }}>Qty</th>
-                      <th style={{ textAlign: "right" }}>Amount</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {currentInvoice.items?.map((item, index) => (
-                      <tr key={index}>
-                        <td>{item.description}</td>
-                        <td style={{ textAlign: "right" }}>
-                          {currentInvoice.currency} {item.price}
-                        </td>
-                        <td style={{ textAlign: "right" }}>{item.discount}%</td>
-                        <td style={{ textAlign: "right" }}>{item.quantity}</td>
-                        <td style={{ textAlign: "right" }}>
-                          {currentInvoice.currency}{" "}
-                          {calculateItemTotal(item).toFixed(2)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-
-                {currentInvoice.payment_instructions && (
-                  <div className="mb-3">
-                    <strong>Payment Instructions:</strong>{" "}
-                    {currentInvoice.payment_instructions}
-                  </div>
-                )}
-
-                <div className="row mb-4">
-                  <div className="col-md-6 offset-md-6">
-                    <table style={{ width: "100%" }}>
-                      <tbody>
-                        <tr>
-                          <td style={{ padding: "4px", textAlign: "right" }}>
-                            <strong>Sub Total:</strong>
-                          </td>
-                          <td style={{ padding: "4px", textAlign: "right" }}>
-                            {currentInvoice.currency}{" "}
-                            {Number(currentInvoice.sub_total).toFixed(2)}
-                          </td>
-                        </tr>
-                        {currentInvoice.gst && (
-                          <tr>
-                            <td style={{ padding: "4px", textAlign: "right" }}>
-                              <strong>GST:</strong>
-                            </td>
-                            <td style={{ padding: "4px", textAlign: "right" }}>
-                              {currentInvoice.currency}{" "}
-                              {Number(currentInvoice.gst).toFixed(2)}
-                            </td>
-                          </tr>
-                        )}
-                        <tr>
-                          <td style={{ padding: "4px", textAlign: "right" }}>
-                            <strong>Total:</strong>
-                          </td>
-                          <td style={{ padding: "4px", textAlign: "right" }}>
-                            {currentInvoice.currency}{" "}
-                            {Number(currentInvoice.total_amount).toFixed(2)}
-                          </td>
-                        </tr>
-                        <tr>
-                          <td style={{ padding: "4px", textAlign: "right" }}>
-                            <strong>Amount Received:</strong>
-                          </td>
-                          <td style={{ padding: "4px", textAlign: "right" }}>
-                            {currentInvoice.currency}{" "}
-                            {Number(currentInvoice.amount_received).toFixed(2)}
-                          </td>
-                        </tr>
-                        <tr>
-                          <td style={{ padding: "4px", textAlign: "right" }}>
-                            <strong>Balance:</strong>
-                          </td>
-                          <td style={{ padding: "4px", textAlign: "right" }}>
-                            {currentInvoice.currency}{" "}
-                            {Number(currentInvoice.balance).toFixed(2)}
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                <div className="mb-4">
-                  <h6 className="fw-bold">ACCOUNT DETAILS</h6>
-                  <div>
-                    <strong>ACCOUNT NAME:</strong>{" "}
-                    {currentInvoice.account?.account_name || "N/A"}
-                  </div>
-                  <div>
-                    <strong>ACCOUNT NO:</strong>{" "}
-                    {currentInvoice.account?.account_no || "N/A"}
-                  </div>
-                  <div>
-                    <strong>BANK:</strong>{" "}
-                    {currentInvoice.account?.bank || "N/A"}
-                  </div>
-                  <div>
-                    <strong>BRANCH:</strong>{" "}
-                    {currentInvoice.account?.branch || "N/A"}
-                  </div>
-                  <div>
-                    <strong>IFSC CODE:</strong>{" "}
-                    {currentInvoice.account?.ifsc_code || "N/A"}
-                  </div>
-                  <div>
-                    <strong>Bank Address:</strong>{" "}
-                    {currentInvoice.account?.bank_address || "N/A"}
-                  </div>
-                </div>
-
-                <div className="row">
-                  <div className="col-md-6">
-                    {currentInvoice.staff && (
-                      <div>
-                        <strong>Staff:</strong> {currentInvoice.staff}
-                      </div>
-                    )}
-                   
-                    <div>
-                      <strong>Remark:</strong>
-                      Please make payment before{" "}
-                      {new Date(
-                        new Date().setDate(new Date().getDate() + 5)
-                      ).toLocaleDateString()}{" "}
-                      (XE rate - 1 USD = LKR 365)
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </Modal.Body>
-
-        <Modal.Footer>
-          <Button
-            variant="secondary"
-            onClick={() => setShowPreviewModalShirmila(false)}
-          >
-            Close
-          </Button>
-          <Button variant="success" onClick={downloadPDF}>
-            <FaDownload /> Download PDF
-          </Button>
-         
-          <Button
-            variant="primary"
-            onClick={() => window.print()}
-            className="d-flex align-items-center"
-          >
-            <FaPrint className="me-1" /> Print Invoice
-          </Button>
-        </Modal.Footer>
-      </Modal> */}
       <Invoice_sharmila_modal
         show={showPreviewModalShirmila}
         onHide={() => setShowPreviewModalShirmila(false)}
@@ -1795,12 +875,7 @@ const Invoice_list = () => {
         xeRate={xeRate}
       />
 
-      {/* Edit Invoice Modal */}
-      <Modal
-        show={showEditModal}
-        onHide={() => setShowEditModal(false)}
-        size="xl"
-      >
+      <Modal show={showEditModal} onHide={() => setShowEditModal(false)} size="xl">
         <Modal.Header closeButton className="bg-primary text-white">
           <Modal.Title className="d-flex align-items-center">
             <FaEdit className="me-2" />
@@ -1817,42 +892,7 @@ const Invoice_list = () => {
                 handleUpdateInvoice(formValues);
               }}
             >
-              <Accordion
-                defaultActiveKey={["customer", "invoice", "items"]}
-                alwaysOpen
-              >
-                {/* Customer Information */}
-                {/* <Accordion.Item eventKey="customer">
-                  <Accordion.Header>
-                    <div className="d-flex align-items-center">
-                      <FaUser className="me-2" />
-                      <span>Customer Information</span>
-                    </div>
-                  </Accordion.Header>
-                  <Accordion.Body>
-                    <input
-                      type="hidden"
-                      name="customer_id"
-                      value={currentInvoice.customer?.id}
-                    />
-
-                    <Row>
-                      <Col md={6}>
-                        <FloatingLabel label="Country Code" className="mb-3">
-                          <Form.Select
-                            name="country_code"
-                            defaultValue={currentInvoice.country_code}
-                            required
-                          >
-                            <option value="MY">Malaysia</option>
-                            <option value="IN">India</option>
-                            <option value="US">United States</option>
-                          </Form.Select>
-                        </FloatingLabel>
-                      </Col>
-                    </Row>
-                  </Accordion.Body>
-                </Accordion.Item> */}
+              <Accordion defaultActiveKey={["customer", "invoice", "items"]} alwaysOpen>
                 <Accordion.Item eventKey="customer">
                   <Accordion.Header>
                     <div className="d-flex align-items-center">
@@ -1861,75 +901,38 @@ const Invoice_list = () => {
                     </div>
                   </Accordion.Header>
                   <Accordion.Body>
-                    <input
-                      type="hidden"
-                      name="customer_id"
-                      value={currentInvoice.customer?.id}
-                    />
-
+                    <input type="hidden" name="customer_id" value={currentInvoice.customer?.id} />
                     <Row>
                       <Col md={6}>
                         <FloatingLabel label="Customer Name" className="mb-3">
-                          <Form.Control
-                            type="text"
-                            name="customer_name"
-                            defaultValue={currentInvoice.customer?.name}
-                            required
-                          />
+                          <Form.Control type="text" name="customer_name" defaultValue={currentInvoice.customer?.name} required />
                         </FloatingLabel>
                       </Col>
                       <Col md={6}>
                         <FloatingLabel label="Mobile Number" className="mb-3">
-                          <Form.Control
-                            type="text"
-                            name="customer_mobile"
-                            defaultValue={currentInvoice.customer?.mobile}
-                            required
-                          />
+                          <Form.Control type="text" name="customer_mobile" defaultValue={currentInvoice.customer?.mobile} required />
                         </FloatingLabel>
                       </Col>
                     </Row>
-
                     <Row>
                       <Col md={6}>
                         <FloatingLabel label="Customer Code" className="mb-3">
-                          <Form.Control
-                            type="text"
-                            name="customer_code"
-                            defaultValue={currentInvoice.customer?.code}
-                            required
-                          />
+                          <Form.Control type="text" name="customer_code" defaultValue={currentInvoice.customer?.code} required />
                         </FloatingLabel>
                       </Col>
                       <Col md={6}>
                         <FloatingLabel label="GST Number" className="mb-3">
-                          <Form.Control
-                            type="text"
-                            name="customer_gst_no"
-                            defaultValue={currentInvoice.customer?.gst_no}
-                          />
+                          <Form.Control type="text" name="customer_gst_no" defaultValue={currentInvoice.customer?.gst_no} />
                         </FloatingLabel>
                       </Col>
                     </Row>
-
                     <FloatingLabel label="Customer Address" className="mb-3">
-                      <Form.Control
-                        as="textarea"
-                        name="customer_address"
-                        style={{ height: "80px" }}
-                        defaultValue={currentInvoice.customer?.address}
-                        required
-                      />
+                      <Form.Control as="textarea" name="customer_address" style={{ height: "80px" }} defaultValue={currentInvoice.customer?.address} required />
                     </FloatingLabel>
-
                     <Row>
                       <Col md={6}>
                         <FloatingLabel label="Country Code" className="mb-3">
-                          <Form.Select
-                            name="country_code"
-                            defaultValue={currentInvoice.country_code}
-                            required
-                          >
+                          <Form.Select name="country_code" defaultValue={currentInvoice.country_code} required>
                             <option value="LK">Sri Lanka</option>
                             <option value="IN">India</option>
                             <option value="SG">Singapore</option>
@@ -1941,11 +944,7 @@ const Invoice_list = () => {
                       </Col>
                       <Col md={6}>
                         <FloatingLabel label="Currency" className="mb-3">
-                          <Form.Select
-                            name="currency"
-                            defaultValue={currentInvoice.currency}
-                            required
-                          >
+                          <Form.Select name="currency" defaultValue={currentInvoice.currency} required>
                             <option value="LKR">LKR (Sri Lankan Rupee)</option>
                             <option value="INR">INR (Indian Rupee)</option>
                             <option value="SGD">SGD (Singapore Dollar)</option>
@@ -1958,8 +957,6 @@ const Invoice_list = () => {
                     </Row>
                   </Accordion.Body>
                 </Accordion.Item>
-
-                {/* Invoice Details */}
                 <Accordion.Item eventKey="invoice">
                   <Accordion.Header>
                     <div className="d-flex align-items-center">
@@ -1971,11 +968,7 @@ const Invoice_list = () => {
                     <Row className="mb-3">
                       <Col md={6}>
                         <FloatingLabel label="Currency" className="mb-3">
-                          <Form.Select
-                            name="currency"
-                            defaultValue={currentInvoice.currency}
-                            required
-                          >
+                          <Form.Select name="currency" defaultValue={currentInvoice.currency} required>
                             <option value="MYR">MYR</option>
                             <option value="INR">INR</option>
                             <option value="USD">USD</option>
@@ -1984,25 +977,14 @@ const Invoice_list = () => {
                       </Col>
                       <Col md={6}>
                         <FloatingLabel label="Exchange Rate" className="mb-3">
-                          <Form.Control
-                            type="number"
-                            name="exchange_rate"
-                            step="0.0001"
-                            defaultValue={currentInvoice.exchange_rate || 1.0}
-                            required
-                          />
+                          <Form.Control type="number" name="exchange_rate" step="0.0001" defaultValue={currentInvoice.exchange_rate || 1.0} required />
                         </FloatingLabel>
                       </Col>
                     </Row>
-
                     <Row className="mb-3">
                       <Col md={6}>
                         <FloatingLabel label="Tax Treatment" className="mb-3">
-                          <Form.Select
-                            name="tax_treatment"
-                            defaultValue={currentInvoice.tax_treatment}
-                            required
-                          >
+                          <Form.Select name="tax_treatment" defaultValue={currentInvoice.tax_treatment} required>
                             <option value="inclusive">Tax Inclusive</option>
                             <option value="exclusive">Tax Exclusive</option>
                             <option value="none">No Tax</option>
@@ -2011,135 +993,65 @@ const Invoice_list = () => {
                       </Col>
                       <Col md={6}>
                         <FloatingLabel label="Payment Type" className="mb-3">
-                          <Form.Select
-                            name="payment_type"
-                            defaultValue={currentInvoice.payment_type}
-                            required
-                          >
+                          <Form.Select name="payment_type" defaultValue={currentInvoice.payment_type} required>
                             <option value="credit">Credit</option>
                             <option value="non-credit">Non-Credit</option>
                           </Form.Select>
                         </FloatingLabel>
                       </Col>
                     </Row>
-
-                    {/* Dates */}
                     <Row className="mb-3">
                       <Col md={4}>
                         <FloatingLabel label="Issue Date" className="mb-3">
-                          <Form.Control
-                            type="date"
-                            name="issue_date"
-                            defaultValue={
-                              currentInvoice.issue_date?.split("T")[0]
-                            }
-                            required
-                          />
+                          <Form.Control type="date" name="issue_date" defaultValue={currentInvoice.issue_date?.split("T")[0]} required />
                         </FloatingLabel>
                       </Col>
                       <Col md={4}>
                         <FloatingLabel label="Due Date" className="mb-3">
-                          <Form.Control
-                            type="date"
-                            name="due_date"
-                            defaultValue={
-                              currentInvoice.due_date?.split("T")[0]
-                            }
-                            required
-                          />
+                          <Form.Control type="date" name="due_date" defaultValue={currentInvoice.due_date?.split("T")[0]} required />
                         </FloatingLabel>
                       </Col>
                       <Col md={4}>
                         <FloatingLabel label="Collection Date" className="mb-3">
-                          <Form.Control
-                            type="date"
-                            name="collection_date"
-                            defaultValue={
-                              currentInvoice.collection_date?.split("T")[0]
-                            }
-                          />
+                          <Form.Control type="date" name="collection_date" defaultValue={currentInvoice.collection_date?.split("T")[0]} />
                         </FloatingLabel>
                       </Col>
                     </Row>
-
-                    {/* Payment Information */}
                     <Row className="mb-3">
                       <Col md={6}>
-                        <FloatingLabel
-                          label="Payment Instructions"
-                          className="mb-3"
-                        >
-                          <Form.Control
-                            as="textarea"
-                            name="payment_instructions"
-                            style={{ height: "100px" }}
-                            defaultValue={currentInvoice.payment_instructions}
-                            required
-                          />
+                        <FloatingLabel label="Payment Instructions" className="mb-3">
+                          <Form.Control as="textarea" name="payment_instructions" style={{ height: "100px" }} defaultValue={currentInvoice.payment_instructions} required />
                         </FloatingLabel>
                       </Col>
                       <Col md={6}>
-                        <FloatingLabel
-                          label="Payment Methods (comma separated)"
-                          className="mb-3"
-                        >
-                          <Form.Control
-                            type="text"
-                            name="payment_methods"
-                            defaultValue={
-                              Array.isArray(currentInvoice?.payment_methods)
-                                ? currentInvoice.payment_methods.join(",")
-                                : ""
-                            }
-                          />
+                        <FloatingLabel label="Payment Methods (comma separated)" className="mb-3">
+                          <Form.Control type="text" name="payment_methods" defaultValue={Array.isArray(currentInvoice?.payment_methods) ? currentInvoice.payment_methods.join(",") : ""} />
                         </FloatingLabel>
                       </Col>
                     </Row>
-
-                    {/* Staff and Remarks */}
                     <Row className="mb-3">
                       <Col md={6}>
                         <FloatingLabel label="Staff" className="mb-3">
-                          <Form.Control
-                            type="text"
-                            name="staff"
-                            defaultValue={currentInvoice.staff}
-                            required
-                          />
+                          <Form.Control type="text" name="staff" defaultValue={currentInvoice.staff} required />
                         </FloatingLabel>
                       </Col>
                       <Col md={6}>
                         <FloatingLabel label="Amount Received" className="mb-3">
-                          <Form.Control
-                            type="number"
-                            name="amount_received"
-                            step="0.01"
-                            defaultValue={currentInvoice.amount_received}
-                          />
+                          <Form.Control type="number" name="amount_received" step="0.01" defaultValue={currentInvoice.amount_received} />
                         </FloatingLabel>
                       </Col>
                     </Row>
-
                     <FloatingLabel label="Remarks" className="mb-3">
-                      <Form.Control
-                        as="textarea"
-                        name="remarks"
-                        style={{ height: "100px" }}
-                        defaultValue={currentInvoice.remarks}
-                      />
+                      <Form.Control as="textarea" name="remarks" style={{ height: "100px" }} defaultValue={currentInvoice.remarks} />
                     </FloatingLabel>
                   </Accordion.Body>
                 </Accordion.Item>
-
-                {/* Invoice Items */}
                 <Accordion.Item eventKey="items">
                   <Accordion.Header>
                     <div className="d-flex align-items-center">
                       <FaReceipt className="me-2" />
                       <span>Invoice Items</span>
-                      <Badge bg="primary" className="ms-2">
-                        {currentInvoice.items?.length || 0}
-                      </Badge>
+                      <Badge bg="primary" className="ms-2">{currentInvoice.items?.length || 0}</Badge>
                     </div>
                   </Accordion.Header>
                   <Accordion.Body>
@@ -2159,73 +1071,30 @@ const Invoice_list = () => {
                         {currentInvoice.items?.map((item, index) => (
                           <tr key={index}>
                             <td>
-                              <Form.Control
-                                type="text"
-                                name={`items[${index}][code]`}
-                                size="sm"
-                                defaultValue={item.code}
-                                required
-                              />
+                              <Form.Control type="text" name={`items[${index}][code]`} size="sm" defaultValue={item.code} required />
                             </td>
                             <td>
-                              <Form.Control
-                                type="text"
-                                name={`items[${index}][type]`}
-                                size="sm"
-                                defaultValue={item.type}
-                                required
-                              />
+                              <Form.Control type="text" name={`items[${index}][type]`} size="sm" defaultValue={item.type} required />
                             </td>
                             <td>
-                              <Form.Control
-                                type="text"
-                                name={`items[${index}][description]`}
-                                size="sm"
-                                defaultValue={item.description}
-                                required
-                              />
+                              <Form.Control type="text" name={`items[${index}][description]`} size="sm" defaultValue={item.description} required />
                             </td>
                             <td>
-                              <Form.Control
-                                type="number"
-                                name={`items[${index}][price]`}
-                                size="sm"
-                                step="0.01"
-                                min="0"
-                                defaultValue={item.price}
-                                required
-                              />
+                              <Form.Control type="number" name={`items[${index}][price]`} size="sm" step="0.01" min="0" defaultValue={item.price} required />
                             </td>
                             <td>
-                              <Form.Control
-                                type="number"
-                                name={`items[${index}][discount]`}
-                                size="sm"
-                                min="0"
-                                max="100"
-                                defaultValue={item.discount}
-                                required
-                              />
+                              <Form.Control type="number" name={`items[${index}][discount]`} size="sm" min="0" max="100" defaultValue={item.discount} required />
                             </td>
                             <td>
-                              <Form.Control
-                                type="number"
-                                name={`items[${index}][quantity]`}
-                                size="sm"
-                                min="1"
-                                defaultValue={item.quantity}
-                                required
-                              />
+                              <Form.Control type="number" name={`items[${index}][quantity]`} size="sm" min="1" defaultValue={item.quantity} required />
                             </td>
                             <td className="text-end">
-                              {currentInvoice.currency}{" "}
-                              {calculateItemTotal(item).toFixed(2)}
+                              {currencySymbols[currentInvoice.currency] || currentInvoice.currency} {calculateItemTotal(item).toFixed(2)}
                             </td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
-
                     <div className="d-flex justify-content-end mt-2">
                       <Button variant="outline-primary" size="sm">
                         <FaPlus className="me-1" /> Add Item
@@ -2233,16 +1102,12 @@ const Invoice_list = () => {
                     </div>
                   </Accordion.Body>
                 </Accordion.Item>
-
-                {/* Additional Charges */}
                 <Accordion.Item eventKey="charges">
                   <Accordion.Header>
                     <div className="d-flex align-items-center">
                       <FaMoneyBillWave className="me-2" />
                       <span>Additional Charges</span>
-                      <Badge bg="primary" className="ms-2">
-                        {currentInvoice.additional_charges?.length || 0}
-                      </Badge>
+                      <Badge bg="primary" className="ms-2">{currentInvoice.additional_charges?.length || 0}</Badge>
                     </div>
                   </Accordion.Header>
                   <Accordion.Body>
@@ -2256,48 +1121,29 @@ const Invoice_list = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {currentInvoice.additional_charges?.map(
-                          (charge, index) => (
-                            <tr key={index}>
-                              <td>
-                                <Form.Control
-                                  type="text"
-                                  name={`additional_charges[${index}][description]`}
-                                  size="sm"
-                                  defaultValue={charge.description}
-                                />
-                              </td>
-                              <td>
-                                <Form.Control
-                                  type="number"
-                                  name={`additional_charges[${index}][amount]`}
-                                  size="sm"
-                                  step="0.01"
-                                  min="0"
-                                  defaultValue={charge.amount}
-                                />
-                              </td>
-                              <td>
-                                <Form.Select
-                                  name={`additional_charges[${index}][taxable]`}
-                                  size="sm"
-                                  defaultValue={charge.taxable ? "1" : "0"}
-                                >
-                                  <option value="1">Yes</option>
-                                  <option value="0">No</option>
-                                </Form.Select>
-                              </td>
-                              <td className="text-end">
-                                <Button variant="outline-danger" size="sm">
-                                  <FaTrash />
-                                </Button>
-                              </td>
-                            </tr>
-                          )
-                        )}
+                        {currentInvoice.additional_charges?.map((charge, index) => (
+                          <tr key={index}>
+                            <td>
+                              <Form.Control type="text" name={`additional_charges[${index}][description]`} size="sm" defaultValue={charge.description} />
+                            </td>
+                            <td>
+                              <Form.Control type="number" name={`additional_charges[${index}][amount]`} size="sm" step="0.01" min="0" defaultValue={charge.amount} />
+                            </td>
+                            <td>
+                              <Form.Select name={`additional_charges[${index}][taxable]`} size="sm" defaultValue={charge.taxable ? "1" : "0"}>
+                                <option value="1">Yes</option>
+                                <option value="0">No</option>
+                              </Form.Select>
+                            </td>
+                            <td className="text-end">
+                              <Button variant="outline-danger" size="sm">
+                                <FaTrash />
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
                       </tbody>
                     </table>
-
                     <div className="d-flex justify-content-end mt-2">
                       <Button variant="outline-primary" size="sm">
                         <FaPlus className="me-1" /> Add Charge
@@ -2306,13 +1152,8 @@ const Invoice_list = () => {
                   </Accordion.Body>
                 </Accordion.Item>
               </Accordion>
-
               <div className="d-flex justify-content-end mt-4">
-                <Button
-                  variant="secondary"
-                  onClick={() => setShowEditModal(false)}
-                  className="me-2"
-                >
+                <Button variant="secondary" onClick={() => setShowEditModal(false)} className="me-2">
                   Cancel
                 </Button>
                 <Button variant="primary" type="submit">
@@ -2324,51 +1165,210 @@ const Invoice_list = () => {
         </Modal.Body>
       </Modal>
 
-      {/* Delete Confirmation Modal */}
-      {/* <Modal
-        show={showDeleteModal}
-        onHide={() => setShowDeleteModal(false)}
-        centered
-      >
-        <Modal.Header closeButton>
+      <Modal show={showPaymentModal} onHide={() => setShowPaymentModal(false)} size="lg" centered>
+        <Modal.Header closeButton className="bg-primary text-white">
           <Modal.Title className="d-flex align-items-center">
-            <FaTrash className="me-2 text-danger" />
-            Confirm Cancellation
+            <FaMoneyBillWave className="me-2" />
+            Payment Details - {currentInvoice?.invoice_number}
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
-        
-          <div className="alert alert-danger">
-            <strong>Warning:</strong> This action cannot be undone.
-          </div>
-
-          <p>
-            Are you sure you want to cancel invoice #
-            <strong>{invoiceToDelete?.invoice_number}</strong>?
-          </p>
+          {isEditingPayments ? (
+            <div>
+              <h5>Edit Payments</h5>
+              <div className="table-responsive">
+                <Table hover className="align-middle">
+                  <thead className="table-light">
+                    <tr>
+                      <th>ID</th>
+                      <th>Amount</th>
+                      <th>Payment Date</th>
+                      <th>Method</th>
+                      <th>Note</th>
+                      <th>Created At</th>
+                      <th>Updated At</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {selectedInvoicePayments.map((payment, index) => (
+                      <tr key={index}>
+                        <td>
+                          <Form.Control
+                            type="text"
+                            value={payment.id || "New"}
+                            disabled
+                            size="sm"
+                          />
+                        </td>
+                        <td>
+                          <Form.Control
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={payment.amount}
+                            onChange={(e) => handlePaymentChange(index, "amount", e.target.value)}
+                            size="sm"
+                            required
+                          />
+                        </td>
+                        <td>
+                          <Form.Control
+                            type="date"
+                            value={payment.payment_date?.split("T")[0] || payment.payment_date}
+                            onChange={(e) => handlePaymentChange(index, "payment_date", e.target.value)}
+                            size="sm"
+                            required
+                          />
+                        </td>
+                        <td>
+                          <Form.Select
+                            value={payment.method || ""}
+                            onChange={(e) => handlePaymentChange(index, "method", e.target.value)}
+                            size="sm"
+                          >
+                            <option value="">Select Method</option>
+                            <option value="bankTransfer">Bank Transfer</option>
+                            <option value="amex">Amex</option>
+                            <option value="googlePay">Google Pay</option>
+                            <option value="usdPortal">USD Portal</option>
+                          </Form.Select>
+                        </td>
+                        <td>
+                          <Form.Control
+                            type="text"
+                            value={payment.note || ""}
+                            onChange={(e) => handlePaymentChange(index, "note", e.target.value)}
+                            size="sm"
+                          />
+                        </td>
+                        <td>
+                          <Form.Control
+                            type="text"
+                            value={formatDate(payment.created_at)}
+                            disabled
+                            size="sm"
+                          />
+                        </td>
+                        <td>
+                          <Form.Control
+                            type="text"
+                            value={formatDate(payment.updated_at)}
+                            disabled
+                            size="sm"
+                          />
+                        </td>
+                        <td>
+                          <Button
+                            variant="outline-danger"
+                            size="sm"
+                            onClick={() => handleRemovePayment(index)}
+                          >
+                            <FaTrash />
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
+              </div>
+              <div className="d-flex justify-content-between mt-3">
+                <Button variant="outline-primary" size="sm" onClick={handleAddPayment}>
+                  <FaPlus className="me-1" /> Add Payment
+                </Button>
+                <div>
+                  <strong>
+                    Total Received: {currencySymbols[currentInvoice?.currency] || currentInvoice?.currency}{" "}
+                    {selectedInvoicePayments
+                      .reduce((sum, payment) => sum + (parseFloat(payment.amount) || 0), 0)
+                      .toFixed(2)}
+                  </strong>
+                </div>
+              </div>
+            </div>
+          ) : (
+            selectedInvoicePayments.length > 0 ? (
+              <div className="table-responsive">
+                <Table hover className="align-middle">
+                  <thead className="table-light">
+                    <tr>
+                      <th>ID</th>
+                      <th>Amount</th>
+                      <th>Payment Date</th>
+                      <th>Method</th>
+                      <th>Note</th>
+                      <th>Created At</th>
+                      <th>Updated At</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {selectedInvoicePayments.map((payment) => (
+                      <tr key={payment.id}>
+                        <td>{payment.id}</td>
+                        <td>
+                          {currencySymbols[currentInvoice?.currency] || currentInvoice?.currency} {payment.amount}
+                        </td>
+                        <td>{formatDate(payment.payment_date)}</td>
+                        <td>{payment.method || "N/A"}</td>
+                        <td>{payment.note || "N/A"}</td>
+                        <td>{formatDate(payment.created_at)}</td>
+                        <td>{formatDate(payment.updated_at)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
+                <div className="d-flex justify-content-end mt-3">
+                  <strong>
+                    Total Received: {currencySymbols[currentInvoice?.currency] || currentInvoice?.currency}{" "}
+                    {selectedInvoicePayments
+                      .reduce((sum, payment) => sum + (parseFloat(payment.amount) || 0), 0)
+                      .toFixed(2)}
+                  </strong>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-4">
+                <FaMoneyBillWave size={48} className="text-muted mb-3" />
+                <h5>No payment details available</h5>
+                <p className="text-muted">This invoice has no recorded payments.</p>
+              </div>
+            )
+          )}
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
+          <Button variant="secondary" onClick={() => setShowPaymentModal(false)}>
             Close
           </Button>
-          {!isAdmin && (
-            <Button variant="danger" onClick={handleDeleteInvoice}>
-              {loading ? "Requestinng Cancel..." : "Request to Cancel"}
-            </Button>
-          )}
-          {isAdmin && (
-            <Button variant="danger" onClick={handleDeleteInvoiceAdmin}>
-              Confirm Cancel
+          {isEditingPayments ? (
+            <>
+              <Button
+                variant="outline-secondary"
+                onClick={() => {
+                  setIsEditingPayments(false);
+                  setSelectedInvoicePayments(currentInvoice?.payments || []);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button variant="primary" onClick={handleUpdatePayments} >
+                {"Save Changes"}
+                {/* {isLoading ? "Saving..." : "Save Changes"} */}
+              </Button>
+            </>
+          ) : (
+            <Button variant="outline-primary" onClick={() => setIsEditingPayments(true)}>
+              <FaEdit className="me-1" /> Edit Payments
             </Button>
           )}
         </Modal.Footer>
-      </Modal> */}
+      </Modal>
+
       <Modal
         show={showDeleteModal}
         onHide={() => {
           setShowDeleteModal(false);
-          setCancelRemark(""); // Reset on close
-          setCancelAttachment(null); // Reset on close
+          setCancelRemark("");
+          setCancelAttachment(null);
         }}
         centered
         size="lg"
@@ -2382,18 +1382,13 @@ const Invoice_list = () => {
         <Modal.Body>
           <div className="alert alert-danger">
             <strong>Warning:</strong>{" "}
-            {isAdmin
-              ? "This action cannot be undone."
-              : "This will send a cancellation request for approval."}
+            {isAdmin ? "This action cannot be undone." : "This will send a cancellation request for approval."}
           </div>
-
           <p>
             {isAdmin
               ? `Are you sure you want to cancel invoice #${invoiceToDelete?.invoice_number}?`
-              : `Are you sure you want to request cancellation for invoice #${invoiceToDelete?.invoice_number}?`}
+              : `Are you sure you want to request cancellation for invoice #${invoiceToDelete?.invoice_number}? `}
           </p>
-
-          {/* Add remark and attachment fields for non-admin users */}
           {!isAdmin && (
             <div className="mt-4">
               <Form.Group className="mb-3">
@@ -2409,7 +1404,6 @@ const Invoice_list = () => {
                   required
                 />
               </Form.Group>
-
               <Form.Group className="mb-3">
                 <Form.Label>
                   <strong>Attachment (Optional)</strong>
@@ -2438,11 +1432,7 @@ const Invoice_list = () => {
             Close
           </Button>
           {!isAdmin && (
-            <Button
-              variant="danger"
-              onClick={handleDeleteInvoice}
-              disabled={!cancelRemark.trim()} // Disable if no remark
-            >
+            <Button variant="danger" onClick={handleDeleteInvoice} disabled={!cancelRemark.trim()}>
               {isLoading ? "Submitting Request..." : "Submit Request"}
             </Button>
           )}

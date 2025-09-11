@@ -12,7 +12,7 @@ const Invoice_sharmila_modal = ({
   currencySymbols,
   printInvoice,
   formatDate,
-  xeRate
+  xeRate,
 }) => {
   console.log("Invoice Data:", formData);
   const calculateTravelDays = (start, end) => {
@@ -98,27 +98,25 @@ const Invoice_sharmila_modal = ({
             <div>
               <div>
                 <strong>To:</strong>{" "}
-               <strong>{formData.customer?.name || "PICK YOUR TRAIL"}</strong> 
+                <strong>{formData.customer?.name || "PICK YOUR TRAIL"}</strong>
               </div>
               <div>
                 <strong>Address:</strong>{" "}
                 {formData.customer?.address || "Madurai"}
               </div>
-                <div>
+              <div>
                 <strong>Date:</strong> {formatDate(formData.invoice?.issueDate)}
               </div>
               {/* <div> */}
-                {/* <strong>Customer Info</strong>{" "} */}
-                {/* {formData.customer.name || "PICK YOUR TRAIL"} */}
+              {/* <strong>Customer Info</strong>{" "} */}
+              {/* {formData.customer.name || "PICK YOUR TRAIL"} */}
               {/* </div> */}
               <div>
                 <strong>Customer:</strong>{" "}
                 {formData.customer?.customer || "PICK YOUR TRAIL"}
               </div>
-            
-              <div>
-                {/* <strong>GST:</strong> {"7895"} */}
-              </div>
+
+              <div>{/* <strong>GST:</strong> {"7895"} */}</div>
             </div>
             <div className="text-start">
               <div>
@@ -174,7 +172,8 @@ const Invoice_sharmila_modal = ({
                   <td
                     style={{ padding: "8px", borderBottom: "1px solid #ddd" }}
                   >
-                    {item?.description}
+                    {/* {item?.description} */}
+                    Total Tour Cost
                   </td>
                   <td
                     style={{
@@ -184,11 +183,18 @@ const Invoice_sharmila_modal = ({
                     }}
                   >
                     {currencySymbols[formData.currencyDetails?.currency] || ""}
+                    {(
+                      (item?.price || 0) -
+                      (formData.totals?.handlingFee / (item?.qty) || 0)
+                    ).toLocaleString("en-US", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
                     {/* {item.price.toFixed(2)} */}
-                    {item?.price.toLocaleString("en-US", {
+                    {/* {item?.price.toLocaleString("en-US", {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
-                  })}
+                  })} */}
                   </td>
                   <td
                     style={{
@@ -217,10 +223,18 @@ const Invoice_sharmila_modal = ({
                   >
                     {currencySymbols[formData.currencyDetails?.currency] || ""}
                     {/* {item.total.toFixed(2)} */}
-                    {item?.total.toLocaleString("en-US", {
+                    {/* {item?.total.toLocaleString("en-US", {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
-                  })}
+                  })} */}
+                    {(
+                      ((item?.price || 0) -
+                        (formData.totals?.handlingFee || 0) / (item?.qty)) *
+                      (item?.qty || 1)
+                    ).toLocaleString("en-US", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
                   </td>
                 </tr>
               ))}
@@ -231,14 +245,16 @@ const Invoice_sharmila_modal = ({
                   </td>
                   <td colSpan="3" style={{ textAlign: "right" }}>
                     {/* <strong>Handling Fee:</strong> */}
+                    
                   </td>
+          
                   <td style={{ textAlign: "right" }}>
                     {currencySymbols[formData.currencyDetails?.currency] || "$"}
                     {/* {formData.totals.handlingFee.toFixed(2)} */}
                     {formData.totals?.handlingFee.toLocaleString("en-US", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
                   </td>
                 </tr>
               ) : null}
@@ -257,9 +273,9 @@ const Invoice_sharmila_modal = ({
                     {currencySymbols[formData.currencyDetails?.currency] || ""}
                     {/* {formData.totals.subTotal.toFixed(2)} */}
                     {formData.totals?.subTotal.toLocaleString("en-US", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
                   </td>
                 </tr>
 
@@ -270,11 +286,11 @@ const Invoice_sharmila_modal = ({
                         <strong>CGST of 9.00%:</strong>
                       </td>
                       <td style={{ padding: "4px", textAlign: "right" }}>
-                        {/* ₹{(formData.totals.gst / 2).toFixed(2)} */}
-                        ₹{(formData?.totals.gst / 2).toLocaleString("en-US", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
+                        {/* ₹{(formData.totals.gst / 2).toFixed(2)} */}₹
+                        {(formData?.totals.gst / 2).toLocaleString("en-US", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
                       </td>
                     </tr>
                     <tr>
@@ -282,11 +298,11 @@ const Invoice_sharmila_modal = ({
                         <strong>SGST of 9.00%:</strong>
                       </td>
                       <td style={{ padding: "4px", textAlign: "right" }}>
-                        {/* ₹{(formData.totals.gst / 2).toFixed(2)} */}
-                        ₹{(formData?.totals?.gst / 2).toLocaleString("en-US", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
+                        {/* ₹{(formData.totals.gst / 2).toFixed(2)} */}₹
+                        {(formData?.totals?.gst / 2).toLocaleString("en-US", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
                       </td>
                     </tr>
                   </>
@@ -299,9 +315,9 @@ const Invoice_sharmila_modal = ({
                   <td style={{ padding: "4px", textAlign: "right" }}>
                     {currencySymbols[formData.currencyDetails?.currency] || ""}
                     {formData.totals?.total.toLocaleString("en-US", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
                   </td>
                 </tr>
                 <tr>
@@ -311,9 +327,9 @@ const Invoice_sharmila_modal = ({
                   <td style={{ padding: "4px", textAlign: "right" }}>
                     {currencySymbols[formData.currencyDetails?.currency] || ""}
                     {formData.totals?.amountReceived.toLocaleString("en-US", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
                   </td>
                 </tr>
                 <tr>
@@ -323,9 +339,9 @@ const Invoice_sharmila_modal = ({
                   <td style={{ padding: "4px", textAlign: "right" }}>
                     {currencySymbols[formData.currencyDetails?.currency] || ""}
                     {formData.totals?.balance.toLocaleString("en-US", {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
                   </td>
                 </tr>
               </table>
@@ -383,7 +399,7 @@ const Invoice_sharmila_modal = ({
               </div>
             </div>
           </div> */}
-           <div className="row">
+          <div className="row">
             <div className="col-md">
               {formData?.payment_instructions && (
                 <div className="mb-3">{formData?.payment_instructions}</div>
@@ -400,9 +416,9 @@ const Invoice_sharmila_modal = ({
               <div className="remark">
                 <strong>Remark:</strong> Invoice amount is{" "}
                 {/* {formData.currencyDetails.currency !== "USD" ?? "USD"} {formData.totals.total}. */}
-                {"USD"} {formData.totals?.total}.
-                Payments made more than two (2) days after the invoice date will
-                be subject to the applicable Xe.com{" "}
+                {"USD"} {formData.totals?.total}. Payments made more than two
+                (2) days after the invoice date will be subject to the
+                applicable Xe.com{" "}
                 {formData.currencyDetails?.currency !== "USD"
                   ? `${xeRate}`
                   : ""}{" "}
@@ -417,25 +433,22 @@ const Invoice_sharmila_modal = ({
                       .toISOString()
                       .split("T")[0]
                   : "15 days"}{" "} */}
-                  {
-  formData.invoice?.startDate
-    ? (() => {
-        const startDate = new Date(formData.invoice.startDate);
-        const today = new Date();
+                {formData.invoice?.startDate
+                  ? (() => {
+                      const startDate = new Date(formData.invoice.startDate);
+                      const today = new Date();
 
-        // subtract 15 days
-        const newDate = new Date(startDate);
-        newDate.setDate(startDate.getDate() - 15);
+                      // subtract 15 days
+                      const newDate = new Date(startDate);
+                      newDate.setDate(startDate.getDate() - 15);
 
-        // if newDate < today, use today
-        const finalDate = newDate < today ? today : newDate;
+                      // if newDate < today, use today
+                      const finalDate = newDate < today ? today : newDate;
 
-        return finalDate.toISOString().split("T")[0];
-      })()
-    : "15 days"
-}{" "}
-
-                 prior to arrival, whichever occurs earlier.
+                      return finalDate.toISOString().split("T")[0];
+                    })()
+                  : "15 days"}{" "}
+                prior to arrival, whichever occurs earlier.
               </div>
             </div>
           </div>

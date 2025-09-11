@@ -184,7 +184,14 @@ const Invoice_appleholidays_modal = ({
                   <td>
                     {currencySymbols[formData.currencyDetails?.currency] || "$"}
                     {/* {item.price.toFixed(2)} */}
-                    {item.price.toLocaleString("en-US", {
+                    {/* {item.price.toLocaleString("en-US", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })} */}
+                       {(
+                      (item?.price || 0) -
+                      (formData.totals?.handlingFee / (item?.qty) || 0)
+                    ).toLocaleString("en-US", {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
                     })}
@@ -193,7 +200,15 @@ const Invoice_appleholidays_modal = ({
                   <td>{item.qty}</td>
                   <td>
                     {currencySymbols[formData.currencyDetails?.currency] || "$"}
-                    {item.total.toLocaleString("en-US", {
+                    {/* {item.total.toLocaleString("en-US", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })} */}
+                    {(
+                      ((item?.price || 0) -
+                        (formData.totals?.handlingFee || 0) ) *
+                      (item?.qty || 1)
+                    ).toLocaleString("en-US", {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
                     })}

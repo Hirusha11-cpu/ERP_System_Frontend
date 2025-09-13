@@ -39,7 +39,8 @@ const Invoice_aahaas_modal = ({
     const element = receiptRef.current;
     const opt = {
       margin: 0.3,
-      filename: `receipt_${formData.invoice.number || "order"}.pdf`,
+      // filename: `receipt_${formData.invoice.number || "order"}.pdf`,
+      filename: `${formData.invoice.number || "order"}.pdf`,
       image: { type: "jpeg", quality: 0.98 },
       html2canvas: { scale: 2 },
       jsPDF: {

@@ -259,6 +259,10 @@ export const router = createBrowserRouter([
         path: "/cheque_print/create",
         element: <ProtectedRoute><Invoice_preview target="cheque_print_create" /></ProtectedRoute>,
       },
+      {
+        path: "/invoice/upload-cost-sheet",
+        element: <ProtectedRoute><Invoice_preview target="upload_cost_sheet" /></ProtectedRoute>,
+      },
             {
                 path: "/payment/view",
                 element: <PaymentView />

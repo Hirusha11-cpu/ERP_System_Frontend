@@ -51,8 +51,10 @@ const Invoice_list = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showPreviewModalAahaas, setShowPreviewModalAahaas] = useState(false);
-  const [showPreviewModalAppleholidays, setShowPreviewModalAppleholidays] = useState(false);
-  const [showPreviewModalShirmila, setShowPreviewModalShirmila] = useState(false);
+  const [showPreviewModalAppleholidays, setShowPreviewModalAppleholidays] =
+    useState(false);
+  const [showPreviewModalShirmila, setShowPreviewModalShirmila] =
+    useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [isEditingPayments, setIsEditingPayments] = useState(false); // New state for edit mode
@@ -73,8 +75,15 @@ const Invoice_list = () => {
   });
   const navigate = useNavigate();
   const receiptRef = useRef();
-  const token = localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
-  const { user, company, role, loading: userLoading, error: userError } = useUser();
+  const token =
+    localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+  const {
+    user,
+    company,
+    role,
+    loading: userLoading,
+    error: userError,
+  } = useUser();
   const [cancelRemark, setCancelRemark] = useState("");
   const [cancelAttachment, setCancelAttachment] = useState(null);
 
@@ -100,9 +109,12 @@ const Invoice_list = () => {
       if (user) {
         setIsAdmin(user.role.name === "admin");
       }
-      const response = await axios.get(`/api/invoices?company_id=${companyNo}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await axios.get(
+        `/api/invoices?company_id=${companyNo}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       const invoicesData = response.data.data || [];
       setInvoices(invoicesData);
     } catch (error) {
@@ -115,7 +127,9 @@ const Invoice_list = () => {
   const filteredInvoices = invoices.filter((invoice) => {
     const matchesSearch =
       invoice.invoice_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (invoice.customer?.name || "").toLowerCase().includes(searchTerm.toLowerCase());
+      (invoice.customer?.name || "")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
     const matchesCreditType =
       filterCreditType === "all" ||
       (filterCreditType === "credit" && invoice.payment_type === "credit") ||
@@ -148,7 +162,7 @@ const Invoice_list = () => {
 
   const handleViewPayments = (invoice) => {
     console.log("Viewing payments for invoice:", invoice);
-    
+
     setSelectedInvoicePayments(invoice.payments || []);
     setCurrentInvoice(invoice);
     setShowPaymentModal(true);
@@ -172,7 +186,9 @@ const Invoice_list = () => {
   };
 
   const handleRemovePayment = (index) => {
-    const updatedPayments = selectedInvoicePayments.filter((_, i) => i !== index);
+    const updatedPayments = selectedInvoicePayments.filter(
+      (_, i) => i !== index
+    );
     setSelectedInvoicePayments(updatedPayments);
   };
 
@@ -182,54 +198,63 @@ const Invoice_list = () => {
     setSelectedInvoicePayments(updatedPayments);
   };
 
- const handleUpdatePayments = async () => {
-  try {
-    const totalAmountReceived = selectedInvoicePayments.reduce(
-      (sum, payment) => sum + (parseFloat(payment.amount) || 0),
-      0
-    );
-    
-    // Format payments for API
-    const payments = selectedInvoicePayments.map((payment) => ({
-      id: payment.id,
-      amount: parseFloat(payment.amount) || 0,
-      payment_date: payment.payment_date,
-      method: payment.method || null,
-      note: payment.note || null,
-    }));
+  const handleUpdatePayments = async () => {
+    try {
+      const totalAmountReceived = selectedInvoicePayments.reduce(
+        (sum, payment) => sum + (parseFloat(payment.amount) || 0),
+        0
+      );
 
-    // Calculate new balance based on current invoice totals
-    const currentTotal = parseFloat(currentInvoice.total_amount) || 0;
-    const newBalance = (currentTotal - totalAmountReceived).toFixed(2);
-    
-    // Build updated data with all financial fields
-    const updatedData = {
-      sub_total: currentInvoice.sub_total || "0.00",
-      handling_fee: currentInvoice.handling_fee || "0.00",
-      gst_amount: currentInvoice.gst_amount || "0.00",
-      additional_tax: currentInvoice.additional_tax || "0.00",
-      bank_charges: currentInvoice.bank_charges || "0.00",
-      total_amount: currentInvoice.total_amount || "0.00",
-      balance: newBalance,
-      amount_received: totalAmountReceived.toFixed(2),
-      payments: payments,
-    };
+      // Format payments for API
+      const payments = selectedInvoicePayments.map((payment) => ({
+        id: payment.id,
+        amount: parseFloat(payment.amount) || 0,
+        payment_date: payment.payment_date,
+        method: payment.method || null,
+        note: payment.note || null,
+      }));
 
-    await axios.put(`/api/invoices/by-number/${currentInvoice.invoice_number}`, updatedData, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    
-    setSuccess(`Payments for invoice ${currentInvoice.invoice_number} updated successfully.`);
-    fetchInvoices();
-    setShowPaymentModal(false);
-    setIsEditingPayments(false);
-  } catch (error) {
-    console.error("Error updating payments:", error);
-    setError(error.response?.data?.error || "Failed to update payments. Please try again.");
-  } finally {
-    setIsLoading(false);
-  }
-};
+      // Calculate new balance based on current invoice totals
+      const currentTotal = parseFloat(currentInvoice.total_amount) || 0;
+      const newBalance = (currentTotal - totalAmountReceived).toFixed(2);
+
+      // Build updated data with all financial fields
+      const updatedData = {
+        sub_total: currentInvoice.sub_total || "0.00",
+        handling_fee: currentInvoice.handling_fee || "0.00",
+        gst_amount: currentInvoice.gst_amount || "0.00",
+        additional_tax: currentInvoice.additional_tax || "0.00",
+        bank_charges: currentInvoice.bank_charges || "0.00",
+        total_amount: currentInvoice.total_amount || "0.00",
+        balance: newBalance,
+        amount_received: totalAmountReceived.toFixed(2),
+        payments: payments,
+      };
+
+      await axios.put(
+        `/api/invoices/by-number/${currentInvoice.invoice_number}`,
+        updatedData,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      setSuccess(
+        `Payments for invoice ${currentInvoice.invoice_number} updated successfully.`
+      );
+      fetchInvoices();
+      setShowPaymentModal(false);
+      setIsEditingPayments(false);
+    } catch (error) {
+      console.error("Error updating payments:", error);
+      setError(
+        error.response?.data?.error ||
+          "Failed to update payments. Please try again."
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const downloadPDF = () => {
     const element = receiptRef.current;
@@ -254,7 +279,9 @@ const Invoice_list = () => {
         document={<InvoicePDF invoice={invoice} />}
         fileName={`invoice_${invoice.invoice_number}.pdf`}
       >
-        {({ blob, url, loading, error }) => (loading ? "Loading document..." : "Download now!")}
+        {({ blob, url, loading, error }) =>
+          loading ? "Loading document..." : "Download now!"
+        }
       </PDFDownloadLink>
     );
     const tempDiv = document.createElement("div");
@@ -371,7 +398,11 @@ const Invoice_list = () => {
         country: invoice.country_code || "IN",
         number: invoice.invoice_number || "",
         issueDate: invoice.issue_date || new Date().toISOString().split("T")[0],
-        dueDate: invoice.due_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+        dueDate:
+          invoice.due_date ||
+          new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+            .toISOString()
+            .split("T")[0],
         salesId: invoice.sales_id || "",
         printedBy: invoice.printed_by || "",
         yourRef: invoice.your_ref || "",
@@ -388,24 +419,27 @@ const Invoice_list = () => {
         addTenToRate: false,
         taxTreatment: invoice.tax_treatment || "exclusive",
       },
-      serviceItems: invoice.items?.map((item) => ({
-        id: item.id || Date.now(),
-        code: item.code || "",
-        type: item.type || "hotel",
-        description: item.description || "",
-        checkin_time: item.checkin_time || "",
-        checkout_time: item.checkout_time || "",
-        qty: item.quantity || 1,
-        price: item.price || 0,
-        discount: item.discount || 0,
-        total: item.price * item.quantity * (1 - (item.discount || 0) / 100) || 0,
-      })) || [],
-      additionalCharges: invoice.additional_charges?.map((charge) => ({
-        id: charge.id || Date.now(),
-        description: charge.description || "",
-        amount: charge.amount || 0,
-        taxable: charge.taxable || false,
-      })) || [],
+      serviceItems:
+        invoice.items?.map((item) => ({
+          id: item.id || Date.now(),
+          code: item.code || "",
+          type: item.type || "hotel",
+          description: item.description || "",
+          checkin_time: item.checkin_time || "",
+          checkout_time: item.checkout_time || "",
+          qty: item.quantity || 1,
+          price: item.price || 0,
+          discount: item.discount || 0,
+          total:
+            item.price * item.quantity * (1 - (item.discount || 0) / 100) || 0,
+        })) || [],
+      additionalCharges:
+        invoice.additional_charges?.map((charge) => ({
+          id: charge.id || Date.now(),
+          description: charge.description || "",
+          amount: charge.amount || 0,
+          taxable: charge.taxable || false,
+        })) || [],
       taxRates: [],
       accountDetails: {
         name: invoice.account?.account_name || "",
@@ -417,13 +451,27 @@ const Invoice_list = () => {
       },
       payment: {
         type: invoice.payment_type || "non-credit",
-        collectionDate: invoice.collection_date || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-        instructions: invoice.payment_instructions || "Please settle the invoice on or before",
+        collectionDate:
+          invoice.collection_date ||
+          new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+            .toISOString()
+            .split("T")[0],
+        instructions:
+          invoice.payment_instructions ||
+          "Please settle the invoice on or before",
         methods: {
-          bankTransfer: Array.isArray(invoice.payment_methods) ? invoice.payment_methods.includes("bankTransfer") : true,
-          amex: Array.isArray(invoice.payment_methods) ? invoice.payment_methods.includes("amex") : false,
-          googlePay: Array.isArray(invoice.payment_methods) ? invoice.payment_methods.includes("googlePay") : false,
-          usdPortal: Array.isArray(invoice.payment_methods) ? invoice.payment_methods.includes("usdPortal") : false,
+          bankTransfer: Array.isArray(invoice.payment_methods)
+            ? invoice.payment_methods.includes("bankTransfer")
+            : true,
+          amex: Array.isArray(invoice.payment_methods)
+            ? invoice.payment_methods.includes("amex")
+            : false,
+          googlePay: Array.isArray(invoice.payment_methods)
+            ? invoice.payment_methods.includes("googlePay")
+            : false,
+          usdPortal: Array.isArray(invoice.payment_methods)
+            ? invoice.payment_methods.includes("usdPortal")
+            : false,
         },
         staff: invoice.staff || "KAVIYA",
         remarks: invoice.remarks || "Payable in INR(Rate 87.52)",
@@ -468,13 +516,18 @@ const Invoice_list = () => {
       await axios.delete(`/api/invoices/${invoiceToDelete.id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setSuccess(`Invoice ${invoiceToDelete.invoice_number} cancelled successfully.`);
+      setSuccess(
+        `Invoice ${invoiceToDelete.invoice_number} cancelled successfully.`
+      );
       fetchInvoices();
       setShowDeleteModal(false);
       setSuccess("");
     } catch (error) {
       console.error("Error cancelling invoice:", error);
-      setError(error.response?.data?.error || "Failed to cancel invoice. Please try again.");
+      setError(
+        error.response?.data?.error ||
+          "Failed to cancel invoice. Please try again."
+      );
     } finally {
       setIsLoading(false);
     }
@@ -485,7 +538,10 @@ const Invoice_list = () => {
       setIsLoading(true);
       const formData = new FormData();
       formData.append("to", "nightvine121@gmail.com");
-      formData.append("subject", `Invoice Cancellation Request: ${invoiceToDelete.invoice_number}`);
+      formData.append(
+        "subject",
+        `Invoice Cancellation Request: ${invoiceToDelete.invoice_number}`
+      );
       formData.append("invoice_number", invoiceToDelete.invoice_number);
       formData.append("customer_name", invoiceToDelete.customer?.name || "N/A");
       formData.append("currency", invoiceToDelete.currency);
@@ -505,10 +561,15 @@ const Invoice_list = () => {
       setShowDeleteModal(false);
       setCancelRemark("");
       setCancelAttachment(null);
-      setSuccess(`Cancellation request for invoice ${invoiceToDelete.invoice_number} has been sent for approval.`);
+      setSuccess(
+        `Cancellation request for invoice ${invoiceToDelete.invoice_number} has been sent for approval.`
+      );
     } catch (error) {
       console.error("Error requesting invoice cancellation:", error);
-      setError(error.response?.data?.error || "Failed to request invoice cancellation. Please try again.");
+      setError(
+        error.response?.data?.error ||
+          "Failed to request invoice cancellation. Please try again."
+      );
     } finally {
       setIsLoading(false);
     }
@@ -523,8 +584,12 @@ const Invoice_list = () => {
           if (matches) {
             const index = matches[1];
             const field = matches[2];
-            if (!items[index]) items[index] = { id: currentInvoice.items?.[index]?.id };
-            items[index][field] = field === "quantity" || field === "price" || field === "discount" ? parseFloat(formData[key]) : formData[key];
+            if (!items[index])
+              items[index] = { id: currentInvoice.items?.[index]?.id };
+            items[index][field] =
+              field === "quantity" || field === "price" || field === "discount"
+                ? parseFloat(formData[key])
+                : formData[key];
           }
         }
       }
@@ -535,8 +600,12 @@ const Invoice_list = () => {
           if (matches) {
             const index = matches[1];
             const field = matches[2];
-            if (!additionalCharges[index]) additionalCharges[index] = { id: currentInvoice.additional_charges?.[index]?.id };
-            additionalCharges[index][field] = field === "amount" ? parseFloat(formData[key]) : formData[key];
+            if (!additionalCharges[index])
+              additionalCharges[index] = {
+                id: currentInvoice.additional_charges?.[index]?.id,
+              };
+            additionalCharges[index][field] =
+              field === "amount" ? parseFloat(formData[key]) : formData[key];
           }
         }
       }
@@ -551,14 +620,20 @@ const Invoice_list = () => {
         payment_instructions: formData.payment_instructions,
         staff: formData.staff,
         remarks: formData.remarks,
-        payment_methods: formData.payment_methods ? formData.payment_methods.split(",") : currentInvoice.payment_methods,
+        payment_methods: formData.payment_methods
+          ? formData.payment_methods.split(",")
+          : currentInvoice.payment_methods,
         items: items.filter((item) => item),
         additional_charges: additionalCharges.filter((charge) => charge),
         amount_received: parseFloat(formData.amount_received) || 0,
       };
-      await axios.put(`/api/invoices/by-number/${currentInvoice.invoice_number}`, updatedData, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axios.put(
+        `/api/invoices/by-number/${currentInvoice.invoice_number}`,
+        updatedData,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
       fetchInvoices();
       setShowEditModal(false);
     } catch (error) {
@@ -614,9 +689,21 @@ const Invoice_list = () => {
     }
   };
 
-  const ActionButton = ({ icon, label, variant = "primary", onClick, disabled = false }) => (
+  const ActionButton = ({
+    icon,
+    label,
+    variant = "primary",
+    onClick,
+    disabled = false,
+  }) => (
     <OverlayTrigger placement="top" overlay={<Tooltip>{label}</Tooltip>}>
-      <Button variant={variant} size="sm" className="me-2" onClick={onClick} disabled={disabled}>
+      <Button
+        variant={variant}
+        size="sm"
+        className="me-2"
+        onClick={onClick}
+        disabled={disabled}
+      >
         {icon} <span className="d-none d-md-inline">{label}</span>
       </Button>
     </OverlayTrigger>
@@ -630,7 +717,11 @@ const Invoice_list = () => {
             <FaFileInvoiceDollar className="me-2" />
             Invoice Management
           </h5>
-          <Button variant="light" onClick={() => navigate("/invoice/create")} className="d-flex align-items-center">
+          <Button
+            variant="light"
+            onClick={() => navigate("/invoice/create")}
+            className="d-flex align-items-center"
+          >
             <FaPlus className="me-1" /> New Invoice
           </Button>
         </Card.Header>
@@ -657,7 +748,9 @@ const Invoice_list = () => {
                 placeholder="From"
                 name="startDate"
                 value={dateFilter.startDate}
-                onChange={(e) => setDateFilter({ ...dateFilter, startDate: e.target.value })}
+                onChange={(e) =>
+                  setDateFilter({ ...dateFilter, startDate: e.target.value })
+                }
                 style={{ width: "150px", marginRight: "10px" }}
               />
               <span className="me-2">to</span>
@@ -666,7 +759,9 @@ const Invoice_list = () => {
                 placeholder="To"
                 name="endDate"
                 value={dateFilter.endDate}
-                onChange={(e) => setDateFilter({ ...dateFilter, endDate: e.target.value })}
+                onChange={(e) =>
+                  setDateFilter({ ...dateFilter, endDate: e.target.value })
+                }
                 style={{ width: "150px" }}
               />
             </div>
@@ -684,11 +779,20 @@ const Invoice_list = () => {
                 <option value="non-credit">Non-Credit</option>
               </Form.Select>
             </div>
-            <Button variant="outline-secondary" onClick={fetchInvoices} className="d-flex align-items-center">
+            <Button
+              variant="outline-secondary"
+              onClick={fetchInvoices}
+              className="d-flex align-items-center"
+            >
               Refresh
             </Button>
             {dateFilter.startDate || dateFilter.endDate ? (
-              <Button variant="outline-secondary" onClick={() => setDateFilter({ startDate: "", endDate: "" })} className="ms-2" size="sm">
+              <Button
+                variant="outline-secondary"
+                onClick={() => setDateFilter({ startDate: "", endDate: "" })}
+                className="ms-2"
+                size="sm"
+              >
                 Clear Dates
               </Button>
             ) : null}
@@ -740,12 +844,17 @@ const Invoice_list = () => {
                         </td>
                         <td>
                           <div className="d-flex align-items-center">
-                            <div className="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2" style={{ width: "32px", height: "32px" }}>
+                            <div
+                              className="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2"
+                              style={{ width: "32px", height: "32px" }}
+                            >
                               <FaUser />
                             </div>
                             <div>
                               <div>{invoice.customer?.name || "N/A"}</div>
-                              <small className="text-muted">{invoice.customer?.email || ""}</small>
+                              <small className="text-muted">
+                                {invoice.customer?.email || ""}
+                              </small>
                             </div>
                           </div>
                         </td>
@@ -754,18 +863,25 @@ const Invoice_list = () => {
                             <FaCalendarAlt className="me-2 text-muted" />
                             {formatDate(invoice.issue_date)}
                           </div>
-                          <small className="text-muted">Due: {formatDate(invoice.due_date)}</small>
+                          <small className="text-muted">
+                            Due: {formatDate(invoice.due_date)}
+                          </small>
                         </td>
                         <td>
-                          {formatDate(invoice.start_date)} - {formatDate(invoice.end_date)}
+                          {formatDate(invoice.start_date)} -{" "}
+                          {formatDate(invoice.end_date)}
                         </td>
                         <td>{invoice?.payment_type}</td>
                         <td>
-                          {currencySymbols[invoice.currency] || invoice.currency} {invoice?.balance}
+                          {currencySymbols[invoice.currency] ||
+                            invoice.currency}{" "}
+                          {invoice?.balance}
                         </td>
                         <td>
                           <div className="d-flex align-items-center">
-                            {currencySymbols[invoice.currency] || invoice.currency} {invoice.total_amount}
+                            {currencySymbols[invoice.currency] ||
+                              invoice.currency}{" "}
+                            {invoice.total_amount}
                           </div>
                         </td>
                         <td>{getStatusBadge(invoice.status)}</td>
@@ -809,10 +925,19 @@ const Invoice_list = () => {
                     <tr>
                       <td colSpan="11" className="text-center py-4">
                         <div className="d-flex flex-column align-items-center">
-                          <FaFileInvoiceDollar size={48} className="text-muted mb-3" />
+                          <FaFileInvoiceDollar
+                            size={48}
+                            className="text-muted mb-3"
+                          />
                           <h5>No invoices found</h5>
-                          <p className="text-muted">Try adjusting your search or create a new invoice</p>
-                          <Button variant="primary" onClick={() => navigate("/invoice/create")} className="mt-2">
+                          <p className="text-muted">
+                            Try adjusting your search or create a new invoice
+                          </p>
+                          <Button
+                            variant="primary"
+                            onClick={() => navigate("/invoice/create")}
+                            className="mt-2"
+                          >
                             <FaPlus className="me-1" /> Create Invoice
                           </Button>
                         </div>
@@ -828,7 +953,8 @@ const Invoice_list = () => {
         {filteredInvoices.length > 0 && (
           <Card.Footer className="d-flex justify-content-between align-items-center">
             <div>
-              Showing <strong>{filteredInvoices.length}</strong> of <strong>{invoices.length}</strong> invoices
+              Showing <strong>{filteredInvoices.length}</strong> of{" "}
+              <strong>{invoices.length}</strong> invoices
             </div>
             <div className="d-flex">
               <Button variant="outline-primary" size="sm" className="me-2">
@@ -875,7 +1001,11 @@ const Invoice_list = () => {
         xeRate={xeRate}
       />
 
-      <Modal show={showEditModal} onHide={() => setShowEditModal(false)} size="xl">
+      <Modal
+        show={showEditModal}
+        onHide={() => setShowEditModal(false)}
+        size="xl"
+      >
         <Modal.Header closeButton className="bg-primary text-white">
           <Modal.Title className="d-flex align-items-center">
             <FaEdit className="me-2" />
@@ -892,7 +1022,10 @@ const Invoice_list = () => {
                 handleUpdateInvoice(formValues);
               }}
             >
-              <Accordion defaultActiveKey={["customer", "invoice", "items"]} alwaysOpen>
+              <Accordion
+                defaultActiveKey={["customer", "invoice", "items"]}
+                alwaysOpen
+              >
                 <Accordion.Item eventKey="customer">
                   <Accordion.Header>
                     <div className="d-flex align-items-center">
@@ -901,38 +1034,71 @@ const Invoice_list = () => {
                     </div>
                   </Accordion.Header>
                   <Accordion.Body>
-                    <input type="hidden" name="customer_id" value={currentInvoice.customer?.id} />
+                    <input
+                      type="hidden"
+                      name="customer_id"
+                      value={currentInvoice.customer?.id}
+                    />
                     <Row>
                       <Col md={6}>
                         <FloatingLabel label="Customer Name" className="mb-3">
-                          <Form.Control type="text" name="customer_name" defaultValue={currentInvoice.customer?.name} required />
+                          <Form.Control
+                            type="text"
+                            name="customer_name"
+                            defaultValue={currentInvoice.customer?.name}
+                            required
+                          />
                         </FloatingLabel>
                       </Col>
                       <Col md={6}>
                         <FloatingLabel label="Mobile Number" className="mb-3">
-                          <Form.Control type="text" name="customer_mobile" defaultValue={currentInvoice.customer?.mobile} required />
+                          <Form.Control
+                            type="text"
+                            name="customer_mobile"
+                            defaultValue={currentInvoice.customer?.mobile}
+                            required
+                          />
                         </FloatingLabel>
                       </Col>
                     </Row>
                     <Row>
                       <Col md={6}>
                         <FloatingLabel label="Customer Code" className="mb-3">
-                          <Form.Control type="text" name="customer_code" defaultValue={currentInvoice.customer?.code} required />
+                          <Form.Control
+                            type="text"
+                            name="customer_code"
+                            defaultValue={currentInvoice.customer?.code}
+                            required
+                          />
                         </FloatingLabel>
                       </Col>
                       <Col md={6}>
                         <FloatingLabel label="GST Number" className="mb-3">
-                          <Form.Control type="text" name="customer_gst_no" defaultValue={currentInvoice.customer?.gst_no} />
+                          <Form.Control
+                            type="text"
+                            name="customer_gst_no"
+                            defaultValue={currentInvoice.customer?.gst_no}
+                          />
                         </FloatingLabel>
                       </Col>
                     </Row>
                     <FloatingLabel label="Customer Address" className="mb-3">
-                      <Form.Control as="textarea" name="customer_address" style={{ height: "80px" }} defaultValue={currentInvoice.customer?.address} required />
+                      <Form.Control
+                        as="textarea"
+                        name="customer_address"
+                        style={{ height: "80px" }}
+                        defaultValue={currentInvoice.customer?.address}
+                        required
+                      />
                     </FloatingLabel>
                     <Row>
                       <Col md={6}>
                         <FloatingLabel label="Country Code" className="mb-3">
-                          <Form.Select name="country_code" defaultValue={currentInvoice.country_code} required>
+                          <Form.Select
+                            name="country_code"
+                            defaultValue={currentInvoice.country_code}
+                            required
+                          >
                             <option value="LK">Sri Lanka</option>
                             <option value="IN">India</option>
                             <option value="SG">Singapore</option>
@@ -944,7 +1110,11 @@ const Invoice_list = () => {
                       </Col>
                       <Col md={6}>
                         <FloatingLabel label="Currency" className="mb-3">
-                          <Form.Select name="currency" defaultValue={currentInvoice.currency} required>
+                          <Form.Select
+                            name="currency"
+                            defaultValue={currentInvoice.currency}
+                            required
+                          >
                             <option value="LKR">LKR (Sri Lankan Rupee)</option>
                             <option value="INR">INR (Indian Rupee)</option>
                             <option value="SGD">SGD (Singapore Dollar)</option>
@@ -968,7 +1138,11 @@ const Invoice_list = () => {
                     <Row className="mb-3">
                       <Col md={6}>
                         <FloatingLabel label="Currency" className="mb-3">
-                          <Form.Select name="currency" defaultValue={currentInvoice.currency} required>
+                          <Form.Select
+                            name="currency"
+                            defaultValue={currentInvoice.currency}
+                            required
+                          >
                             <option value="MYR">MYR</option>
                             <option value="INR">INR</option>
                             <option value="USD">USD</option>
@@ -977,14 +1151,24 @@ const Invoice_list = () => {
                       </Col>
                       <Col md={6}>
                         <FloatingLabel label="Exchange Rate" className="mb-3">
-                          <Form.Control type="number" name="exchange_rate" step="0.0001" defaultValue={currentInvoice.exchange_rate || 1.0} required />
+                          <Form.Control
+                            type="number"
+                            name="exchange_rate"
+                            step="0.0001"
+                            defaultValue={currentInvoice.exchange_rate || 1.0}
+                            required
+                          />
                         </FloatingLabel>
                       </Col>
                     </Row>
                     <Row className="mb-3">
                       <Col md={6}>
                         <FloatingLabel label="Tax Treatment" className="mb-3">
-                          <Form.Select name="tax_treatment" defaultValue={currentInvoice.tax_treatment} required>
+                          <Form.Select
+                            name="tax_treatment"
+                            defaultValue={currentInvoice.tax_treatment}
+                            required
+                          >
                             <option value="inclusive">Tax Inclusive</option>
                             <option value="exclusive">Tax Exclusive</option>
                             <option value="none">No Tax</option>
@@ -993,7 +1177,11 @@ const Invoice_list = () => {
                       </Col>
                       <Col md={6}>
                         <FloatingLabel label="Payment Type" className="mb-3">
-                          <Form.Select name="payment_type" defaultValue={currentInvoice.payment_type} required>
+                          <Form.Select
+                            name="payment_type"
+                            defaultValue={currentInvoice.payment_type}
+                            required
+                          >
                             <option value="credit">Credit</option>
                             <option value="non-credit">Non-Credit</option>
                           </Form.Select>
@@ -1003,46 +1191,101 @@ const Invoice_list = () => {
                     <Row className="mb-3">
                       <Col md={4}>
                         <FloatingLabel label="Issue Date" className="mb-3">
-                          <Form.Control type="date" name="issue_date" defaultValue={currentInvoice.issue_date?.split("T")[0]} required />
+                          <Form.Control
+                            type="date"
+                            name="issue_date"
+                            defaultValue={
+                              currentInvoice.issue_date?.split("T")[0]
+                            }
+                            required
+                          />
                         </FloatingLabel>
                       </Col>
                       <Col md={4}>
                         <FloatingLabel label="Due Date" className="mb-3">
-                          <Form.Control type="date" name="due_date" defaultValue={currentInvoice.due_date?.split("T")[0]} required />
+                          <Form.Control
+                            type="date"
+                            name="due_date"
+                            defaultValue={
+                              currentInvoice.due_date?.split("T")[0]
+                            }
+                            required
+                          />
                         </FloatingLabel>
                       </Col>
                       <Col md={4}>
                         <FloatingLabel label="Collection Date" className="mb-3">
-                          <Form.Control type="date" name="collection_date" defaultValue={currentInvoice.collection_date?.split("T")[0]} />
+                          <Form.Control
+                            type="date"
+                            name="collection_date"
+                            defaultValue={
+                              currentInvoice.collection_date?.split("T")[0]
+                            }
+                          />
                         </FloatingLabel>
                       </Col>
                     </Row>
                     <Row className="mb-3">
                       <Col md={6}>
-                        <FloatingLabel label="Payment Instructions" className="mb-3">
-                          <Form.Control as="textarea" name="payment_instructions" style={{ height: "100px" }} defaultValue={currentInvoice.payment_instructions} required />
+                        <FloatingLabel
+                          label="Payment Instructions"
+                          className="mb-3"
+                        >
+                          <Form.Control
+                            as="textarea"
+                            name="payment_instructions"
+                            style={{ height: "100px" }}
+                            defaultValue={currentInvoice.payment_instructions}
+                            required
+                          />
                         </FloatingLabel>
                       </Col>
                       <Col md={6}>
-                        <FloatingLabel label="Payment Methods (comma separated)" className="mb-3">
-                          <Form.Control type="text" name="payment_methods" defaultValue={Array.isArray(currentInvoice?.payment_methods) ? currentInvoice.payment_methods.join(",") : ""} />
+                        <FloatingLabel
+                          label="Payment Methods (comma separated)"
+                          className="mb-3"
+                        >
+                          <Form.Control
+                            type="text"
+                            name="payment_methods"
+                            defaultValue={
+                              Array.isArray(currentInvoice?.payment_methods)
+                                ? currentInvoice.payment_methods.join(",")
+                                : ""
+                            }
+                          />
                         </FloatingLabel>
                       </Col>
                     </Row>
                     <Row className="mb-3">
                       <Col md={6}>
                         <FloatingLabel label="Staff" className="mb-3">
-                          <Form.Control type="text" name="staff" defaultValue={currentInvoice.staff} required />
+                          <Form.Control
+                            type="text"
+                            name="staff"
+                            defaultValue={currentInvoice.staff}
+                            required
+                          />
                         </FloatingLabel>
                       </Col>
                       <Col md={6}>
                         <FloatingLabel label="Amount Received" className="mb-3">
-                          <Form.Control type="number" name="amount_received" step="0.01" defaultValue={currentInvoice.amount_received} />
+                          <Form.Control
+                            type="number"
+                            name="amount_received"
+                            step="0.01"
+                            defaultValue={currentInvoice.amount_received}
+                          />
                         </FloatingLabel>
                       </Col>
                     </Row>
                     <FloatingLabel label="Remarks" className="mb-3">
-                      <Form.Control as="textarea" name="remarks" style={{ height: "100px" }} defaultValue={currentInvoice.remarks} />
+                      <Form.Control
+                        as="textarea"
+                        name="remarks"
+                        style={{ height: "100px" }}
+                        defaultValue={currentInvoice.remarks}
+                      />
                     </FloatingLabel>
                   </Accordion.Body>
                 </Accordion.Item>
@@ -1051,7 +1294,9 @@ const Invoice_list = () => {
                     <div className="d-flex align-items-center">
                       <FaReceipt className="me-2" />
                       <span>Invoice Items</span>
-                      <Badge bg="primary" className="ms-2">{currentInvoice.items?.length || 0}</Badge>
+                      <Badge bg="primary" className="ms-2">
+                        {currentInvoice.items?.length || 0}
+                      </Badge>
                     </div>
                   </Accordion.Header>
                   <Accordion.Body>
@@ -1071,25 +1316,68 @@ const Invoice_list = () => {
                         {currentInvoice.items?.map((item, index) => (
                           <tr key={index}>
                             <td>
-                              <Form.Control type="text" name={`items[${index}][code]`} size="sm" defaultValue={item.code} required />
+                              <Form.Control
+                                type="text"
+                                name={`items[${index}][code]`}
+                                size="sm"
+                                defaultValue={item.code}
+                                required
+                              />
                             </td>
                             <td>
-                              <Form.Control type="text" name={`items[${index}][type]`} size="sm" defaultValue={item.type} required />
+                              <Form.Control
+                                type="text"
+                                name={`items[${index}][type]`}
+                                size="sm"
+                                defaultValue={item.type}
+                                required
+                              />
                             </td>
                             <td>
-                              <Form.Control type="text" name={`items[${index}][description]`} size="sm" defaultValue={item.description} required />
+                              <Form.Control
+                                type="text"
+                                name={`items[${index}][description]`}
+                                size="sm"
+                                defaultValue={item.description}
+                                required
+                              />
                             </td>
                             <td>
-                              <Form.Control type="number" name={`items[${index}][price]`} size="sm" step="0.01" min="0" defaultValue={item.price} required />
+                              <Form.Control
+                                type="number"
+                                name={`items[${index}][price]`}
+                                size="sm"
+                                step="0.01"
+                                min="0"
+                                defaultValue={item.price}
+                                required
+                              />
                             </td>
                             <td>
-                              <Form.Control type="number" name={`items[${index}][discount]`} size="sm" min="0" max="100" defaultValue={item.discount} required />
+                              <Form.Control
+                                type="number"
+                                name={`items[${index}][discount]`}
+                                size="sm"
+                                min="0"
+                                max="100"
+                                defaultValue={item.discount}
+                                required
+                              />
                             </td>
                             <td>
-                              <Form.Control type="number" name={`items[${index}][quantity]`} size="sm" min="1" defaultValue={item.quantity} required />
+                              <Form.Control
+                                type="number"
+                                name={`items[${index}][quantity]`}
+                                size="sm"
+                                min="1"
+                                defaultValue={item.quantity}
+                                required
+                              />
                             </td>
                             <td className="text-end">
-                              {currencySymbols[currentInvoice.currency] || currentInvoice.currency} {calculateItemTotal(item).toFixed(2)}
+                              {currencySymbols[currentInvoice.currency] ||
+                                currentInvoice.currency}{" "}
+                              {calculateItemTotal(item).toFixed(2)}
                             </td>
                           </tr>
                         ))}
@@ -1107,7 +1395,9 @@ const Invoice_list = () => {
                     <div className="d-flex align-items-center">
                       <FaMoneyBillWave className="me-2" />
                       <span>Additional Charges</span>
-                      <Badge bg="primary" className="ms-2">{currentInvoice.additional_charges?.length || 0}</Badge>
+                      <Badge bg="primary" className="ms-2">
+                        {currentInvoice.additional_charges?.length || 0}
+                      </Badge>
                     </div>
                   </Accordion.Header>
                   <Accordion.Body>
@@ -1121,27 +1411,45 @@ const Invoice_list = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {currentInvoice.additional_charges?.map((charge, index) => (
-                          <tr key={index}>
-                            <td>
-                              <Form.Control type="text" name={`additional_charges[${index}][description]`} size="sm" defaultValue={charge.description} />
-                            </td>
-                            <td>
-                              <Form.Control type="number" name={`additional_charges[${index}][amount]`} size="sm" step="0.01" min="0" defaultValue={charge.amount} />
-                            </td>
-                            <td>
-                              <Form.Select name={`additional_charges[${index}][taxable]`} size="sm" defaultValue={charge.taxable ? "1" : "0"}>
-                                <option value="1">Yes</option>
-                                <option value="0">No</option>
-                              </Form.Select>
-                            </td>
-                            <td className="text-end">
-                              <Button variant="outline-danger" size="sm">
-                                <FaTrash />
-                              </Button>
-                            </td>
-                          </tr>
-                        ))}
+                        {currentInvoice.additional_charges?.map(
+                          (charge, index) => (
+                            <tr key={index}>
+                              <td>
+                                <Form.Control
+                                  type="text"
+                                  name={`additional_charges[${index}][description]`}
+                                  size="sm"
+                                  defaultValue={charge.description}
+                                />
+                              </td>
+                              <td>
+                                <Form.Control
+                                  type="number"
+                                  name={`additional_charges[${index}][amount]`}
+                                  size="sm"
+                                  step="0.01"
+                                  min="0"
+                                  defaultValue={charge.amount}
+                                />
+                              </td>
+                              <td>
+                                <Form.Select
+                                  name={`additional_charges[${index}][taxable]`}
+                                  size="sm"
+                                  defaultValue={charge.taxable ? "1" : "0"}
+                                >
+                                  <option value="1">Yes</option>
+                                  <option value="0">No</option>
+                                </Form.Select>
+                              </td>
+                              <td className="text-end">
+                                <Button variant="outline-danger" size="sm">
+                                  <FaTrash />
+                                </Button>
+                              </td>
+                            </tr>
+                          )
+                        )}
                       </tbody>
                     </table>
                     <div className="d-flex justify-content-end mt-2">
@@ -1153,7 +1461,11 @@ const Invoice_list = () => {
                 </Accordion.Item>
               </Accordion>
               <div className="d-flex justify-content-end mt-4">
-                <Button variant="secondary" onClick={() => setShowEditModal(false)} className="me-2">
+                <Button
+                  variant="secondary"
+                  onClick={() => setShowEditModal(false)}
+                  className="me-2"
+                >
                   Cancel
                 </Button>
                 <Button variant="primary" type="submit">
@@ -1165,7 +1477,12 @@ const Invoice_list = () => {
         </Modal.Body>
       </Modal>
 
-      <Modal show={showPaymentModal} onHide={() => setShowPaymentModal(false)} size="lg" centered>
+      <Modal
+        show={showPaymentModal}
+        onHide={() => setShowPaymentModal(false)}
+        size="lg"
+        centered
+      >
         <Modal.Header closeButton className="bg-primary text-white">
           <Modal.Title className="d-flex align-items-center">
             <FaMoneyBillWave className="me-2" />
@@ -1199,6 +1516,7 @@ const Invoice_list = () => {
                             value={payment.id || "New"}
                             disabled
                             size="sm"
+                            style={{ minWidth: "80px" }} // ID field
                           />
                         </td>
                         <td>
@@ -1207,25 +1525,49 @@ const Invoice_list = () => {
                             step="0.01"
                             min="0"
                             value={payment.amount}
-                            onChange={(e) => handlePaymentChange(index, "amount", e.target.value)}
+                            onChange={(e) =>
+                              handlePaymentChange(
+                                index,
+                                "amount",
+                                e.target.value
+                              )
+                            }
                             size="sm"
                             required
+                            style={{ minWidth: "120px" }} // Amount field
                           />
                         </td>
                         <td>
                           <Form.Control
                             type="date"
-                            value={payment.payment_date?.split("T")[0] || payment.payment_date}
-                            onChange={(e) => handlePaymentChange(index, "payment_date", e.target.value)}
+                            value={
+                              payment.payment_date?.split("T")[0] ||
+                              payment.payment_date
+                            }
+                            onChange={(e) =>
+                              handlePaymentChange(
+                                index,
+                                "payment_date",
+                                e.target.value
+                              )
+                            }
                             size="sm"
                             required
+                            style={{ minWidth: "160px" }} // Date field
                           />
                         </td>
                         <td>
                           <Form.Select
                             value={payment.method || ""}
-                            onChange={(e) => handlePaymentChange(index, "method", e.target.value)}
+                            onChange={(e) =>
+                              handlePaymentChange(
+                                index,
+                                "method",
+                                e.target.value
+                              )
+                            }
                             size="sm"
+                            style={{ minWidth: "150px" }} // Dropdown
                           >
                             <option value="">Select Method</option>
                             <option value="bankTransfer">Bank Transfer</option>
@@ -1238,8 +1580,11 @@ const Invoice_list = () => {
                           <Form.Control
                             type="text"
                             value={payment.note || ""}
-                            onChange={(e) => handlePaymentChange(index, "note", e.target.value)}
+                            onChange={(e) =>
+                              handlePaymentChange(index, "note", e.target.value)
+                            }
                             size="sm"
+                            style={{ minWidth: "200px" }} // Note field (wider for text)
                           />
                         </td>
                         <td>
@@ -1248,6 +1593,7 @@ const Invoice_list = () => {
                             value={formatDate(payment.created_at)}
                             disabled
                             size="sm"
+                            style={{ minWidth: "140px" }} // Created At
                           />
                         </td>
                         <td>
@@ -1256,6 +1602,7 @@ const Invoice_list = () => {
                             value={formatDate(payment.updated_at)}
                             disabled
                             size="sm"
+                            style={{ minWidth: "140px" }} // Updated At
                           />
                         </td>
                         <td>
@@ -1268,75 +1615,172 @@ const Invoice_list = () => {
                           </Button>
                         </td>
                       </tr>
+
+                      // <tr key={index}>
+                      //   <td>
+                      //     <Form.Control
+                      //       type="text"
+                      //       value={payment.id || "New"}
+                      //       disabled
+                      //       size="sm"
+                      //     />
+                      //   </td>
+                      //   <td>
+                      //     <Form.Control
+                      //       type="number"
+                      //       step="0.01"
+                      //       min="0"
+                      //       value={payment.amount}
+                      //       onChange={(e) => handlePaymentChange(index, "amount", e.target.value)}
+                      //       size="sm"
+                      //       required
+                      //     />
+                      //   </td>
+                      //   <td>
+                      //     <Form.Control
+                      //       type="date"
+                      //       value={payment.payment_date?.split("T")[0] || payment.payment_date}
+                      //       onChange={(e) => handlePaymentChange(index, "payment_date", e.target.value)}
+                      //       size="sm"
+                      //       required
+                      //     />
+                      //   </td>
+                      //   <td>
+                      //     <Form.Select
+                      //       value={payment.method || ""}
+                      //       onChange={(e) => handlePaymentChange(index, "method", e.target.value)}
+                      //       size="sm"
+                      //     >
+                      //       <option value="">Select Method</option>
+                      //       <option value="bankTransfer">Bank Transfer</option>
+                      //       <option value="amex">Amex</option>
+                      //       <option value="googlePay">Google Pay</option>
+                      //       <option value="usdPortal">USD Portal</option>
+                      //     </Form.Select>
+                      //   </td>
+                      //   <td>
+                      //     <Form.Control
+                      //       type="text"
+                      //       value={payment.note || ""}
+                      //       onChange={(e) => handlePaymentChange(index, "note", e.target.value)}
+                      //       size="sm"
+                      //     />
+                      //   </td>
+                      //   <td>
+                      //     <Form.Control
+                      //       type="text"
+                      //       value={formatDate(payment.created_at)}
+                      //       disabled
+                      //       size="sm"
+                      //     />
+                      //   </td>
+                      //   <td>
+                      //     <Form.Control
+                      //       type="text"
+                      //       value={formatDate(payment.updated_at)}
+                      //       disabled
+                      //       size="sm"
+                      //     />
+                      //   </td>
+                      //   <td>
+                      //     <Button
+                      //       variant="outline-danger"
+                      //       size="sm"
+                      //       onClick={() => handleRemovePayment(index)}
+                      //     >
+                      //       <FaTrash />
+                      //     </Button>
+                      //   </td>
+                      // </tr>
                     ))}
                   </tbody>
                 </Table>
               </div>
               <div className="d-flex justify-content-between mt-3">
-                <Button variant="outline-primary" size="sm" onClick={handleAddPayment}>
+                <Button
+                  variant="outline-primary"
+                  size="sm"
+                  onClick={handleAddPayment}
+                >
                   <FaPlus className="me-1" /> Add Payment
                 </Button>
                 <div>
                   <strong>
-                    Total Received: {currencySymbols[currentInvoice?.currency] || currentInvoice?.currency}{" "}
+                    Total Received:{" "}
+                    {currencySymbols[currentInvoice?.currency] ||
+                      currentInvoice?.currency}{" "}
                     {selectedInvoicePayments
-                      .reduce((sum, payment) => sum + (parseFloat(payment.amount) || 0), 0)
+                      .reduce(
+                        (sum, payment) =>
+                          sum + (parseFloat(payment.amount) || 0),
+                        0
+                      )
                       .toFixed(2)}
                   </strong>
                 </div>
               </div>
             </div>
-          ) : (
-            selectedInvoicePayments.length > 0 ? (
-              <div className="table-responsive">
-                <Table hover className="align-middle">
-                  <thead className="table-light">
-                    <tr>
-                      <th>ID</th>
-                      <th>Amount</th>
-                      <th>Payment Date</th>
-                      <th>Method</th>
-                      <th>Note</th>
-                      <th>Created At</th>
-                      <th>Updated At</th>
+          ) : selectedInvoicePayments.length > 0 ? (
+            <div className="table-responsive">
+              <Table hover className="align-middle">
+                <thead className="table-light">
+                  <tr>
+                    <th>ID</th>
+                    <th>Amount</th>
+                    <th>Payment Date</th>
+                    <th>Method</th>
+                    <th>Note</th>
+                    <th>Created At</th>
+                    <th>Updated At</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {selectedInvoicePayments.map((payment) => (
+                    <tr key={payment.id}>
+                      <td>{payment.id}</td>
+                      <td>
+                        {currencySymbols[currentInvoice?.currency] ||
+                          currentInvoice?.currency}{" "}
+                        {payment.amount}
+                      </td>
+                      <td>{formatDate(payment.payment_date)}</td>
+                      <td>{payment.method || "N/A"}</td>
+                      <td>{payment.note || "N/A"}</td>
+                      <td>{formatDate(payment.created_at)}</td>
+                      <td>{formatDate(payment.updated_at)}</td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {selectedInvoicePayments.map((payment) => (
-                      <tr key={payment.id}>
-                        <td>{payment.id}</td>
-                        <td>
-                          {currencySymbols[currentInvoice?.currency] || currentInvoice?.currency} {payment.amount}
-                        </td>
-                        <td>{formatDate(payment.payment_date)}</td>
-                        <td>{payment.method || "N/A"}</td>
-                        <td>{payment.note || "N/A"}</td>
-                        <td>{formatDate(payment.created_at)}</td>
-                        <td>{formatDate(payment.updated_at)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </Table>
-                <div className="d-flex justify-content-end mt-3">
-                  <strong>
-                    Total Received: {currencySymbols[currentInvoice?.currency] || currentInvoice?.currency}{" "}
-                    {selectedInvoicePayments
-                      .reduce((sum, payment) => sum + (parseFloat(payment.amount) || 0), 0)
-                      .toFixed(2)}
-                  </strong>
-                </div>
+                  ))}
+                </tbody>
+              </Table>
+              <div className="d-flex justify-content-end mt-3">
+                <strong>
+                  Total Received:{" "}
+                  {currencySymbols[currentInvoice?.currency] ||
+                    currentInvoice?.currency}{" "}
+                  {selectedInvoicePayments
+                    .reduce(
+                      (sum, payment) => sum + (parseFloat(payment.amount) || 0),
+                      0
+                    )
+                    .toFixed(2)}
+                </strong>
               </div>
-            ) : (
-              <div className="text-center py-4">
-                <FaMoneyBillWave size={48} className="text-muted mb-3" />
-                <h5>No payment details available</h5>
-                <p className="text-muted">This invoice has no recorded payments.</p>
-              </div>
-            )
+            </div>
+          ) : (
+            <div className="text-center py-4">
+              <FaMoneyBillWave size={48} className="text-muted mb-3" />
+              <h5>No payment details available</h5>
+              <p className="text-muted">
+                This invoice has no recorded payments.
+              </p>
+            </div>
           )}
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowPaymentModal(false)}>
+          <Button
+            variant="secondary"
+            onClick={() => setShowPaymentModal(false)}
+          >
             Close
           </Button>
           {isEditingPayments ? (
@@ -1350,13 +1794,16 @@ const Invoice_list = () => {
               >
                 Cancel
               </Button>
-              <Button variant="primary" onClick={handleUpdatePayments} >
+              <Button variant="primary" onClick={handleUpdatePayments}>
                 {"Save Changes"}
                 {/* {isLoading ? "Saving..." : "Save Changes"} */}
               </Button>
             </>
           ) : (
-            <Button variant="outline-primary" onClick={() => setIsEditingPayments(true)}>
+            <Button
+              variant="outline-primary"
+              onClick={() => setIsEditingPayments(true)}
+            >
               <FaEdit className="me-1" /> Edit Payments
             </Button>
           )}
@@ -1382,7 +1829,9 @@ const Invoice_list = () => {
         <Modal.Body>
           <div className="alert alert-danger">
             <strong>Warning:</strong>{" "}
-            {isAdmin ? "This action cannot be undone." : "This will send a cancellation request for approval."}
+            {isAdmin
+              ? "This action cannot be undone."
+              : "This will send a cancellation request for approval."}
           </div>
           <p>
             {isAdmin
@@ -1432,7 +1881,11 @@ const Invoice_list = () => {
             Close
           </Button>
           {!isAdmin && (
-            <Button variant="danger" onClick={handleDeleteInvoice} disabled={!cancelRemark.trim()}>
+            <Button
+              variant="danger"
+              onClick={handleDeleteInvoice}
+              disabled={!cancelRemark.trim()}
+            >
               {isLoading ? "Submitting Request..." : "Submit Request"}
             </Button>
           )}

@@ -31,6 +31,7 @@ import Activity_management from '../role_management/activity_log/Activity_manage
 import Summary_report from '../summary/Summary_report';
 import Cheque_print_list from './cheque_print/Cheque_print_list';
 import Cheque_print_create from './cheque_print/Cheque_print_create';
+import Upload_Cost_Sheet from './upload_cost_sheet/Upload_Cost_Sheet';
 
 const Invoice_preview = ({ target }) => {
     const { selectedCompany } = useContext(CompanyContext);
@@ -314,6 +315,18 @@ const Invoice_preview = ({ target }) => {
         return <Cheque_print_create company={'aahaas'}/>;
       default:
         return <Cheque_print_create company={'aahaas'}/>;
+    }
+  }
+  if (target === "upload_cost_sheet") {
+   switch (selectedCompany) {
+      case "appleholidays":
+        return <Upload_Cost_Sheet company={'appleholidays'}/>;
+      case "shirmila":
+        return <Upload_Cost_Sheet company={'shirmila'} />;
+      case "aahaas":
+        return <Upload_Cost_Sheet company={'aahaas'}/>;
+      default:
+        return <Upload_Cost_Sheet company={'aahaas'}/>;
     }
   }
 

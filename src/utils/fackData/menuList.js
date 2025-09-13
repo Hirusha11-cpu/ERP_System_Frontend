@@ -149,6 +149,12 @@ export const menuList = [
       // },
       {
         id: 7,
+        name: "Upload Cost Sheet",
+        path: "/invoice/upload-cost-sheet",
+        subdropdownMenu: false,
+      },
+      {
+        id: 8,
         name: "Upload Invoice",
         path: "/invoice/upload",
         subdropdownMenu: false,

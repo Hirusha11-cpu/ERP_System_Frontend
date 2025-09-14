@@ -13,6 +13,8 @@ import {
   Tab,
   Tabs,
   Alert,
+  Dropdown,
+  Accordion,
 } from "react-bootstrap";
 import {
   FaFilter,
@@ -31,6 +33,8 @@ import {
   FaFileExcel,
   FaFilePdf,
   FaSync,
+  FaChevronDown,
+  FaTimes,
 } from "react-icons/fa";
 import { Bar, Pie } from "react-chartjs-2";
 import Chart from "chart.js/auto";
@@ -38,7 +42,7 @@ import axios from "axios";
 import { CompanyContext } from "../../../../contentApi/CompanyProvider";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { format, subDays, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays } from "date-fns";
+import { format, subDays, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isAfter, isBefore, parseISO } from "date-fns";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
@@ -70,6 +74,21 @@ const Invoice_summary = () => {
   const [ratesError, setRatesError] = useState(null);
   const [lastRatesUpdate, setLastRatesUpdate] = useState(null);
   const [reportPeriod, setReportPeriod] = useState("monthly");
+  
+  // Advanced filter states
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [paymentTypeFilter, setPaymentTypeFilter] = useState("all");
+  const [customerFilter, setCustomerFilter] = useState("");
+  const [minAmountFilter, setMinAmountFilter] = useState("");
+  const [maxAmountFilter, setMaxAmountFilter] = useState("");
+  const [balanceFilter, setBalanceFilter] = useState("all");
+  const [travelDateRange, setTravelDateRange] = useState([null, null]);
+  const [travelStartDate, travelEndDate] = travelDateRange;
+  const [accountFilter, setAccountFilter] = useState("all");
+  const [refundStatusFilter, setRefundStatusFilter] = useState("all");
+  const [showFilters, setShowFilters] = useState(false);
+  const [customersList, setCustomersList] = useState([]);
+  const [accountsList, setAccountsList] = useState([]);
 
   const token = localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
 
@@ -125,9 +144,19 @@ const Invoice_summary = () => {
           headers: { Authorization: `Bearer ${token}` },
         }),
       ]);
-      setInvoices(invoicesRes.data.data || []);
+      
+      const invoicesData = invoicesRes.data.data || [];
+      setInvoices(invoicesData);
       setSummaryData(summaryRes.data);
-      setFilteredInvoices(invoicesRes.data.data || []);
+      setFilteredInvoices(invoicesData);
+      
+      // Extract unique customers and accounts for filters
+      const uniqueCustomers = [...new Set(invoicesData.map(inv => inv.customer.name))];
+      setCustomersList(uniqueCustomers);
+      
+      const uniqueAccounts = [...new Set(invoicesData.map(inv => inv.account?.account_name).filter(Boolean))];
+      setAccountsList(uniqueAccounts);
+      
       fetchExchangeRates();
     } catch (err) {
       setError(err.message);
@@ -152,16 +181,20 @@ const Invoice_summary = () => {
     }
   }, [selectedCompany]);
 
-  // Apply filters
+  // Apply all filters
   useEffect(() => {
     let results = invoices;
+    
     if (results?.length > 0) {
+      // Date range filter
       if (startDate && endDate) {
         results = results.filter((invoice) => {
           const invoiceDate = new Date(invoice.issue_date);
           return invoiceDate >= startDate && invoiceDate <= endDate;
         });
       }
+      
+      // Search term filter
       if (searchTerm) {
         results = results.filter(
           (invoice) =>
@@ -169,9 +202,120 @@ const Invoice_summary = () => {
             invoice.customer.name.toLowerCase().includes(searchTerm.toLowerCase())
         );
       }
+      
+      // Status filter
+      if (statusFilter !== "all") {
+        results = results.filter((invoice) => {
+          if (statusFilter === "refund") return invoice.refund;
+          if (statusFilter === "draft") return invoice.status === "draft";
+          if (statusFilter === "confirmed") return invoice.status === "confirmed";
+          if (statusFilter === "paid") return !invoice.refund && parseFloat(invoice.balance) === 0;
+          return true;
+        });
+      }
+      
+      // Payment type filter
+      if (paymentTypeFilter !== "all") {
+        results = results.filter((invoice) => invoice.payment_type === paymentTypeFilter);
+      }
+      
+      // Customer filter
+      if (customerFilter) {
+        results = results.filter((invoice) => 
+          invoice.customer.name.toLowerCase().includes(customerFilter.toLowerCase())
+        );
+      }
+      
+      // Amount range filter
+      if (minAmountFilter) {
+        const minAmount = parseFloat(minAmountFilter);
+        results = results.filter((invoice) => 
+          parseFloat(convertCurrency(invoice.total_amount, invoice.currency)) >= minAmount
+        );
+      }
+      
+      if (maxAmountFilter) {
+        const maxAmount = parseFloat(maxAmountFilter);
+        results = results.filter((invoice) => 
+          parseFloat(convertCurrency(invoice.total_amount, invoice.currency)) <= maxAmount
+        );
+      }
+      
+      // Balance filter
+      if (balanceFilter !== "all") {
+        if (balanceFilter === "paid") {
+          results = results.filter((invoice) => parseFloat(invoice.balance) === 0);
+        } else if (balanceFilter === "partial") {
+          results = results.filter((invoice) => 
+            parseFloat(invoice.balance) > 0 && parseFloat(invoice.balance) < parseFloat(invoice.total_amount)
+          );
+        } else if (balanceFilter === "unpaid") {
+          results = results.filter((invoice) => parseFloat(invoice.balance) === parseFloat(invoice.total_amount));
+        } else if (balanceFilter === "overdue") {
+          const today = new Date();
+          results = results.filter((invoice) => 
+            parseFloat(invoice.balance) > 0 && new Date(invoice.due_date) < today
+          );
+        }
+      }
+      
+      // Travel date range filter
+      if (travelStartDate && travelEndDate) {
+        results = results.filter((invoice) => {
+          if (!invoice.start_date) return false;
+          const travelDate = new Date(invoice.start_date);
+          return travelDate >= travelStartDate && travelDate <= travelEndDate;
+        });
+      }
+      
+      // Account filter
+      if (accountFilter !== "all") {
+        results = results.filter((invoice) => 
+          invoice.account?.account_name === accountFilter
+        );
+      }
+      
+      // Refund status filter
+      if (refundStatusFilter !== "all") {
+        results = results.filter((invoice) => {
+          if (!invoice.refund) return false;
+          return invoice.refund.refund_status === refundStatusFilter;
+        });
+      }
+      
       setFilteredInvoices(results);
     }
-  }, [invoices, searchTerm, startDate, endDate]);
+  }, [
+    invoices, 
+    searchTerm, 
+    startDate, 
+    endDate,
+    statusFilter,
+    paymentTypeFilter,
+    customerFilter,
+    minAmountFilter,
+    maxAmountFilter,
+    balanceFilter,
+    travelStartDate,
+    travelEndDate,
+    accountFilter,
+    refundStatusFilter
+  ]);
+
+  // Clear all filters
+  const clearAllFilters = () => {
+    setSearchTerm("");
+    setDateRange([subDays(new Date(), 30), new Date()]);
+    setStatusFilter("all");
+    setPaymentTypeFilter("all");
+    setCustomerFilter("");
+    setMinAmountFilter("");
+    setMaxAmountFilter("");
+    setBalanceFilter("all");
+    setTravelDateRange([null, null]);
+    setAccountFilter("all");
+    setRefundStatusFilter("all");
+  };
 
   // Compute summary reports
   const computeSummaryReports = () => {
@@ -264,28 +408,65 @@ const Invoice_summary = () => {
     };
   };
 
-  // Excel export
+  // Excel export with current filters
   const exportToExcel = () => {
     const wsData = filteredInvoices.map((invoice) => ({
       "Invoice #": invoice.invoice_number,
       Customer: invoice.customer.name,
       Date: format(new Date(invoice.issue_date), "MMM dd, yyyy"),
-      Amount: `${convertCurrency(invoice.total_amount, invoice.currency)} ${currency}`,
-      Profit: `${convertCurrency(invoice.profit?.profit || 0, invoice.currency)} ${currency}`,
-      Status: invoice.refund ? `Refund: ${invoice.refund.refund_status}` : "Paid",
+      "Due Date": format(new Date(invoice.due_date), "MMM dd, yyyy"),
+      Amount: parseFloat(convertCurrency(invoice.total_amount, invoice.currency)),
+      Currency: currency,
+      "Amount Received": parseFloat(convertCurrency(invoice.amount_received, invoice.currency)),
+      Balance: parseFloat(convertCurrency(invoice.balance, invoice.currency)),
+      Profit: parseFloat(convertCurrency(invoice.profit?.profit || 0, invoice.currency)),
+      Status: invoice.refund ? `Refund: ${invoice.refund.refund_status}` : invoice.status,
+      "Payment Type": invoice.payment_type,
+      "Travel Start": invoice.start_date ? format(new Date(invoice.start_date), "MMM dd, yyyy") : "N/A",
+      "Travel End": invoice.end_date ? format(new Date(invoice.end_date), "MMM dd, yyyy") : "N/A",
     }));
+    
     const ws = XLSX.utils.json_to_sheet(wsData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Invoices");
-    XLSX.write_file(wb, `invoices_${format(new Date(), "yyyyMMdd")}.xlsx`);
+    
+    // Add a summary sheet
+    const summaryData = [
+      ["Report Summary", ""],
+      ["Generated On", new Date().toLocaleString()],
+      ["Currency", currency],
+      ["Date Range", `${format(startDate, "MMM dd, yyyy")} - ${format(endDate, "MMM dd, yyyy")}`],
+      ["Total Invoices", filteredInvoices.length],
+      ["Total Amount", filteredInvoices.reduce((sum, inv) => sum + parseFloat(convertCurrency(inv.total_amount, inv.currency)), 0).toFixed(2)],
+      ["Total Profit", filteredInvoices.reduce((sum, inv) => sum + parseFloat(convertCurrency(inv.profit?.profit || 0, inv.currency)), 0).toFixed(2)],
+    ];
+    
+    const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
+    XLSX.utils.book_append_sheet(wb, wsSummary, "Summary");
+    
+    XLSX.write_file(wb, `invoices_${format(new Date(), "yyyyMMdd_HHmmss")}.xlsx`);
   };
 
-  // PDF export
+  // PDF export with current filters
   const exportToPDF = () => {
     const doc = new jsPDF();
-    doc.text("Invoice Summary", 20, 20);
+    
+    // Add title and date
+    doc.setFontSize(16);
+    doc.text("Invoice Summary Report", 20, 20);
+    doc.setFontSize(10);
+    doc.text(`Generated on: ${new Date().toLocaleString()}`, 20, 30);
+    doc.text(`Currency: ${currency}`, 20, 35);
+    doc.text(`Date Range: ${format(startDate, "MMM dd, yyyy")} - ${format(endDate, "MMM dd, yyyy")}`, 20, 40);
+    
+    // Add summary information
+    doc.text(`Total Invoices: ${filteredInvoices.length}`, 20, 50);
+    doc.text(`Total Amount: ${filteredInvoices.reduce((sum, inv) => sum + parseFloat(convertCurrency(inv.total_amount, inv.currency)), 0).toFixed(2)} ${currency}`, 20, 55);
+    doc.text(`Total Profit: ${filteredInvoices.reduce((sum, inv) => sum + parseFloat(convertCurrency(inv.profit?.profit || 0, inv.currency)), 0).toFixed(2)} ${currency}`, 20, 60);
+    
+    // Add table
     doc.autoTable({
-      startY: 30,
+      startY: 70,
       head: [["Invoice #", "Customer", "Date", "Amount", "Profit", "Status"]],
       body: filteredInvoices.map((invoice) => [
         invoice.invoice_number,
@@ -293,10 +474,13 @@ const Invoice_summary = () => {
         format(new Date(invoice.issue_date), "MMM dd, yyyy"),
         `${convertCurrency(invoice.total_amount, invoice.currency)} ${currency}`,
         `${convertCurrency(invoice.profit?.profit || 0, invoice.currency)} ${currency}`,
-        invoice.refund ? `Refund: ${invoice.refund.refund_status}` : "Paid",
+        invoice.refund ? `Refund: ${invoice.refund.refund_status}` : invoice.status,
       ]),
+      theme: 'grid',
+      headStyles: { fillColor: [41, 128, 185] },
     });
-    doc.save(`invoices_${format(new Date(), "yyyyMMdd")}.pdf`);
+    
+    doc.save(`invoices_${format(new Date(), "yyyyMMdd_HHmmss")}.pdf`);
   };
 
   // Handle view invoice
@@ -376,6 +560,28 @@ const Invoice_summary = () => {
 
       {/* Filters */}
       <Card className="mb-4">
+        <Card.Header className="d-flex justify-content-between align-items-center">
+          <div>
+            <FaFilter className="me-2" />
+            Filters
+            <Badge bg="secondary" className="ms-2">
+              {filteredInvoices.length} of {invoices.length} invoices
+            </Badge>
+          </div>
+          <div>
+            <Button
+              variant="outline-secondary"
+              size="sm"
+              className="me-2"
+              onClick={() => setShowFilters(!showFilters)}
+            >
+              {showFilters ? "Hide Filters" : "Show Filters"} <FaChevronDown />
+            </Button>
+            <Button variant="outline-danger" size="sm" onClick={clearAllFilters}>
+              Clear All <FaTimes />
+            </Button>
+          </div>
+        </Card.Header>
         <Card.Body>
           <Row>
             <Col md={3}>
@@ -396,7 +602,7 @@ const Invoice_summary = () => {
               <Form.Group>
                 <Form.Label>
                   <FaCalendarAlt className="me-2" />
-                  Date Range
+                  Invoice Date Range
                 </Form.Label>
                 <DatePicker
                   selectsRange={true}
@@ -451,6 +657,141 @@ const Invoice_summary = () => {
               </Form.Group>
             </Col>
           </Row>
+
+          {/* Advanced Filters */}
+          {showFilters && (
+            <Accordion defaultActiveKey="0" className="mt-3">
+              <Accordion.Item eventKey="0">
+                <Accordion.Header>Advanced Filters</Accordion.Header>
+                <Accordion.Body>
+                  <Row>
+                    <Col md={3}>
+                      <Form.Group>
+                        <Form.Label>Status</Form.Label>
+                        <Form.Select
+                          value={statusFilter}
+                          onChange={(e) => setStatusFilter(e.target.value)}
+                        >
+                          <option value="all">All Statuses</option>
+                          <option value="draft">Draft</option>
+                          <option value="confirmed">Confirmed</option>
+                          <option value="paid">Paid</option>
+                          <option value="refund">With Refund</option>
+                        </Form.Select>
+                      </Form.Group>
+                    </Col>
+                    <Col md={3}>
+                      <Form.Group>
+                        <Form.Label>Payment Type</Form.Label>
+                        <Form.Select
+                          value={paymentTypeFilter}
+                          onChange={(e) => setPaymentTypeFilter(e.target.value)}
+                        >
+                          <option value="all">All Types</option>
+                          <option value="credit">Credit</option>
+                          <option value="non-credit">Non-Credit</option>
+                        </Form.Select>
+                      </Form.Group>
+                    </Col>
+                    <Col md={3}>
+                      <Form.Group>
+                        <Form.Label>Customer</Form.Label>
+                        <Form.Control
+                          as="select"
+                          value={customerFilter}
+                          onChange={(e) => setCustomerFilter(e.target.value)}
+                        >
+                          <option value="">All Customers</option>
+                          {customersList.map((customer, idx) => (
+                            <option key={idx} value={customer}>{customer}</option>
+                          ))}
+                        </Form.Control>
+                      </Form.Group>
+                    </Col>
+                    <Col md={3}>
+                      <Form.Group>
+                        <Form.Label>Account</Form.Label>
+                        <Form.Select
+                          value={accountFilter}
+                          onChange={(e) => setAccountFilter(e.target.value)}
+                        >
+                          <option value="all">All Accounts</option>
+                          {accountsList.map((account, idx) => (
+                            <option key={idx} value={account}>{account}</option>
+                          ))}
+                        </Form.Select>
+                      </Form.Group>
+                    </Col>
+                  </Row>
+                  <Row className="mt-3">
+                    <Col md={3}>
+                      <Form.Group>
+                        <Form.Label>Amount Range ({currency})</Form.Label>
+                        <div className="d-flex">
+                          <Form.Control
+                            type="number"
+                            placeholder="Min"
+                            value={minAmountFilter}
+                            onChange={(e) => setMinAmountFilter(e.target.value)}
+                            className="me-2"
+                          />
+                          <Form.Control
+                            type="number"
+                            placeholder="Max"
+                            value={maxAmountFilter}
+                            onChange={(e) => setMaxAmountFilter(e.target.value)}
+                          />
+                        </div>
+                      </Form.Group>
+                    </Col>
+                    <Col md={3}>
+                      <Form.Group>
+                        <Form.Label>Balance Status</Form.Label>
+                        <Form.Select
+                          value={balanceFilter}
+                          onChange={(e) => setBalanceFilter(e.target.value)}
+                        >
+                          <option value="all">All</option>
+                          <option value="paid">Fully Paid</option>
+                          <option value="partial">Partial Payment</option>
+                          <option value="unpaid">Unpaid</option>
+                          <option value="overdue">Overdue</option>
+                        </Form.Select>
+                      </Form.Group>
+                    </Col>
+                    <Col md={3}>
+                      <Form.Group>
+                        <Form.Label>Travel Date Range</Form.Label>
+                        <DatePicker
+                          selectsRange={true}
+                          startDate={travelStartDate}
+                          endDate={travelEndDate}
+                          onChange={(update) => setTravelDateRange(update)}
+                          isClearable={true}
+                          className="form-control"
+                          placeholderText="Select travel date range"
+                        />
+                      </Form.Group>
+                    </Col>
+                    <Col md={3}>
+                      <Form.Group>
+                        <Form.Label>Refund Status</Form.Label>
+                        <Form.Select
+                          value={refundStatusFilter}
+                          onChange={(e) => setRefundStatusFilter(e.target.value)}
+                        >
+                          <option value="all">All</option>
+                          <option value="pending">Pending</option>
+                          <option value="confirmed">Confirmed</option>
+                          <option value="rejected">Rejected</option>
+                        </Form.Select>
+                      </Form.Group>
+                    </Col>
+                  </Row>
+                </Accordion.Body>
+              </Accordion.Item>
+            </Accordion>
+          )}
         </Card.Body>
       </Card>
 
@@ -521,8 +862,10 @@ const Invoice_summary = () => {
                     <th>Invoice #</th>
                     <th>Customer</th>
                     <th>Date</th>
-                    <th>Amount</th>
-                    <th>Profit</th>
+                    <th>Due Date</th>
+                    <th>Amount ({currency})</th>
+                    <th>Profit ({currency})</th>
+                    <th>Balance ({currency})</th>
                     <th>Status</th>
                     <th>Actions</th>
                   </tr>
@@ -533,7 +876,8 @@ const Invoice_summary = () => {
                       <td>{invoice.invoice_number}</td>
                       <td>{invoice.customer.name}</td>
                       <td>{format(new Date(invoice.issue_date), "MMM dd, yyyy")}</td>
-                      <td>{convertCurrency(invoice.total_amount, invoice.currency)} {currency}</td>
+                      <td>{format(new Date(invoice.due_date), "MMM dd, yyyy")}</td>
+                      <td>{convertCurrency(invoice.total_amount, invoice.currency)}</td>
                       <td>
                         <Badge
                           bg={
@@ -544,7 +888,12 @@ const Invoice_summary = () => {
                               : "warning"
                           }
                         >
-                          {convertCurrency(invoice.profit?.profit || 0, invoice.currency)} {currency}
+                          {convertCurrency(invoice.profit?.profit || 0, invoice.currency)}
+                        </Badge>
+                      </td>
+                      <td>
+                        <Badge bg={parseFloat(invoice.balance) > 0 ? "warning" : "success"}>
+                          {convertCurrency(invoice.balance, invoice.currency)}
                         </Badge>
                       </td>
                       <td>
@@ -566,7 +915,9 @@ const Invoice_summary = () => {
                             </Badge>
                           </OverlayTrigger>
                         ) : (
-                          <Badge bg="success">Paid</Badge>
+                          <Badge bg={invoice.status === "confirmed" ? "success" : "secondary"}>
+                            {invoice.status}
+                          </Badge>
                         )}
                       </td>
                       <td>
@@ -598,8 +949,8 @@ const Invoice_summary = () => {
                   <tr>
                     <th>Invoice #</th>
                     <th>Customer</th>
-                    <th>Amount</th>
-                    <th>Refund Amount</th>
+                    <th>Amount ({currency})</th>
+                    <th>Refund Amount ({currency})</th>
                     <th>Reason</th>
                     <th>Status</th>
                     <th>Actions</th>
@@ -612,8 +963,8 @@ const Invoice_summary = () => {
                       <tr key={invoice.id}>
                         <td>{invoice.invoice_number}</td>
                         <td>{invoice.customer.name}</td>
-                        <td>{convertCurrency(invoice.total_amount, invoice.currency)} {currency}</td>
-                        <td>{convertCurrency(invoice.refund.refund_amount, invoice.currency)} {currency}</td>
+                        <td>{convertCurrency(invoice.total_amount, invoice.currency)}</td>
+                        <td>{convertCurrency(invoice.refund.refund_amount, invoice.currency)}</td>
                         <td><small>{invoice.refund.refund_reason}</small></td>
                         <td>
                           <Badge
@@ -659,7 +1010,9 @@ const Invoice_summary = () => {
                   <tr>
                     <th>Invoice #</th>
                     <th>Customer</th>
-                    <th>Amount</th>
+                    <th>Amount ({currency})</th>
+                    <th>Balance ({currency})</th>
+                    <th>Due Date</th>
                     <th>Status</th>
                     <th>Actions</th>
                   </tr>
@@ -671,7 +1024,9 @@ const Invoice_summary = () => {
                       <tr key={invoice.id}>
                         <td>{invoice.invoice_number}</td>
                         <td>{invoice.customer.name}</td>
-                        <td>{convertCurrency(invoice.total_amount, invoice.currency)} {currency}</td>
+                        <td>{convertCurrency(invoice.total_amount, invoice.currency)}</td>
+                        <td>{convertCurrency(invoice.balance, invoice.currency)}</td>
+                        <td>{format(new Date(invoice.due_date), "MMM dd, yyyy")}</td>
                         <td>
                           <Badge
                             bg={
@@ -757,7 +1112,10 @@ const Invoice_summary = () => {
                 <Col md={6}>
                   <h5>Invoice Summary</h5>
                   <p><strong>Date:</strong> {format(new Date(selectedInvoice.issue_date), "MMM dd, yyyy")}</p>
+                  <p><strong>Due Date:</strong> {format(new Date(selectedInvoice.due_date), "MMM dd, yyyy")}</p>
                   <p><strong>Total Amount:</strong> {convertCurrency(selectedInvoice.total_amount, selectedInvoice.currency)} {currency}</p>
+                  <p><strong>Amount Received:</strong> {convertCurrency(selectedInvoice.amount_received, selectedInvoice.currency)} {currency}</p>
+                  <p><strong>Balance:</strong> {convertCurrency(selectedInvoice.balance, selectedInvoice.currency)} {currency}</p>
                   <p>
                     <strong>Profit:</strong>{" "}
                     <Badge
@@ -787,7 +1145,9 @@ const Invoice_summary = () => {
                         Refund: {selectedInvoice.refund.refund_status}
                       </Badge>
                     ) : (
-                      <Badge bg="success">Paid</Badge>
+                      <Badge bg={selectedInvoice.status === "confirmed" ? "success" : "secondary"}>
+                        {selectedInvoice.status}
+                      </Badge>
                     )}
                   </p>
                 </Col>

@@ -825,7 +825,7 @@ const Invoice_list = () => {
               overlay={<Tooltip>Filter invoices by days from today</Tooltip>}
             >
               <div className="d-flex align-items-center gap-2" style={{ maxWidth: "280px" }}>
-                <FloatingLabel label="Days from Today" className="flex-grow-1">
+                <FloatingLabel label="" className="flex-grow-1">
                   <Form.Control
                     type="number"
                     placeholder="Days"

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useRef } from "react";
+import React, { useState, useEffect, useContext, useMemo, useCallback } from "react";
 import {
   Table,
   Card,
@@ -13,8 +13,8 @@ import {
   Tab,
   Tabs,
   Alert,
-  Dropdown,
   Accordion,
+  Spinner
 } from "react-bootstrap";
 import {
   FaFilter,
@@ -27,22 +27,18 @@ import {
   FaDownload,
   FaEye,
   FaCalendarAlt,
-  FaGlobe,
   FaBuilding,
-  FaUser,
   FaFileExcel,
   FaFilePdf,
   FaSync,
   FaChevronDown,
   FaTimes,
 } from "react-icons/fa";
-import { Bar, Pie } from "react-chartjs-2";
-import Chart from "chart.js/auto";
 import axios from "axios";
 import { CompanyContext } from "../../../../contentApi/CompanyProvider";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import { format, subDays, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isAfter, isBefore, parseISO } from "date-fns";
+import { format, subDays, startOfMonth, endOfMonth, startOfWeek, endOfWeek } from "date-fns";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -74,6 +70,7 @@ const Invoice_summary = () => {
   const [ratesError, setRatesError] = useState(null);
   const [lastRatesUpdate, setLastRatesUpdate] = useState(null);
   const [reportPeriod, setReportPeriod] = useState("monthly");
+  const [exporting, setExporting] = useState({ excel: false, pdf: false });
   
   // Advanced filter states
   const [statusFilter, setStatusFilter] = useState("all");
@@ -89,18 +86,31 @@ const Invoice_summary = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [customersList, setCustomersList] = useState([]);
   const [accountsList, setAccountsList] = useState([]);
-    const [exporting, setExporting] = useState({ excel: false, pdf: false });
-
 
   const token = localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
 
+  // Memoized company mapping
+  const companyMap = useMemo(() => ({
+    appleholidays: 2,
+    aahaas: 3,
+    shirmila: 1,
+  }), []);
+
+  // Memoized currency conversion
+  const convertCurrency = useCallback((amount, invoiceCurrency) => {
+    if (!amount || !invoiceCurrency || invoiceCurrency === currency) return amount;
+    const rate = exchangeRates[invoiceCurrency] / exchangeRates[currency];
+    return (parseFloat(amount) * rate).toFixed(2);
+  }, [currency, exchangeRates]);
+
   // Fetch exchange rates
-  const fetchExchangeRates = async () => {
+  const fetchExchangeRates = useCallback(async () => {
     setRatesLoading(true);
     setRatesError(null);
     try {
       const response = await axios.get("/api/currency/rates?from=USD", {
         headers: { Authorization: `Bearer ${token}` },
+        timeout: 10000 // 10 second timeout
       });
       const data = response.data;
       if (data.rates && data.base === "USD") {
@@ -121,39 +131,38 @@ const Invoice_summary = () => {
       }
     } catch (error) {
       console.error("Error fetching rates:", error);
-      setRatesError("Failed to fetch rates. Using fallback values.");
+      // setRatesError("Failed to fetch rates. Using fallback values.");`
     } finally {
       setRatesLoading(false);
     }
-  };
-
-  // Convert amount to selected currency
-  const convertCurrency = (amount, invoiceCurrency) => {
-    if (!amount || !invoiceCurrency || invoiceCurrency === currency) return amount;
-    const rate = exchangeRates[invoiceCurrency] / exchangeRates[currency];
-    return (amount * rate).toFixed(2);
-  };
+  }, [token]);
 
   // Fetch invoices and summary
-  const fetchData = async (companyNumber) => {
+  const fetchData = useCallback(async (companyNumber) => {
     try {
       setLoading(true);
+      setError(null);
+      
       const [invoicesRes, summaryRes] = await Promise.all([
         axios.get(`/api/invoices?company_id=${companyNumber}`, {
           headers: { Authorization: `Bearer ${token}` },
+          timeout: 30000 // 30 second timeout
         }),
-        axios.get(`/api/invoicess/summary?company_id=${companyNumber}`, {
+        axios.get(`/api/invoices/summary?company_id=${companyNumber}`, {
           headers: { Authorization: `Bearer ${token}` },
+          timeout: 30000
+        }).catch(err => {
+          console.warn("Summary API not available, using fallback");
+          return { data: {} };
         }),
       ]);
       
       const invoicesData = invoicesRes.data.data || [];
       setInvoices(invoicesData);
       setSummaryData(summaryRes.data);
-      setFilteredInvoices(invoicesData);
       
       // Extract unique customers and accounts for filters
-      const uniqueCustomers = [...new Set(invoicesData.map(inv => inv.customer.name))];
+      const uniqueCustomers = [...new Set(invoicesData.map(inv => inv.customer?.name).filter(Boolean))];
       setCustomersList(uniqueCustomers);
       
       const uniqueAccounts = [...new Set(invoicesData.map(inv => inv.account?.account_name).filter(Boolean))];
@@ -161,132 +170,90 @@ const Invoice_summary = () => {
       
       fetchExchangeRates();
     } catch (err) {
-      setError(err.message);
+      console.error("Error fetching data:", err);
+      setError(err.response?.data?.message || "Failed to load data. Please try again.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [token, fetchExchangeRates]);
 
   useEffect(() => {
     if (!selectedCompany) return;
-    const companyMap = {
-      appleholidays: 2,
-      aahaas: 3,
-      shirmila: 1,
-    };
+    
     const mappedCompanyNo = companyMap[selectedCompany.toLowerCase()] || 3;
     setCompanyNo(mappedCompanyNo);
-    if (mappedCompanyNo) {
-      fetchData(mappedCompanyNo);
-    } else {
-      fetchData(3);
-    }
-  }, [selectedCompany]);
+    fetchData(mappedCompanyNo);
+  }, [selectedCompany, companyMap, fetchData]);
 
-  // Apply all filters
+  // Apply all filters - memoized to prevent unnecessary recalculations
   useEffect(() => {
-    let results = invoices;
-    
-    if (results?.length > 0) {
+    if (invoices.length === 0) {
+      setFilteredInvoices([]);
+      return;
+    }
+
+    const filtered = invoices.filter((invoice) => {
       // Date range filter
       if (startDate && endDate) {
-        results = results.filter((invoice) => {
-          const invoiceDate = new Date(invoice.issue_date);
-          return invoiceDate >= startDate && invoiceDate <= endDate;
-        });
+        const invoiceDate = new Date(invoice.issue_date);
+        if (invoiceDate < startDate || invoiceDate > endDate) return false;
       }
       
       // Search term filter
       if (searchTerm) {
-        results = results.filter(
-          (invoice) =>
-            invoice.invoice_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            invoice.customer.name.toLowerCase().includes(searchTerm.toLowerCase())
-        );
+        const searchLower = searchTerm.toLowerCase();
+        if (!invoice.invoice_number?.toLowerCase().includes(searchLower) &&
+            !invoice.customer?.name?.toLowerCase().includes(searchLower)) {
+          return false;
+        }
       }
       
       // Status filter
       if (statusFilter !== "all") {
-        results = results.filter((invoice) => {
-          if (statusFilter === "refund") return invoice.refund;
-          if (statusFilter === "draft") return invoice.status === "draft";
-          if (statusFilter === "confirmed") return invoice.status === "confirmed";
-          if (statusFilter === "paid") return !invoice.refund && parseFloat(invoice.balance) === 0;
-          return true;
-        });
+        if (statusFilter === "refund" && !invoice.refund) return false;
+        if (statusFilter === "draft" && invoice.status !== "draft") return false;
+        if (statusFilter === "confirmed" && invoice.status !== "confirmed") return false;
+        if (statusFilter === "paid" && (invoice.refund || parseFloat(invoice.balance) !== 0)) return false;
       }
       
       // Payment type filter
-      if (paymentTypeFilter !== "all") {
-        results = results.filter((invoice) => invoice.payment_type === paymentTypeFilter);
-      }
+      if (paymentTypeFilter !== "all" && invoice.payment_type !== paymentTypeFilter) return false;
       
       // Customer filter
-      if (customerFilter) {
-        results = results.filter((invoice) => 
-          invoice.customer.name.toLowerCase().includes(customerFilter.toLowerCase())
-        );
-      }
+      if (customerFilter && !invoice.customer?.name?.toLowerCase().includes(customerFilter.toLowerCase())) return false;
       
       // Amount range filter
-      if (minAmountFilter) {
-        const minAmount = parseFloat(minAmountFilter);
-        results = results.filter((invoice) => 
-          parseFloat(convertCurrency(invoice.total_amount, invoice.currency)) >= minAmount
-        );
-      }
-      
-      if (maxAmountFilter) {
-        const maxAmount = parseFloat(maxAmountFilter);
-        results = results.filter((invoice) => 
-          parseFloat(convertCurrency(invoice.total_amount, invoice.currency)) <= maxAmount
-        );
-      }
+      const invoiceAmount = parseFloat(convertCurrency(invoice.total_amount, invoice.currency));
+      if (minAmountFilter && invoiceAmount < parseFloat(minAmountFilter)) return false;
+      if (maxAmountFilter && invoiceAmount > parseFloat(maxAmountFilter)) return false;
       
       // Balance filter
+      const balance = parseFloat(invoice.balance);
+      const totalAmount = parseFloat(invoice.total_amount);
+      
       if (balanceFilter !== "all") {
-        if (balanceFilter === "paid") {
-          results = results.filter((invoice) => parseFloat(invoice.balance) === 0);
-        } else if (balanceFilter === "partial") {
-          results = results.filter((invoice) => 
-            parseFloat(invoice.balance) > 0 && parseFloat(invoice.balance) < parseFloat(invoice.total_amount)
-          );
-        } else if (balanceFilter === "unpaid") {
-          results = results.filter((invoice) => parseFloat(invoice.balance) === parseFloat(invoice.total_amount));
-        } else if (balanceFilter === "overdue") {
-          const today = new Date();
-          results = results.filter((invoice) => 
-            parseFloat(invoice.balance) > 0 && new Date(invoice.due_date) < today
-          );
-        }
+        if (balanceFilter === "paid" && balance !== 0) return false;
+        if (balanceFilter === "partial" && (balance <= 0 || balance >= totalAmount)) return false;
+        if (balanceFilter === "unpaid" && balance !== totalAmount) return false;
+        if (balanceFilter === "overdue" && (balance <= 0 || new Date(invoice.due_date) >= new Date())) return false;
       }
       
       // Travel date range filter
-      if (travelStartDate && travelEndDate) {
-        results = results.filter((invoice) => {
-          if (!invoice.start_date) return false;
-          const travelDate = new Date(invoice.start_date);
-          return travelDate >= travelStartDate && travelDate <= travelEndDate;
-        });
+      if (travelStartDate && travelEndDate && invoice.start_date) {
+        const travelDate = new Date(invoice.start_date);
+        if (travelDate < travelStartDate || travelDate > travelEndDate) return false;
       }
       
       // Account filter
-      if (accountFilter !== "all") {
-        results = results.filter((invoice) => 
-          invoice.account?.account_name === accountFilter
-        );
-      }
+      if (accountFilter !== "all" && invoice.account?.account_name !== accountFilter) return false;
       
       // Refund status filter
-      if (refundStatusFilter !== "all") {
-        results = results.filter((invoice) => {
-          if (!invoice.refund) return false;
-          return invoice.refund.refund_status === refundStatusFilter;
-        });
-      }
+      if (refundStatusFilter !== "all" && (!invoice.refund || invoice.refund.refund_status !== refundStatusFilter)) return false;
       
-      setFilteredInvoices(results);
-    }
+      return true;
+    });
+
+    setFilteredInvoices(filtered);
   }, [
     invoices, 
     searchTerm, 
@@ -301,11 +268,12 @@ const Invoice_summary = () => {
     travelStartDate,
     travelEndDate,
     accountFilter,
-    refundStatusFilter
+    refundStatusFilter,
+    convertCurrency
   ]);
 
   // Clear all filters
-  const clearAllFilters = () => {
+  const clearAllFilters = useCallback(() => {
     setSearchTerm("");
     setDateRange([subDays(new Date(), 30), new Date()]);
     setStatusFilter("all");
@@ -317,11 +285,11 @@ const Invoice_summary = () => {
     setTravelDateRange([null, null]);
     setAccountFilter("all");
     setRefundStatusFilter("all");
-  };
+  }, []);
 
-  // Compute summary reports
-  const computeSummaryReports = () => {
-    const summaries = { daily: {}, weekly: {}, monthly: {} };
+  // Memoized summary reports computation
+  const summaries = useMemo(() => {
+    const result = { daily: {}, weekly: {}, monthly: {} };
     const categories = [
       "new_invoices",
       "cancelled_invoices",
@@ -341,18 +309,18 @@ const Invoice_summary = () => {
       // Initialize summaries
       ["daily", "weekly", "monthly"].forEach((period) => {
         const key = period === "daily" ? dayKey : period === "weekly" ? weekStart : monthKey;
-        if (!summaries[period][key]) {
-          summaries[period][key] = {};
+        if (!result[period][key]) {
+          result[period][key] = {};
           categories.forEach((cat) => {
-            summaries[period][key][cat] = { count: 0, amount: 0 };
+            result[period][key][cat] = { count: 0, amount: 0 };
           });
         }
       });
 
       // Categorize invoices
       const addToCategory = (category, period, key) => {
-        summaries[period][key][category].count += 1;
-        summaries[period][key][category].amount += amount;
+        result[period][key][category].count += 1;
+        result[period][key][category].amount += amount;
       };
 
       if (invoiceDate >= subDays(new Date(), 30)) {
@@ -387,104 +355,99 @@ const Invoice_summary = () => {
       }
     });
 
-    return summaries;
-  };
-
-  const summaries = computeSummaryReports();
-
-  // Chart data for summaries
-  const getChartData = (period, category) => {
-    const data = summaries[period];
-    const labels = Object.keys(data).sort();
-    return {
-      labels,
-      datasets: [
-        {
-          label: `${category.replace("_", " ")} Amount`,
-          data: labels.map((key) => data[key][category].amount.toFixed(2)),
-          backgroundColor: "rgba(75, 192, 192, 0.5)",
-          borderColor: "rgba(75, 192, 192, 1)",
-          borderWidth: 1,
-        },
-      ],
-    };
-  };
+    return result;
+  }, [filteredInvoices, convertCurrency]);
 
   // Excel export with current filters
-  const exportToExcel = () => {
-    const wsData = filteredInvoices.map((invoice) => ({
-      "Invoice #": invoice.invoice_number,
-      Customer: invoice.customer.name,
-      Date: format(new Date(invoice.issue_date), "MMM dd, yyyy"),
-      "Due Date": format(new Date(invoice.due_date), "MMM dd, yyyy"),
-      Amount: parseFloat(convertCurrency(invoice.total_amount, invoice.currency)),
-      Currency: currency,
-      "Amount Received": parseFloat(convertCurrency(invoice.amount_received, invoice.currency)),
-      Balance: parseFloat(convertCurrency(invoice.balance, invoice.currency)),
-      Profit: parseFloat(convertCurrency(invoice.profit?.profit || 0, invoice.currency)),
-      Status: invoice.refund ? `Refund: ${invoice.refund.refund_status}` : invoice.status,
-      "Payment Type": invoice.payment_type,
-      "Travel Start": invoice.start_date ? format(new Date(invoice.start_date), "MMM dd, yyyy") : "N/A",
-      "Travel End": invoice.end_date ? format(new Date(invoice.end_date), "MMM dd, yyyy") : "N/A",
-    }));
-    
-    const ws = XLSX.utils.json_to_sheet(wsData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Invoices");
-    
-    // Add a summary sheet
-    const summaryData = [
-      ["Report Summary", ""],
-      ["Generated On", new Date().toLocaleString()],
-      ["Currency", currency],
-      ["Date Range", `${format(startDate, "MMM dd, yyyy")} - ${format(endDate, "MMM dd, yyyy")}`],
-      ["Total Invoices", filteredInvoices.length],
-      ["Total Amount", filteredInvoices.reduce((sum, inv) => sum + parseFloat(convertCurrency(inv.total_amount, inv.currency)), 0).toFixed(2)],
-      ["Total Profit", filteredInvoices.reduce((sum, inv) => sum + parseFloat(convertCurrency(inv.profit?.profit || 0, inv.currency)), 0).toFixed(2)],
-    ];
-    
-    const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
-    XLSX.utils.book_append_sheet(wb, wsSummary, "Summary");
-    
-    XLSX.writeFile(wb, `invoices_${format(new Date(), "yyyyMMdd_HHmmss")}.xlsx`);
-  };
+  const exportToExcel = useCallback(async () => {
+    setExporting({ ...exporting, excel: true });
+    try {
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      const wsData = filteredInvoices.map((invoice) => ({
+        "Invoice #": invoice.invoice_number,
+        Customer: invoice.customer?.name || "N/A",
+        Date: format(new Date(invoice.issue_date), "MMM dd, yyyy"),
+        "Due Date": format(new Date(invoice.due_date), "MMM dd, yyyy"),
+        Amount: parseFloat(convertCurrency(invoice.total_amount, invoice.currency)),
+        Currency: currency,
+        "Amount Received": parseFloat(convertCurrency(invoice.amount_received, invoice.currency)),
+        Balance: parseFloat(convertCurrency(invoice.balance, invoice.currency)),
+        Profit: parseFloat(convertCurrency(invoice.profit?.profit || 0, invoice.currency)),
+        Status: invoice.refund ? `Refund: ${invoice.refund.refund_status}` : invoice.status,
+        "Payment Type": invoice.payment_type,
+        "Travel Start": invoice.start_date ? format(new Date(invoice.start_date), "MMM dd, yyyy") : "N/A",
+        "Travel End": invoice.end_date ? format(new Date(invoice.end_date), "MMM dd, yyyy") : "N/A",
+      }));
+      
+      const ws = XLSX.utils.json_to_sheet(wsData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Invoices");
+      
+      const summaryData = [
+        ["Report Summary", ""],
+        ["Generated On", new Date().toLocaleString()],
+        ["Currency", currency],
+        ["Date Range", `${format(startDate, "MMM dd, yyyy")} - ${format(endDate, "MMM dd, yyyy")}`],
+        ["Total Invoices", filteredInvoices.length],
+        ["Total Amount", filteredInvoices.reduce((sum, inv) => sum + parseFloat(convertCurrency(inv.total_amount, inv.currency)), 0).toFixed(2)],
+        ["Total Profit", filteredInvoices.reduce((sum, inv) => sum + parseFloat(convertCurrency(inv.profit?.profit || 0, inv.currency)), 0).toFixed(2)],
+      ];
+      
+      const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
+      XLSX.utils.book_append_sheet(wb, wsSummary, "Summary");
+      
+      XLSX.writeFile(wb, `invoices_${format(new Date(), "yyyyMMdd_HHmmss")}.xlsx`);
+    } catch (error) {
+      console.error("Error exporting to Excel:", error);
+      alert("Failed to export to Excel. Please try again.");
+    } finally {
+      setExporting({ ...exporting, excel: false });
+    }
+  }, [filteredInvoices, currency, startDate, endDate, convertCurrency, exporting]);
 
   // PDF export with current filters
- const exportToPDF = async () => {
+  const exportToPDF = useCallback(async () => {
     setExporting({ ...exporting, pdf: true });
     try {
-      await new Promise(resolve => setTimeout(resolve, 100)); // Small delay for UI
+      await new Promise(resolve => setTimeout(resolve, 100));
       
-      // Create jsPDF instance
       const doc = new jsPDF();
       
-      // Add title and date
       doc.setFontSize(16);
-      doc.text("Invoice Summary Report", 20, 20);
+      doc.text("Invoice Summary Report", 105, 15, { align: "center" });
       doc.setFontSize(10);
-      doc.text(`Generated on: ${new Date().toLocaleString()}`, 20, 30);
-      doc.text(`Currency: ${currency}`, 20, 35);
-      doc.text(`Date Range: ${format(startDate, "MMM dd, yyyy")} - ${format(endDate, "MMM dd, yyyy")}`, 20, 40);
+      doc.text(`Generated on: ${new Date().toLocaleString()}`, 105, 22, { align: "center" });
+      doc.text(`Currency: ${currency}`, 105, 28, { align: "center" });
+      doc.text(`Date Range: ${format(startDate, "MMM dd, yyyy")} - ${format(endDate, "MMM dd, yyyy")}`, 105, 34, { align: "center" });
       
-      // Add summary information
-      doc.text(`Total Invoices: ${filteredInvoices.length}`, 20, 50);
-      doc.text(`Total Amount: ${filteredInvoices.reduce((sum, inv) => sum + parseFloat(convertCurrency(inv.total_amount, inv.currency)), 0).toFixed(2)} ${currency}`, 20, 55);
-      doc.text(`Total Profit: ${filteredInvoices.reduce((sum, inv) => sum + parseFloat(convertCurrency(inv.profit?.profit || 0, inv.currency)), 0).toFixed(2)} ${currency}`, 20, 60);
+      doc.text(`Total Invoices: ${filteredInvoices.length}`, 20, 45);
+      doc.text(`Total Amount: ${filteredInvoices.reduce((sum, inv) => sum + parseFloat(convertCurrency(inv.total_amount, inv.currency)), 0).toFixed(2)} ${currency}`, 20, 52);
+      doc.text(`Total Profit: ${filteredInvoices.reduce((sum, inv) => sum + parseFloat(convertCurrency(inv.profit?.profit || 0, inv.currency)), 0).toFixed(2)} ${currency}`, 20, 59);
       
-      // Use the autoTable function directly instead of doc.autoTable
       autoTable(doc, {
         startY: 70,
         head: [["Invoice #", "Customer", "Date", "Amount", "Profit", "Status"]],
         body: filteredInvoices.map((invoice) => [
           invoice.invoice_number,
-          invoice.customer.name,
+          invoice.customer?.name || "N/A",
           format(new Date(invoice.issue_date), "MMM dd, yyyy"),
           `${convertCurrency(invoice.total_amount, invoice.currency)} ${currency}`,
           `${convertCurrency(invoice.profit?.profit || 0, invoice.currency)} ${currency}`,
           invoice.refund ? `Refund: ${invoice.refund.refund_status}` : invoice.status,
         ]),
         theme: 'grid',
-        headStyles: { fillColor: [41, 128, 185] },
+        headStyles: { 
+          fillColor: [41, 128, 185],
+          textColor: 255,
+          fontStyle: 'bold'
+        },
+        styles: {
+          fontSize: 8,
+          cellPadding: 2,
+          overflow: 'linebreak'
+        },
+        margin: { top: 70 }
       });
       
       doc.save(`invoices_${format(new Date(), "yyyyMMdd_HHmmss")}.pdf`);
@@ -494,35 +457,87 @@ const Invoice_summary = () => {
     } finally {
       setExporting({ ...exporting, pdf: false });
     }
-  };
+  }, [filteredInvoices, currency, startDate, endDate, convertCurrency, exporting]);
 
   // Handle view invoice
-  const handleViewInvoice = (invoice) => {
+  const handleViewInvoice = useCallback((invoice) => {
     setSelectedInvoice(invoice);
     setShowModal(true);
-  };
+  }, []);
 
   // Handle print
-  const handlePrint = () => {
+  const handlePrint = useCallback(() => {
     window.print();
-  };
+  }, []);
 
-  if (loading) return <div className="text-center py-5">Loading...</div>;
-  if (error) return <div className="alert alert-danger">{error}</div>;
+  // Memoized summary cards data
+  const summaryCards = useMemo(() => [
+    { 
+      title: "Total Invoices", 
+      value: filteredInvoices.length, 
+      icon: FaBuilding, 
+      color: "info" 
+    },
+    {
+      title: "Total Amount",
+      value: filteredInvoices
+        .reduce((sum, inv) => sum + parseFloat(convertCurrency(inv.total_amount, inv.currency)), 0)
+        .toFixed(2),
+      icon: FaMoneyBillWave,
+      color: "primary",
+    },
+    {
+      title: "Total Profit",
+      value: filteredInvoices
+        .reduce((sum, inv) => sum + parseFloat(convertCurrency(inv.profit?.profit || 0, inv.currency)), 0)
+        .toFixed(2),
+      icon: FaChartLine,
+      color: "success",
+    },
+    {
+      title: "Pending Payments",
+      value: filteredInvoices
+        .filter((inv) => parseFloat(inv.balance) > 0)
+        .reduce((sum, inv) => sum + parseFloat(convertCurrency(inv.balance, inv.currency)), 0)
+        .toFixed(2),
+      icon: FaChartPie,
+      color: "warning",
+    },
+  ], [filteredInvoices, convertCurrency]);
+
+  if (loading) {
+    return (
+      <div className="d-flex justify-content-center align-items-center" style={{ height: '50vh' }}>
+        <Spinner animation="border" variant="primary" />
+        <span className="ms-2">Loading invoices...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Alert variant="danger" className="m-3">
+        <Alert.Heading>Error Loading Data</Alert.Heading>
+        <p>{error}</p>
+        <Button variant="primary" onClick={() => companyNo && fetchData(companyNo)}>
+          Try Again
+        </Button>
+      </Alert>
+    );
+  }
 
   return (
     <div className="invoice-summary p-3">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2>
+      <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <h2 className="mb-0">
           <FaMoneyBillWave className="me-2" />
           Invoice Summary Dashboard
         </h2>
-        <div>
+        <div className="d-flex flex-wrap gap-2">
           <Form.Select
             size="sm"
             value={currency}
             onChange={(e) => setCurrency(e.target.value)}
-            className="d-inline-block me-2"
             style={{ width: "100px" }}
           >
             {Object.keys(exchangeRates).map((curr) => (
@@ -534,12 +549,11 @@ const Invoice_summary = () => {
             size="sm"
             onClick={fetchExchangeRates}
             disabled={ratesLoading}
-            className="me-2"
           >
             {ratesLoading ? (
               <>
-                <span className="spinner-border spinner-border-sm me-1" />
-                Updating Rates...
+                <Spinner animation="border" size="sm" className="me-1" />
+                Updating...
               </>
             ) : (
               <>
@@ -551,20 +565,47 @@ const Invoice_summary = () => {
           <Button variant="outline-primary" onClick={handlePrint} className="me-2">
             <FaPrint className="me-1" /> Print
           </Button>
-          <Button variant="outline-success" onClick={exportToExcel} className="me-2">
-            <FaFileExcel className="me-1" /> Excel
+          <Button 
+            variant="outline-success" 
+            onClick={exportToExcel}
+            disabled={exporting.excel}
+          >
+            {exporting.excel ? (
+              <>
+                <Spinner animation="border" size="sm" className="me-1" />
+                Exporting...
+              </>
+            ) : (
+              <>
+                <FaFileExcel className="me-1" /> Excel
+              </>
+            )}
           </Button>
-          <Button variant="outline-success" onClick={exportToPDF}>
-            <FaFilePdf className="me-1" /> PDF
+          <Button 
+            variant="outline-success" 
+            onClick={exportToPDF}
+            disabled={exporting.pdf}
+          >
+            {exporting.pdf ? (
+              <>
+                <Spinner animation="border" size="sm" className="me-1" />
+                Exporting...
+              </>
+            ) : (
+              <>
+                <FaFilePdf className="me-1" /> PDF
+              </>
+            )}
           </Button>
         </div>
       </div>
 
       {ratesError && (
         <Alert variant="warning" className="mb-3">
-          {ratesError} <Button variant="link" onClick={fetchExchangeRates}>Retry</Button>
+          {ratesError} <Button variant="link" onClick={fetchExchangeRates} size="sm">Retry</Button>
         </Alert>
       )}
+      
       {lastRatesUpdate && (
         <small className="text-muted mb-3 d-block">
           Last rates updated: {lastRatesUpdate}

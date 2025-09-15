@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useRef, useMemo } from "react";
+import React, { useState, useEffect, useContext, useRef } from "react";
 import {
   Table,
   Button,
@@ -12,8 +12,6 @@ import {
   Accordion,
   OverlayTrigger,
   Tooltip,
-  Pagination, // Added for pagination
-  Spinner, // Added for loading
 } from "react-bootstrap";
 import {
   FaEye,
@@ -34,7 +32,6 @@ import {
   FaSearch,
   FaFilter,
   FaCreditCard,
-  FaSync, // For refresh
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -51,21 +48,27 @@ const Invoice_list = () => {
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showPreviewModalAahaas, setShowPreviewModalAahaas] = useState(false);
-  const [showPreviewModalAppleholidays, setShowPreviewModalAppleholidays] = useState(false);
-  const [showPreviewModalShirmila, setShowPreviewModalShirmila] = useState(false);
+  const [showPreviewModalAppleholidays, setShowPreviewModalAppleholidays] =
+    useState(false);
+  const [showPreviewModalShirmila, setShowPreviewModalShirmila] =
+    useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [isEditingPayments, setIsEditingPayments] = useState(false);
+  const [isEditingPayments, setIsEditingPayments] = useState(false); // New state for edit mode
   const [currentInvoice, setCurrentInvoice] = useState(null);
   const [invoiceToDelete, setInvoiceToDelete] = useState(null);
-  const [selectedInvoicePayments, setSelectedInvoicePayments] = useState([]);
+  const [selectedInvoicePayments, setSelectedInvoicePayments] = useState([]); // Payments for modal
   const [companyNo, setCompanyNo] = useState(null);
-  const [searchDaysCount, setSearchDaysCount] = useState("");
+  const [searchDaysCount, setSearchDaysCount] = useState(0);
   const [success, setSuccess] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
+  const [filterStatus, setFilterStatus] = useState("all");
+  const { selectedCompany } = useContext(CompanyContext);
+  const [xeRate, setXeRate] = useState(88.66);
   const [filterCreditType, setFilterCreditType] = useState("all");
   const [dateFilter, setDateFilter] = useState({
     startDate: "",
@@ -73,16 +76,17 @@ const Invoice_list = () => {
   });
   const navigate = useNavigate();
   const receiptRef = useRef();
-  const token = localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
-  const { user, company, role, loading: userLoading, error: userError } = useUser();
-  const { selectedCompany } = useContext(CompanyContext);
-  const [xeRate, setXeRate] = useState(88.66);
+  const token =
+    localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+  const {
+    user,
+    company,
+    role,
+    loading: userLoading,
+    error: userError,
+  } = useUser();
   const [cancelRemark, setCancelRemark] = useState("");
   const [cancelAttachment, setCancelAttachment] = useState(null);
-
-  // Pagination states
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10); // Number of invoices per page
 
   useEffect(() => {
     const companyMap = {
@@ -96,15 +100,21 @@ const Invoice_list = () => {
 
   useEffect(() => {
     if (companyNo) {
-      fetchInvoices(0); // Initial fetch with 0 days
+      fetchInvoices(companyNo);
     }
   }, [companyNo]);
 
-  // Consolidated fetch function (merged fetchInvoices and fetchInvoices1)
-  const fetchInvoices = async (days = 0) => {
+  const fetchInvoicesByDays = (days) => {
+    if (days < 0) {
+      setError("Days cannot be negative.");
+      return;
+    }
+    fetchInvoices1(days);
+  };
+
+  const fetchInvoices1 = async (days = 0) => {
     try {
       setLoading(true);
-      setError(null);
       if (user) {
         setIsAdmin(user.role.name === "admin");
       }
@@ -116,71 +126,56 @@ const Invoice_list = () => {
       );
       const invoicesData = response.data.data || [];
       setInvoices(invoicesData);
-      setCurrentPage(1); // Reset to first page on new fetch
     } catch (error) {
       console.error("Error fetching invoices:", error);
-      setError(error.response?.data?.message || "Failed to fetch invoices. Please try again.");
     } finally {
       setLoading(false);
     }
   };
-
-  // Debounce function for search inputs (to reduce API calls if needed, but here applied to local filters)
-  const debounce = (func, delay) => {
-    let timeoutId;
-    return (...args) => {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => func(...args), delay);
-    };
-  };
-
-  // Memoized filtered invoices to optimize computation
-  const filteredInvoices = useMemo(() => {
-    return invoices.filter((invoice) => {
-      const matchesSearch =
-        invoice.invoice_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (invoice.customer?.name || "")
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase());
-      const matchesCreditType =
-        filterCreditType === "all" ||
-        (filterCreditType === "credit" && invoice.payment_type === "credit") ||
-        (filterCreditType === "non-credit" && invoice.payment_type !== "credit");
-      const matchesDate =
-        (!dateFilter.startDate ||
-          new Date(invoice.issue_date) >= new Date(dateFilter.startDate)) &&
-        (!dateFilter.endDate ||
-          new Date(invoice.issue_date) <= new Date(dateFilter.endDate));
-      return matchesSearch && matchesCreditType && matchesDate;
-    });
-  }, [invoices, searchTerm, filterCreditType, dateFilter]);
-
-  // Pagination logic
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentInvoices = filteredInvoices.slice(indexOfFirstItem, indexOfLastItem);
-
-  // Change page
-  const paginate = (pageNumber) => setCurrentPage(pageNumber);
-
-  // Number of pages
-  const pageNumbers = [];
-  for (let i = 1; i <= Math.ceil(filteredInvoices.length / itemsPerPage); i++) {
-    pageNumbers.push(i);
-  }
-
-  const fetchInvoicesByDays = (days) => {
-    if (days < 0) {
-      setError("Days cannot be negative.");
-      return;
+  const fetchInvoices = async () => {
+    try {
+      setLoading(true);
+      if (user) {
+        setIsAdmin(user.role.name === "admin");
+      }
+      const response = await axios.get(
+        `/api/invoices?company_id=${companyNo}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      const invoicesData = response.data.data || [];
+      setInvoices(invoicesData);
+    } catch (error) {
+      console.error("Error fetching invoices:", error);
+    } finally {
+      setLoading(false);
     }
-    fetchInvoices(days);
   };
 
   const resetDaysFilter = () => {
     setSearchDaysCount("");
     fetchInvoices(0); // Fetch all invoices
   };
+
+
+  const filteredInvoices = invoices.filter((invoice) => {
+    const matchesSearch =
+      invoice.invoice_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (invoice.customer?.name || "")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
+    const matchesCreditType =
+      filterCreditType === "all" ||
+      (filterCreditType === "credit" && invoice.payment_type === "credit") ||
+      (filterCreditType === "non-credit" && invoice.payment_type !== "credit");
+    const matchesDate =
+      (!dateFilter.startDate ||
+        new Date(invoice.issue_date) >= new Date(dateFilter.startDate)) &&
+      (!dateFilter.endDate ||
+        new Date(invoice.issue_date) <= new Date(dateFilter.endDate));
+    return matchesSearch && matchesCreditType && matchesDate;
+  });
 
   const handleViewInvoice = (invoice) => {
     setCurrentInvoice(invoice);
@@ -559,7 +554,7 @@ const Invoice_list = () => {
       setSuccess(
         `Invoice ${invoiceToDelete.invoice_number} cancelled successfully.`
       );
-      fetchInvoices(0);
+      fetchInvoices();
       setShowDeleteModal(false);
       setSuccess("");
     } catch (error) {
@@ -674,7 +669,7 @@ const Invoice_list = () => {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      fetchInvoices(0);
+      fetchInvoices();
       setShowEditModal(false);
     } catch (error) {
       console.error("Error updating invoice:", error);
@@ -767,8 +762,8 @@ const Invoice_list = () => {
         </Card.Header>
 
         <Card.Body>
-          <div className="d-flex mb-4 flex-wrap align-items-center gap-3">
-            <div className="input-group" style={{ width: "300px" }}>
+          <div className="d-flex mb-4">
+            <div className="input-group me-3" style={{ width: "300px" }}>
               <span className="input-group-text">
                 <FaSearch />
               </span>
@@ -779,7 +774,7 @@ const Invoice_list = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            <div className="d-flex align-items-center gap-2">
+            <div className="d-flex align-items-center me-3">
               <span className="me-2">
                 <FaCalendarAlt />
               </span>
@@ -791,7 +786,7 @@ const Invoice_list = () => {
                 onChange={(e) =>
                   setDateFilter({ ...dateFilter, startDate: e.target.value })
                 }
-                style={{ width: "150px" }}
+                style={{ width: "150px", marginRight: "10px" }}
               />
               <span className="me-2">to</span>
               <Form.Control
@@ -805,7 +800,7 @@ const Invoice_list = () => {
                 style={{ width: "150px" }}
               />
             </div>
-            <div className="d-flex align-items-center gap-2">
+            <div className="d-flex align-items-center me-3">
               <span className="me-2">
                 <FaCreditCard />
               </span>
@@ -819,67 +814,35 @@ const Invoice_list = () => {
                 <option value="non-credit">Non-Credit</option>
               </Form.Select>
             </div>
-            {/* Adjusted Days Filter */}
-            <OverlayTrigger
-              placement="top"
-              overlay={<Tooltip>Filter invoices by days from today</Tooltip>}
-            >
-              <div className="d-flex align-items-center gap-2" style={{ maxWidth: "280px" }}>
-                <FloatingLabel label="Days from Today" className="flex-grow-1">
-                  <Form.Control
-                    type="number"
-                    placeholder="Days"
-                    value={searchDaysCount}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      if (value === "" || /^[0-9]*$/.test(value)) {
-                        setSearchDaysCount(value);
-                      }
-                    }}
-                    min="0"
-                    className="flex-grow-1"
-                  />
-                </FloatingLabel>
-                <Button
-                  variant="primary"
-                  onClick={() => fetchInvoicesByDays(searchDaysCount || 0)}
-                  disabled={loading || (searchDaysCount !== "" && !/^[0-9]+$/.test(searchDaysCount))}
-                >
-                  {loading ? (
-                    <>
-                      <Spinner animation="border" size="sm" className="me-1" />
-                      Searching...
-                    </>
-                  ) : (
-                    <>
-                      <FaSearch className="me-1" />
-                      Search
-                    </>
-                  )}
-                </Button>
-                {searchDaysCount !== "" && (
-                  <Button
-                    variant="outline-secondary"
-                    size="sm"
-                    onClick={resetDaysFilter}
-                  >
-                    <FaSync className="me-1" /> Reset
-                  </Button>
-                )}
-              </div>
-            </OverlayTrigger>
+           <div className="d-flex align-items-center gap-2 me-2" style={{ maxWidth: "280px" }}>
+  <Form.Control
+    type="number"
+    placeholder="Days"
+    value={searchDaysCount}
+    onChange={(e) => setSearchDaysCount(e.target.value)}
+    min="0"
+    className="flex-grow-1"
+  />
+  <Button
+    variant="primary"
+    onClick={() => fetchInvoicesByDays(searchDaysCount)}
+  >
+    Search
+  </Button>
+</div>
+
             <Button
               variant="outline-secondary"
-              onClick={() => fetchInvoices(searchDaysCount || 0)}
+              onClick={fetchInvoices}
               className="d-flex align-items-center"
-              disabled={loading}
             >
-              <FaSync className="me-1" /> Refresh
+              Refresh
             </Button>
             {dateFilter.startDate || dateFilter.endDate ? (
               <Button
                 variant="outline-secondary"
                 onClick={() => setDateFilter({ startDate: "", endDate: "" })}
+                className="ms-2"
                 size="sm"
               >
                 Clear Dates
@@ -889,12 +852,10 @@ const Invoice_list = () => {
 
           {loading ? (
             <div className="text-center py-5">
-              <Spinner animation="border" variant="primary" />
+              <div className="spinner-border text-primary" role="status">
+                <span className="visually-hidden">Loading...</span>
+              </div>
               <p className="mt-2">Loading invoices...</p>
-            </div>
-          ) : error ? (
-            <div className="alert alert-danger">
-              {error}
             </div>
           ) : (
             <div className="table-responsive">
@@ -915,8 +876,8 @@ const Invoice_list = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {currentInvoices.length > 0 ? (
-                    currentInvoices.map((invoice) => (
+                  {filteredInvoices.length > 0 ? (
+                    filteredInvoices.map((invoice) => (
                       <tr
                         key={invoice.id}
                         className={
@@ -982,6 +943,7 @@ const Invoice_list = () => {
                             label="View Payments"
                             variant="info"
                             onClick={() => handleViewPayments(invoice)}
+                            // disabled={!invoice.payments || invoice.payments.length === 0}
                           />
                         </td>
                         <td className="text-start">
@@ -1038,72 +1000,6 @@ const Invoice_list = () => {
               </Table>
             </div>
           )}
-          {/* Pagination */}
-          {filteredInvoices.length > itemsPerPage && (
-  <Pagination className="justify-content-center mt-3">
-    {/* First Page */}
-    <Pagination.Item
-      key={1}
-      active={1 === currentPage}
-      onClick={() => paginate(1)}
-    >
-      1
-    </Pagination.Item>
-
-    {/* Second Page (if applicable) */}
-    {pageNumbers.length > 1 && (
-      <Pagination.Item
-        key={2}
-        active={2 === currentPage}
-        onClick={() => paginate(2)}
-      >
-        2
-      </Pagination.Item>
-    )}
-
-    {/* Ellipsis if there are more than 2 pages */}
-    {pageNumbers.length > 2 && currentPage > 3 && <Pagination.Ellipsis />}
-
-    {/* Current page (if not 1 or 2) */}
-    {currentPage > 2 && currentPage < pageNumbers.length && (
-      <Pagination.Item active>{currentPage}</Pagination.Item>
-    )}
-
-    {/* Ellipsis before Last if needed */}
-    {pageNumbers.length > 2 && currentPage < pageNumbers.length - 1 && (
-      <Pagination.Ellipsis />
-    )}
-
-    {/* Last Page (if more than 2 pages) */}
-    {pageNumbers.length > 2 && (
-      <Pagination.Item
-        key={pageNumbers.length}
-        active={pageNumbers.length === currentPage}
-        onClick={() => paginate(pageNumbers.length)}
-      >
-        {pageNumbers.length}
-      </Pagination.Item>
-    )}
-
-    {/* Previous Button */}
-    <Pagination.Prev
-      onClick={() => paginate(currentPage - 1)}
-      disabled={currentPage === 1}
-    />
-
-    {/* Next Button */}
-    <Pagination.Next
-      onClick={() => paginate(currentPage + 1)}
-      disabled={currentPage === pageNumbers.length}
-    />
-
-    {/* Last Button */}
-    <Pagination.Last
-      onClick={() => paginate(pageNumbers.length)}
-      disabled={currentPage === pageNumbers.length}
-    />
-  </Pagination>
-)}
         </Card.Body>
 
         {filteredInvoices.length > 0 && (
@@ -1771,6 +1667,83 @@ const Invoice_list = () => {
                           </Button>
                         </td>
                       </tr>
+
+                      // <tr key={index}>
+                      //   <td>
+                      //     <Form.Control
+                      //       type="text"
+                      //       value={payment.id || "New"}
+                      //       disabled
+                      //       size="sm"
+                      //     />
+                      //   </td>
+                      //   <td>
+                      //     <Form.Control
+                      //       type="number"
+                      //       step="0.01"
+                      //       min="0"
+                      //       value={payment.amount}
+                      //       onChange={(e) => handlePaymentChange(index, "amount", e.target.value)}
+                      //       size="sm"
+                      //       required
+                      //     />
+                      //   </td>
+                      //   <td>
+                      //     <Form.Control
+                      //       type="date"
+                      //       value={payment.payment_date?.split("T")[0] || payment.payment_date}
+                      //       onChange={(e) => handlePaymentChange(index, "payment_date", e.target.value)}
+                      //       size="sm"
+                      //       required
+                      //     />
+                      //   </td>
+                      //   <td>
+                      //     <Form.Select
+                      //       value={payment.method || ""}
+                      //       onChange={(e) => handlePaymentChange(index, "method", e.target.value)}
+                      //       size="sm"
+                      //     >
+                      //       <option value="">Select Method</option>
+                      //       <option value="bankTransfer">Bank Transfer</option>
+                      //       <option value="amex">Amex</option>
+                      //       <option value="googlePay">Google Pay</option>
+                      //       <option value="usdPortal">USD Portal</option>
+                      //     </Form.Select>
+                      //   </td>
+                      //   <td>
+                      //     <Form.Control
+                      //       type="text"
+                      //       value={payment.note || ""}
+                      //       onChange={(e) => handlePaymentChange(index, "note", e.target.value)}
+                      //       size="sm"
+                      //     />
+                      //   </td>
+                      //   <td>
+                      //     <Form.Control
+                      //       type="text"
+                      //       value={formatDate(payment.created_at)}
+                      //       disabled
+                      //       size="sm"
+                      //     />
+                      //   </td>
+                      //   <td>
+                      //     <Form.Control
+                      //       type="text"
+                      //       value={formatDate(payment.updated_at)}
+                      //       disabled
+                      //       size="sm"
+                      //     />
+                      //   </td>
+                      //   <td>
+                      //     <Button
+                      //       variant="outline-danger"
+                      //       size="sm"
+                      //       onClick={() => handleRemovePayment(index)}
+                      //     >
+                      //       <FaTrash />
+                      //     </Button>
+                      //   </td>
+                      // </tr>
                     ))}
                   </tbody>
                 </Table>
@@ -1875,6 +1848,7 @@ const Invoice_list = () => {
               </Button>
               <Button variant="primary" onClick={handleUpdatePayments}>
                 {"Save Changes"}
+                {/* {isLoading ? "Saving..." : "Save Changes"} */}
               </Button>
             </>
           ) : (
@@ -1964,8 +1938,7 @@ const Invoice_list = () => {
               onClick={handleDeleteInvoice}
               disabled={!cancelRemark.trim()}
             >
-              {/* {isLoading ? "Submitting Request..." : "Submit Request"} */}
-              {"Submit Request"}
+              {isLoading ? "Submitting Request..." : "Submit Request"}
             </Button>
           )}
           {isAdmin && (

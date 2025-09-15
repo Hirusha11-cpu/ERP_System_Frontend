@@ -1950,7 +1950,11 @@ const Invoice_create = () => {
     console.log("Form Data Submitted:", formData);
 
     axios
-      .put(`/api/customers/${formData.customer.id}`, formData.customer)
+      .put(`/api/customers/${formData.customer.id}`, formData.customer, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
       .then((response) => {
         console.log("Customer updated:", response.data);
       })

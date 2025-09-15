@@ -45,7 +45,7 @@ import "react-datepicker/dist/react-datepicker.css";
 import { format, subDays, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, isAfter, isBefore, parseISO } from "date-fns";
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
-import "jspdf-autotable";
+import autoTable from "jspdf-autotable";
 
 const Invoice_summary = () => {
   const { selectedCompany } = useContext(CompanyContext);
@@ -89,6 +89,8 @@ const Invoice_summary = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [customersList, setCustomersList] = useState([]);
   const [accountsList, setAccountsList] = useState([]);
+    const [exporting, setExporting] = useState({ excel: false, pdf: false });
+
 
   const token = localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
 
@@ -444,43 +446,54 @@ const Invoice_summary = () => {
     const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
     XLSX.utils.book_append_sheet(wb, wsSummary, "Summary");
     
-    XLSX.write_file(wb, `invoices_${format(new Date(), "yyyyMMdd_HHmmss")}.xlsx`);
+    XLSX.writeFile(wb, `invoices_${format(new Date(), "yyyyMMdd_HHmmss")}.xlsx`);
   };
 
   // PDF export with current filters
-  const exportToPDF = () => {
-    const doc = new jsPDF();
-    
-    // Add title and date
-    doc.setFontSize(16);
-    doc.text("Invoice Summary Report", 20, 20);
-    doc.setFontSize(10);
-    doc.text(`Generated on: ${new Date().toLocaleString()}`, 20, 30);
-    doc.text(`Currency: ${currency}`, 20, 35);
-    doc.text(`Date Range: ${format(startDate, "MMM dd, yyyy")} - ${format(endDate, "MMM dd, yyyy")}`, 20, 40);
-    
-    // Add summary information
-    doc.text(`Total Invoices: ${filteredInvoices.length}`, 20, 50);
-    doc.text(`Total Amount: ${filteredInvoices.reduce((sum, inv) => sum + parseFloat(convertCurrency(inv.total_amount, inv.currency)), 0).toFixed(2)} ${currency}`, 20, 55);
-    doc.text(`Total Profit: ${filteredInvoices.reduce((sum, inv) => sum + parseFloat(convertCurrency(inv.profit?.profit || 0, inv.currency)), 0).toFixed(2)} ${currency}`, 20, 60);
-    
-    // Add table
-    doc.autoTable({
-      startY: 70,
-      head: [["Invoice #", "Customer", "Date", "Amount", "Profit", "Status"]],
-      body: filteredInvoices.map((invoice) => [
-        invoice.invoice_number,
-        invoice.customer.name,
-        format(new Date(invoice.issue_date), "MMM dd, yyyy"),
-        `${convertCurrency(invoice.total_amount, invoice.currency)} ${currency}`,
-        `${convertCurrency(invoice.profit?.profit || 0, invoice.currency)} ${currency}`,
-        invoice.refund ? `Refund: ${invoice.refund.refund_status}` : invoice.status,
-      ]),
-      theme: 'grid',
-      headStyles: { fillColor: [41, 128, 185] },
-    });
-    
-    doc.save(`invoices_${format(new Date(), "yyyyMMdd_HHmmss")}.pdf`);
+ const exportToPDF = async () => {
+    setExporting({ ...exporting, pdf: true });
+    try {
+      await new Promise(resolve => setTimeout(resolve, 100)); // Small delay for UI
+      
+      // Create jsPDF instance
+      const doc = new jsPDF();
+      
+      // Add title and date
+      doc.setFontSize(16);
+      doc.text("Invoice Summary Report", 20, 20);
+      doc.setFontSize(10);
+      doc.text(`Generated on: ${new Date().toLocaleString()}`, 20, 30);
+      doc.text(`Currency: ${currency}`, 20, 35);
+      doc.text(`Date Range: ${format(startDate, "MMM dd, yyyy")} - ${format(endDate, "MMM dd, yyyy")}`, 20, 40);
+      
+      // Add summary information
+      doc.text(`Total Invoices: ${filteredInvoices.length}`, 20, 50);
+      doc.text(`Total Amount: ${filteredInvoices.reduce((sum, inv) => sum + parseFloat(convertCurrency(inv.total_amount, inv.currency)), 0).toFixed(2)} ${currency}`, 20, 55);
+      doc.text(`Total Profit: ${filteredInvoices.reduce((sum, inv) => sum + parseFloat(convertCurrency(inv.profit?.profit || 0, inv.currency)), 0).toFixed(2)} ${currency}`, 20, 60);
+      
+      // Use the autoTable function directly instead of doc.autoTable
+      autoTable(doc, {
+        startY: 70,
+        head: [["Invoice #", "Customer", "Date", "Amount", "Profit", "Status"]],
+        body: filteredInvoices.map((invoice) => [
+          invoice.invoice_number,
+          invoice.customer.name,
+          format(new Date(invoice.issue_date), "MMM dd, yyyy"),
+          `${convertCurrency(invoice.total_amount, invoice.currency)} ${currency}`,
+          `${convertCurrency(invoice.profit?.profit || 0, invoice.currency)} ${currency}`,
+          invoice.refund ? `Refund: ${invoice.refund.refund_status}` : invoice.status,
+        ]),
+        theme: 'grid',
+        headStyles: { fillColor: [41, 128, 185] },
+      });
+      
+      doc.save(`invoices_${format(new Date(), "yyyyMMdd_HHmmss")}.pdf`);
+    } catch (error) {
+      console.error("Error exporting to PDF:", error);
+      alert("Failed to export to PDF. Please try again.");
+    } finally {
+      setExporting({ ...exporting, pdf: false });
+    }
   };
 
   // Handle view invoice

@@ -2795,7 +2795,7 @@ const Invoice_create = () => {
 
       {/* Totals and Payment Information */}
       <Row className="mb-4">
-        <Col md={8}>
+        {/* <Col md={8}>
           <Card className="h-100">
             <Card.Body>
               <h5 className="section-title fw-semibold mb-3">
@@ -2963,9 +2963,9 @@ const Invoice_create = () => {
               </Form.Group>
             </Card.Body>
           </Card>
-        </Col>
+        </Col> */}
 
-        <Col md={4}>
+        <Col md={6}>
           <Card className="h-100">
             <Card.Body>
               <h5 className="section-title fw-semibold mb-3">Invoice Totals</h5>

@@ -3653,36 +3653,40 @@ const Invoice_create = () => {
           <Tab.Content>
             <Tab.Pane eventKey="sell" active={activeTab === "sell"}>
               <Row>
-                <Col md={6} className="mb-3">
-                  <Form.Group>
-                    <Form.Label>Item Code:</Form.Label>
-                    <Form.Control
-                      type="text"
-                      value={newItem.code}
-                      onChange={(e) =>
-                        setNewItem({ ...newItem, code: e.target.value })
-                      }
-                    />
-                  </Form.Group>
-                </Col>
+                {
+                  <Col md={6} className="mb-3">
+                    <Form.Group>
+                      <Form.Label>Item Code:</Form.Label>
+                      <Form.Control
+                        type="text"
+                        value={newItem.code}
+                        onChange={(e) =>
+                          setNewItem({ ...newItem, code: e.target.value })
+                        }
+                      />
+                    </Form.Group>
+                  </Col>
+                }
 
-                <Col md={6} className="mb-3">
-                  <Form.Group>
-                    <Form.Label>Item Type:</Form.Label>
-                    <Form.Select
-                      value={newItem.type}
-                      onChange={(e) =>
-                        setNewItem({ ...newItem, type: e.target.value })
-                      }
-                    >
-                      {itemTypes.map((type) => (
-                        <option key={type} value={type}>
-                          {type}
-                        </option>
-                      ))}
-                    </Form.Select>
-                  </Form.Group>
-                </Col>
+                {companyNo === 3 && (
+                  <Col md={6} className="mb-3">
+                    <Form.Group>
+                      <Form.Label>Item Type:</Form.Label>
+                      <Form.Select
+                        value={newItem.type}
+                        onChange={(e) =>
+                          setNewItem({ ...newItem, type: e.target.value })
+                        }
+                      >
+                        {itemTypes.map((type) => (
+                          <option key={type} value={type}>
+                            {type}
+                          </option>
+                        ))}
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                )}
 
                 <Col md={12} className="mb-3">
                   {/* <Form.Group>
@@ -3777,34 +3781,41 @@ const Invoice_create = () => {
                   </Form.Group>
                 </Col>
 
-                <Col md={6} className="mb-3">
-                  <Form.Group>
-                    <Form.Label>Check-in Date:</Form.Label>
-                    <Form.Control
-                      type="date"
-                      value={newItem.checkin_time}
-                      onChange={(e) =>
-                        setNewItem({ ...newItem, checkin_time: e.target.value })
-                      }
-                    />
-                  </Form.Group>
-                </Col>
+                {companyNo === 3 && (
+                  <Col md={6} className="mb-3">
+                    <Form.Group>
+                      <Form.Label>Check-in Date:</Form.Label>
+                      <Form.Control
+                        type="date"
+                        value={newItem.checkin_time}
+                        onChange={(e) =>
+                          setNewItem({
+                            ...newItem,
+                            checkin_time: e.target.value,
+                          })
+                        }
+                      />
+                    </Form.Group>
+                  </Col>
+                )}
 
-                <Col md={6} className="mb-3">
-                  <Form.Group>
-                    <Form.Label>Check-out Date:</Form.Label>
-                    <Form.Control
-                      type="date"
-                      value={newItem.checkout_time}
-                      onChange={(e) =>
-                        setNewItem({
-                          ...newItem,
-                          checkout_time: e.target.value,
-                        })
-                      }
-                    />
-                  </Form.Group>
-                </Col>
+                {companyNo === 3 && (
+                  <Col md={6} className="mb-3">
+                    <Form.Group>
+                      <Form.Label>Check-out Date:</Form.Label>
+                      <Form.Control
+                        type="date"
+                        value={newItem.checkout_time}
+                        onChange={(e) =>
+                          setNewItem({
+                            ...newItem,
+                            checkout_time: e.target.value,
+                          })
+                        }
+                      />
+                    </Form.Group>
+                  </Col>
+                )}
 
                 <Col md={4} className="mb-3">
                   <Form.Group>

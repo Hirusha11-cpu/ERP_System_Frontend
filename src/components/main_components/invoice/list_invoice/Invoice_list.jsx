@@ -53,10 +53,13 @@ const Invoice_list = () => {
   const [error, setError] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showPreviewModalAahaas, setShowPreviewModalAahaas] = useState(false);
-  const [showPreviewModalAppleholidays, setShowPreviewModalAppleholidays] = useState(false);
-  const [showPreviewModalShirmila, setShowPreviewModalShirmila] = useState(false);
+  const [showPreviewModalAppleholidays, setShowPreviewModalAppleholidays] =
+    useState(false);
+  const [showPreviewModalShirmila, setShowPreviewModalShirmila] =
+    useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showExchangeModal, setShowExchangeModal] = useState(false);
   const [isEditingPayments, setIsEditingPayments] = useState(false);
   const [currentInvoice, setCurrentInvoice] = useState(null);
   const [invoiceToDelete, setInvoiceToDelete] = useState(null);
@@ -73,8 +76,15 @@ const Invoice_list = () => {
   });
   const navigate = useNavigate();
   const receiptRef = useRef();
-  const token = localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
-  const { user, company, role, loading: userLoading, error: userError } = useUser();
+  const token =
+    localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+  const {
+    user,
+    company,
+    role,
+    loading: userLoading,
+    error: userError,
+  } = useUser();
   const { selectedCompany } = useContext(CompanyContext);
   const [xeRate, setXeRate] = useState(88.66);
   const [cancelRemark, setCancelRemark] = useState("");
@@ -119,7 +129,10 @@ const Invoice_list = () => {
       setCurrentPage(1); // Reset to first page on new fetch
     } catch (error) {
       console.error("Error fetching invoices:", error);
-      setError(error.response?.data?.message || "Failed to fetch invoices. Please try again.");
+      setError(
+        error.response?.data?.message ||
+          "Failed to fetch invoices. Please try again."
+      );
     } finally {
       setLoading(false);
     }
@@ -138,14 +151,17 @@ const Invoice_list = () => {
   const filteredInvoices = useMemo(() => {
     return invoices.filter((invoice) => {
       const matchesSearch =
-        invoice.invoice_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        invoice.invoice_number
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase()) ||
         (invoice.customer?.name || "")
           .toLowerCase()
           .includes(searchTerm.toLowerCase());
       const matchesCreditType =
         filterCreditType === "all" ||
         (filterCreditType === "credit" && invoice.payment_type === "credit") ||
-        (filterCreditType === "non-credit" && invoice.payment_type !== "credit");
+        (filterCreditType === "non-credit" &&
+          invoice.payment_type !== "credit");
       const matchesDate =
         (!dateFilter.startDate ||
           new Date(invoice.issue_date) >= new Date(dateFilter.startDate)) &&
@@ -158,7 +174,10 @@ const Invoice_list = () => {
   // Pagination logic
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentInvoices = filteredInvoices.slice(indexOfFirstItem, indexOfLastItem);
+  const currentInvoices = filteredInvoices.slice(
+    indexOfFirstItem,
+    indexOfLastItem
+  );
 
   // Change page
   const paginate = (pageNumber) => setCurrentPage(pageNumber);
@@ -207,6 +226,13 @@ const Invoice_list = () => {
     setCurrentInvoice(invoice);
     setShowPaymentModal(true);
     setIsEditingPayments(false); // Reset to view mode
+  };
+  const handleExchangeRates = (invoice) => {
+    console.log("Viewing exchange rates for invoice:", invoice);
+
+    setSelectedInvoicePayments(invoice.exchange_rate_histories || []);
+    setCurrentInvoice(invoice);
+    setShowPaymentModal(true);
   };
 
   const handleAddPayment = () => {
@@ -824,7 +850,10 @@ const Invoice_list = () => {
               placement="top"
               overlay={<Tooltip>Filter invoices by days from today</Tooltip>}
             >
-              <div className="d-flex align-items-center gap-2" style={{ maxWidth: "280px" }}>
+              <div
+                className="d-flex align-items-center gap-2"
+                style={{ maxWidth: "280px" }}
+              >
                 <FloatingLabel label="" className="flex-grow-1">
                   <Form.Control
                     type="number"
@@ -843,7 +872,11 @@ const Invoice_list = () => {
                 <Button
                   variant="primary"
                   onClick={() => fetchInvoicesByDays(searchDaysCount || 0)}
-                  disabled={loading || (searchDaysCount !== "" && !/^[0-9]+$/.test(searchDaysCount))}
+                  disabled={
+                    loading ||
+                    (searchDaysCount !== "" &&
+                      !/^[0-9]+$/.test(searchDaysCount))
+                  }
                 >
                   {loading ? (
                     <>
@@ -893,9 +926,7 @@ const Invoice_list = () => {
               <p className="mt-2">Loading invoices...</p>
             </div>
           ) : error ? (
-            <div className="alert alert-danger">
-              {error}
-            </div>
+            <div className="alert alert-danger">{error}</div>
           ) : (
             <div className="table-responsive">
               <Table hover className="align-middle">
@@ -911,6 +942,7 @@ const Invoice_list = () => {
                     <th>Total</th>
                     <th>Status</th>
                     <th>Payments</th>
+                    <th>Exchange-Rates</th>
                     <th className="text-end">Actions</th>
                   </tr>
                 </thead>
@@ -955,7 +987,7 @@ const Invoice_list = () => {
                             {formatDate(invoice.issue_date)}
                           </div>
                           <small className="text-muted">
-                            Due: {formatDate(invoice.due_date)}
+                            {/* Due: {formatDate(invoice.due_date)} */}
                           </small>
                         </td>
                         <td>
@@ -975,13 +1007,25 @@ const Invoice_list = () => {
                             {invoice.total_amount}
                           </div>
                         </td>
-                        <td>{getStatusBadge(invoice.status === "draft" ? "open" : invoice.status)}</td>
+                        <td>
+                          {getStatusBadge(
+                            invoice.status === "draft" ? "open" : invoice.status
+                          )}
+                        </td>
                         <td>
                           <ActionButton
                             icon={<FaMoneyBillWave />}
                             label="View Payments"
                             variant="info"
                             onClick={() => handleViewPayments(invoice)}
+                          />
+                        </td>
+                        <td>
+                          <ActionButton
+                            icon={<FaMoneyBillWave />}
+                            label="View Exchange Rates"
+                            variant="warning"
+                            onClick={() => handleExchangeRates(invoice)}
                           />
                         </td>
                         <td className="text-start">
@@ -1040,70 +1084,71 @@ const Invoice_list = () => {
           )}
           {/* Pagination */}
           {filteredInvoices.length > itemsPerPage && (
-  <Pagination className="justify-content-center mt-3">
-    {/* First Page */}
-    <Pagination.Item
-      key={1}
-      active={1 === currentPage}
-      onClick={() => paginate(1)}
-    >
-      1
-    </Pagination.Item>
+            <Pagination className="justify-content-center mt-3">
+              {/* First Page */}
+              <Pagination.Item
+                key={1}
+                active={1 === currentPage}
+                onClick={() => paginate(1)}
+              >
+                1
+              </Pagination.Item>
 
-    {/* Second Page (if applicable) */}
-    {pageNumbers.length > 1 && (
-      <Pagination.Item
-        key={2}
-        active={2 === currentPage}
-        onClick={() => paginate(2)}
-      >
-        2
-      </Pagination.Item>
-    )}
+              {/* Second Page (if applicable) */}
+              {pageNumbers.length > 1 && (
+                <Pagination.Item
+                  key={2}
+                  active={2 === currentPage}
+                  onClick={() => paginate(2)}
+                >
+                  2
+                </Pagination.Item>
+              )}
 
-    {/* Ellipsis if there are more than 2 pages */}
-    {pageNumbers.length > 2 && currentPage > 3 && <Pagination.Ellipsis />}
+              {/* Ellipsis if there are more than 2 pages */}
+              {pageNumbers.length > 2 && currentPage > 3 && (
+                <Pagination.Ellipsis />
+              )}
 
-    {/* Current page (if not 1 or 2) */}
-    {currentPage > 2 && currentPage < pageNumbers.length && (
-      <Pagination.Item active>{currentPage}</Pagination.Item>
-    )}
+              {/* Current page (if not 1 or 2) */}
+              {currentPage > 2 && currentPage < pageNumbers.length && (
+                <Pagination.Item active>{currentPage}</Pagination.Item>
+              )}
 
-    {/* Ellipsis before Last if needed */}
-    {pageNumbers.length > 2 && currentPage < pageNumbers.length - 1 && (
-      <Pagination.Ellipsis />
-    )}
+              {/* Ellipsis before Last if needed */}
+              {pageNumbers.length > 2 &&
+                currentPage < pageNumbers.length - 1 && <Pagination.Ellipsis />}
 
-    {/* Last Page (if more than 2 pages) */}
-    {pageNumbers.length > 2 && (
-      <Pagination.Item
-        key={pageNumbers.length}
-        active={pageNumbers.length === currentPage}
-        onClick={() => paginate(pageNumbers.length)}
-      >
-        {pageNumbers.length}
-      </Pagination.Item>
-    )}
+              {/* Last Page (if more than 2 pages) */}
+              {pageNumbers.length > 2 && (
+                <Pagination.Item
+                  key={pageNumbers.length}
+                  active={pageNumbers.length === currentPage}
+                  onClick={() => paginate(pageNumbers.length)}
+                >
+                  {pageNumbers.length}
+                </Pagination.Item>
+              )}
 
-    {/* Previous Button */}
-    <Pagination.Prev
-      onClick={() => paginate(currentPage - 1)}
-      disabled={currentPage === 1}
-    />
+              {/* Previous Button */}
+              <Pagination.Prev
+                onClick={() => paginate(currentPage - 1)}
+                disabled={currentPage === 1}
+              />
 
-    {/* Next Button */}
-    <Pagination.Next
-      onClick={() => paginate(currentPage + 1)}
-      disabled={currentPage === pageNumbers.length}
-    />
+              {/* Next Button */}
+              <Pagination.Next
+                onClick={() => paginate(currentPage + 1)}
+                disabled={currentPage === pageNumbers.length}
+              />
 
-    {/* Last Button */}
-    <Pagination.Last
-      onClick={() => paginate(pageNumbers.length)}
-      disabled={currentPage === pageNumbers.length}
-    />
-  </Pagination>
-)}
+              {/* Last Button */}
+              <Pagination.Last
+                onClick={() => paginate(pageNumbers.length)}
+                disabled={currentPage === pageNumbers.length}
+              />
+            </Pagination>
+          )}
         </Card.Body>
 
         {filteredInvoices.length > 0 && (
@@ -1636,6 +1681,260 @@ const Invoice_list = () => {
       <Modal
         show={showPaymentModal}
         onHide={() => setShowPaymentModal(false)}
+        size="lg"
+        centered
+      >
+        <Modal.Header closeButton className="bg-primary text-white">
+          <Modal.Title className="d-flex align-items-center">
+            <FaMoneyBillWave className="me-2" />
+            Payment Details - {currentInvoice?.invoice_number}
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {isEditingPayments ? (
+            <div>
+              <h5>Edit Payments</h5>
+              <div className="table-responsive">
+                <Table hover className="align-middle">
+                  <thead className="table-light">
+                    <tr>
+                      <th>ID</th>
+                      <th>Amount</th>
+                      <th>Payment Date</th>
+                      <th>Method</th>
+                      <th>Note</th>
+                      <th>Created At</th>
+                      <th>Updated At</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {selectedInvoicePayments.map((payment, index) => (
+                      <tr key={index}>
+                        <td>
+                          <Form.Control
+                            type="text"
+                            value={payment.id || "New"}
+                            disabled
+                            size="sm"
+                            style={{ minWidth: "80px" }} // ID field
+                          />
+                        </td>
+                        <td>
+                          <Form.Control
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            value={payment.amount}
+                            onChange={(e) =>
+                              handlePaymentChange(
+                                index,
+                                "amount",
+                                e.target.value
+                              )
+                            }
+                            size="sm"
+                            required
+                            style={{ minWidth: "120px" }} // Amount field
+                          />
+                        </td>
+                        <td>
+                          <Form.Control
+                            type="date"
+                            value={
+                              payment.payment_date?.split("T")[0] ||
+                              payment.payment_date
+                            }
+                            onChange={(e) =>
+                              handlePaymentChange(
+                                index,
+                                "payment_date",
+                                e.target.value
+                              )
+                            }
+                            size="sm"
+                            required
+                            style={{ minWidth: "160px" }} // Date field
+                          />
+                        </td>
+                        <td>
+                          <Form.Select
+                            value={payment.method || ""}
+                            onChange={(e) =>
+                              handlePaymentChange(
+                                index,
+                                "method",
+                                e.target.value
+                              )
+                            }
+                            size="sm"
+                            style={{ minWidth: "150px" }} // Dropdown
+                          >
+                            <option value="">Select Method</option>
+                            <option value="bankTransfer">Bank Transfer</option>
+                            <option value="amex">Amex</option>
+                            <option value="googlePay">Google Pay</option>
+                            <option value="usdPortal">USD Portal</option>
+                          </Form.Select>
+                        </td>
+                        <td>
+                          <Form.Control
+                            type="text"
+                            value={payment.note || ""}
+                            onChange={(e) =>
+                              handlePaymentChange(index, "note", e.target.value)
+                            }
+                            size="sm"
+                            style={{ minWidth: "200px" }} // Note field (wider for text)
+                          />
+                        </td>
+                        <td>
+                          <Form.Control
+                            type="text"
+                            value={formatDate(payment.created_at)}
+                            disabled
+                            size="sm"
+                            style={{ minWidth: "140px" }} // Created At
+                          />
+                        </td>
+                        <td>
+                          <Form.Control
+                            type="text"
+                            value={formatDate(payment.updated_at)}
+                            disabled
+                            size="sm"
+                            style={{ minWidth: "140px" }} // Updated At
+                          />
+                        </td>
+                        <td>
+                          <Button
+                            variant="outline-danger"
+                            size="sm"
+                            onClick={() => handleRemovePayment(index)}
+                          >
+                            <FaTrash />
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
+              </div>
+              <div className="d-flex justify-content-between mt-3">
+                <Button
+                  variant="outline-primary"
+                  size="sm"
+                  onClick={handleAddPayment}
+                >
+                  <FaPlus className="me-1" /> Add Payment
+                </Button>
+                <div>
+                  <strong>
+                    Total Received:{" "}
+                    {currencySymbols[currentInvoice?.currency] ||
+                      currentInvoice?.currency}{" "}
+                    {selectedInvoicePayments
+                      .reduce(
+                        (sum, payment) =>
+                          sum + (parseFloat(payment.amount) || 0),
+                        0
+                      )
+                      .toFixed(2)}
+                  </strong>
+                </div>
+              </div>
+            </div>
+          ) : selectedInvoicePayments.length > 0 ? (
+            <div className="table-responsive">
+              <Table hover className="align-middle">
+                <thead className="table-light">
+                  <tr>
+                    <th>ID</th>
+                    <th>Amount</th>
+                    <th>Payment Date</th>
+                    <th>Method</th>
+                    <th>Note</th>
+                    <th>Created At</th>
+                    <th>Updated At</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {selectedInvoicePayments.map((payment) => (
+                    <tr key={payment.id}>
+                      <td>{payment.id}</td>
+                      <td>
+                        {currencySymbols[currentInvoice?.currency] ||
+                          currentInvoice?.currency}{" "}
+                        {payment.amount}
+                      </td>
+                      <td>{formatDate(payment.payment_date)}</td>
+                      <td>{payment.method || "N/A"}</td>
+                      <td>{payment.note || "N/A"}</td>
+                      <td>{formatDate(payment.created_at)}</td>
+                      <td>{formatDate(payment.updated_at)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+              <div className="d-flex justify-content-end mt-3">
+                <strong>
+                  Total Received:{" "}
+                  {currencySymbols[currentInvoice?.currency] ||
+                    currentInvoice?.currency}{" "}
+                  {selectedInvoicePayments
+                    .reduce(
+                      (sum, payment) => sum + (parseFloat(payment.amount) || 0),
+                      0
+                    )
+                    .toFixed(2)}
+                </strong>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-4">
+              <FaMoneyBillWave size={48} className="text-muted mb-3" />
+              <h5>No payment details available</h5>
+              <p className="text-muted">
+                This invoice has no recorded payments.
+              </p>
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button
+            variant="secondary"
+            onClick={() => setShowPaymentModal(false)}
+          >
+            Close
+          </Button>
+          {isEditingPayments ? (
+            <>
+              <Button
+                variant="outline-secondary"
+                onClick={() => {
+                  setIsEditingPayments(false);
+                  setSelectedInvoicePayments(currentInvoice?.payments || []);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button variant="primary" onClick={handleUpdatePayments}>
+                {"Save Changes"}
+              </Button>
+            </>
+          ) : (
+            <Button
+              variant="outline-primary"
+              onClick={() => setIsEditingPayments(true)}
+            >
+              <FaEdit className="me-1" /> Edit Payments
+            </Button>
+          )}
+        </Modal.Footer>
+      </Modal>
+      <Modal
+        show={showExchangeModal}
+        onHide={() => setShowExchangeModal(false)}
         size="lg"
         centered
       >

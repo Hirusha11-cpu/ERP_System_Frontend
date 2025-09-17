@@ -975,7 +975,7 @@ const Invoice_list = () => {
                             {invoice.total_amount}
                           </div>
                         </td>
-                        <td>{getStatusBadge(invoice.status)}</td>
+                        <td>{getStatusBadge(invoice.status === "draft" ? "open" : invoice.status)}</td>
                         <td>
                           <ActionButton
                             icon={<FaMoneyBillWave />}

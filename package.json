@@ -26,6 +26,7 @@
     "emoji-picker-react": "^4.12.0",
     "feather-icons": "^4.29.2",
     "feather-icons-react": "^0.7.0",
+    "file-saver": "^2.0.5",
     "html2pdf.js": "^0.10.3",
     "jspdf-autotable": "^5.0.2",
     "moment": "^2.30.1",

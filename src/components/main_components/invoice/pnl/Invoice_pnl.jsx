@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useRef } from "react";
 import {
   Table,
   Card,
@@ -13,7 +13,8 @@ import {
   Tooltip,
   Alert,
   InputGroup,
-  Spinner
+  Spinner,
+  Dropdown
 } from "react-bootstrap";
 import {
   FaFilter,
@@ -28,10 +29,16 @@ import {
   FaExchangeAlt,
   FaCalculator,
   FaCheckCircle,
-  FaExclamationTriangle
+  FaExclamationTriangle,
+  FaFileExcel,
+  FaFilePdf
 } from "react-icons/fa";
 import axios from "axios";
 import { CompanyContext } from "../../../../contentApi/CompanyProvider";
+import jsPDF from "jspdf";
+import "jspdf-autotable";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
 
 const Invoice_pnl = () => {
   const { selectedCompany } = useContext(CompanyContext);
@@ -41,6 +48,7 @@ const Invoice_pnl = () => {
   const [error, setError] = useState(null);
   const [exchangeRate, setExchangeRate] = useState(300);
   const [showDetails, setShowDetails] = useState(false);
+  const tableRef = useRef();
 
   const token = localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
 
@@ -98,19 +106,161 @@ const Invoice_pnl = () => {
     window.print();
   };
 
-  const handleExport = () => {
-    // Implement export functionality
-    console.log('Export functionality to be implemented');
+  const exportToExcel = () => {
+    if (!pnlData) return;
+
+    const workbook = XLSX.utils.book_new();
+    
+    // Main P&L Data
+    const mainData = [
+      ['Profit & Loss Statement', '', '', ''],
+      ['Invoice Number', pnlData.invoice.invoice_number, '', ''],
+      ['Customer', pnlData.invoice.customer, '', ''],
+      ['Issue Date', new Date(pnlData.invoice.issue_date).toLocaleDateString(), '', ''],
+      ['Currency', pnlData.invoice.currency, '', ''],
+      ['Exchange Rate', exchangeRate, '', ''],
+      ['', '', '', ''],
+      ['Description', 'USD', 'Exchange Rate', 'LKR'],
+      ['Invoice Revenue', pnlData.revenue_breakdown.total_revenue, exchangeRate, calculateLkrValue(pnlData.revenue_breakdown.total_revenue)],
+      ['GST', pnlData.revenue_breakdown.gst_amount, exchangeRate, calculateLkrValue(pnlData.revenue_breakdown.gst_amount)],
+      ['Total Costs', pnlData.financial_summary.total_cost, exchangeRate, calculateLkrValue(pnlData.financial_summary.total_cost)],
+      ['Profit', pnlData.financial_summary.profit_loss, exchangeRate, calculateLkrValue(pnlData.financial_summary.profit_loss)],
+      ['Profit % (Margin)', pnlData.financial_summary.profit_margin + '%', '', ''],
+      ['Profit % (Markup)', pnlData.financial_summary.profit_markup + '%', '', ''],
+      ['', '', '', ''],
+      ['Validation Results', '', '', ''],
+      ['Revenue vs Mega Cost Status', pnlData.validation.revenue_vs_mega_cost.status, '', ''],
+      ['Revenue vs Mega Cost Difference', pnlData.validation.revenue_vs_mega_cost.difference, '', ''],
+      ['Profit Comparison Status', pnlData.validation.profit_comparison.status, '', ''],
+      ['Profit Comparison Difference', pnlData.validation.profit_comparison.difference, '', '']
+    ];
+
+    const mainWorksheet = XLSX.utils.aoa_to_sheet(mainData);
+    XLSX.utils.book_append_sheet(workbook, mainWorksheet, 'P&L Summary');
+
+    // Revenue Breakdown
+    const revenueData = [
+      ['Revenue Breakdown', ''],
+      ['Sub Total', pnlData.revenue_breakdown.sub_total],
+      ['Bank Charges', pnlData.revenue_breakdown.bank_charges],
+      ['GST Amount', pnlData.revenue_breakdown.gst_amount],
+      ['Additional Tax', pnlData.revenue_breakdown.additional_tax],
+      ['Handling Fee', pnlData.revenue_breakdown.handling_fee],
+      ['Total Revenue', pnlData.revenue_breakdown.total_revenue]
+    ];
+
+    const revenueWorksheet = XLSX.utils.aoa_to_sheet(revenueData);
+    XLSX.utils.book_append_sheet(workbook, revenueWorksheet, 'Revenue Details');
+
+    // Cost Breakdown
+    const costData = [
+      ['Cost Breakdown', ''],
+      ['Accommodation', pnlData.cost_breakdown.accommodation],
+      ['Meals', pnlData.cost_breakdown.meal],
+      ['Tickets', pnlData.cost_breakdown.tickets],
+      ['Transport', pnlData.cost_breakdown.transport],
+      ['Other Rates', pnlData.cost_breakdown.other_rates],
+      ['Total Cost', pnlData.financial_summary.total_cost]
+    ];
+
+    const costWorksheet = XLSX.utils.aoa_to_sheet(costData);
+    XLSX.utils.book_append_sheet(workbook, costWorksheet, 'Cost Details');
+
+    // Generate Excel file
+    const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+    const data = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    saveAs(data, `P&L_Report_${pnlData.invoice.invoice_number}_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
-  if (loading) {
-    return (
-      <div className="d-flex justify-content-center align-items-center" style={{ height: '400px' }}>
-        <Spinner animation="border" variant="primary" />
-        <span className="ms-2">Loading P&L data...</span>
-      </div>
-    );
-  }
+  const exportToPDF = () => {
+    if (!pnlData) return;
+
+    const doc = new jsPDF();
+    
+    // Title
+    doc.setFontSize(18);
+    doc.setTextColor(40, 40, 40);
+    doc.text('PROFIT & LOSS REPORT', 105, 15, { align: 'center' });
+    
+    // Invoice Info
+    doc.setFontSize(12);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Invoice: ${pnlData.invoice.invoice_number}`, 14, 25);
+    doc.text(`Customer: ${pnlData.invoice.customer}`, 14, 32);
+    doc.text(`Date: ${new Date(pnlData.invoice.issue_date).toLocaleDateString()}`, 14, 39);
+    doc.text(`Currency: ${pnlData.invoice.currency}`, 14, 46);
+    doc.text(`Exchange Rate: ${exchangeRate}`, 14, 53);
+
+    // Main Table
+    doc.autoTable({
+      startY: 60,
+      head: [['Description', 'USD', 'Exchange Rate', 'LKR']],
+      body: [
+        ['Invoice Revenue', formatCurrency(pnlData.revenue_breakdown.total_revenue), exchangeRate, formatCurrency(calculateLkrValue(pnlData.revenue_breakdown.total_revenue), 'LKR')],
+        ['GST', formatCurrency(pnlData.revenue_breakdown.gst_amount), exchangeRate, formatCurrency(calculateLkrValue(pnlData.revenue_breakdown.gst_amount), 'LKR')],
+        ['Total Costs', formatCurrency(pnlData.financial_summary.total_cost), exchangeRate, formatCurrency(calculateLkrValue(pnlData.financial_summary.total_cost), 'LKR')],
+        ['Profit', formatCurrency(pnlData.financial_summary.profit_loss), exchangeRate, formatCurrency(calculateLkrValue(pnlData.financial_summary.profit_loss), 'LKR')],
+        ['Profit % (Margin)', formatPercentage(pnlData.financial_summary.profit_margin), '', ''],
+        ['Profit % (Markup)', formatPercentage(pnlData.financial_summary.profit_markup), '', '']
+      ],
+      theme: 'grid',
+      headStyles: {
+        fillColor: [41, 128, 185],
+        textColor: 255,
+        fontStyle: 'bold'
+      },
+      alternateRowStyles: {
+        fillColor: [240, 240, 240]
+      }
+    });
+
+    // Validation Section
+    const finalY = doc.lastAutoTable.finalY + 10;
+    doc.setFontSize(14);
+    doc.setTextColor(40, 40, 40);
+    doc.text('VALIDATION RESULTS', 14, finalY);
+
+    doc.autoTable({
+      startY: finalY + 5,
+      body: [
+        ['Revenue vs Mega Cost', pnlData.validation.revenue_vs_mega_cost.status, formatCurrency(pnlData.validation.revenue_vs_mega_cost.difference)],
+        ['Profit Comparison', pnlData.validation.profit_comparison.status, formatCurrency(pnlData.validation.profit_comparison.difference)]
+      ],
+      theme: 'grid',
+      head: [['Validation Type', 'Status', 'Difference']],
+      headStyles: {
+        fillColor: [52, 152, 219],
+        textColor: 255,
+        fontStyle: 'bold'
+      }
+    });
+
+    // Footer
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(10);
+      doc.setTextColor(100, 100, 100);
+      doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, doc.internal.pageSize.height - 10);
+      doc.text(`Page ${i} of ${pageCount}`, doc.internal.pageSize.width - 30, doc.internal.pageSize.height - 10, { align: 'right' });
+    }
+
+    // Save PDF
+    doc.save(`P&L_Report_${pnlData.invoice.invoice_number}_${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
+  const handleExport = (format) => {
+    switch (format) {
+      case 'excel':
+        exportToExcel();
+        break;
+      case 'pdf':
+        exportToPDF();
+        break;
+      default:
+        console.log('Unknown format');
+    }
+  };
 
   return (
     <div className="container-fluid py-4">
@@ -125,9 +275,20 @@ const Invoice_pnl = () => {
             <Button variant="outline-light" size="sm" className="me-2" onClick={handlePrint}>
               <FaPrint className="me-1" /> Print
             </Button>
-            <Button variant="outline-light" size="sm" onClick={handleExport}>
-              <FaDownload className="me-1" /> Export
-            </Button>
+            
+            <Dropdown>
+              <Dropdown.Toggle variant="outline-light" size="sm">
+                <FaDownload className="me-1" /> Export
+              </Dropdown.Toggle>
+              <Dropdown.Menu>
+                <Dropdown.Item onClick={() => handleExport('excel')}>
+                  <FaFileExcel className="me-2 text-success" /> Excel
+                </Dropdown.Item>
+                <Dropdown.Item onClick={() => handleExport('pdf')}>
+                  <FaFilePdf className="me-2 text-danger" /> PDF
+                </Dropdown.Item>
+              </Dropdown.Menu>
+            </Dropdown>
           </div>
         </Card.Header>
         <Card.Body>

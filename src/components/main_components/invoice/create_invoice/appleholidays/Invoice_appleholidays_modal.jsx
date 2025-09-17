@@ -461,7 +461,7 @@ const Invoice_appleholidays_modal = ({
                 Payments made more than two (2) days after the invoice date will
                 be subject to the applicable Xe.com{" "}
                 {formData.currencyDetails?.currency !== "USD"
-                  ? `${xeRate} + 1`
+                  ? `${xeRate}`
                   : ""}{" "}
                 exchange rate. The payment deadline shall be in accordance with
                 the booking confirmation or{" "}

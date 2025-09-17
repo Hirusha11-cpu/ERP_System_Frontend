@@ -118,7 +118,7 @@ const Invoice_appleholidays_modal = ({
             <div>
               <div>
                 <strong>To:</strong>{" "}
-               <strong>{formData.customer?.name || "PICK YOUR TRAIL"}</strong> 
+               <strong>{formData.customer?.name || ""}</strong> 
               </div>
               <div>
                 <strong>Address:</strong>{" "}

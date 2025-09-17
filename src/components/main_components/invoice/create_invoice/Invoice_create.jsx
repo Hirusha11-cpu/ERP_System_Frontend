@@ -60,6 +60,7 @@ const Invoice_create = () => {
   const [convertToCurrency, setConvertToCurrency] = useState("USD");
   const [originalAmount, setOriginalAmount] = useState(0);
   const [convertedAmount, setConvertedAmount] = useState(0);
+  const [descriptionValue, setDescriptionValue] = useState(false);
 
   // Fetch customers and tax rates on component mount
   useEffect(() => {
@@ -3684,7 +3685,7 @@ const Invoice_create = () => {
                 </Col>
 
                 <Col md={12} className="mb-3">
-                  <Form.Group>
+                  {/* <Form.Group>
                     <Form.Label>Description:</Form.Label>
                     <Form.Select
                       value={newItem.description}
@@ -3706,10 +3707,10 @@ const Invoice_create = () => {
                           Cost per Product
                         </option>
                       )}
-                      <option value="custom">Other (Type Manually)</option>
+                      <option onClick={() => setDescriptionValue(true)}>Other (Type Manually)</option>
                     </Form.Select>
 
-                    {newItem.description === "custom" && (
+                    {descriptionValue && (
                       <Form.Control
                         className="mt-2"
                         type="text"
@@ -3719,7 +3720,56 @@ const Invoice_create = () => {
                           setNewItem({
                             ...newItem,
                             description: e.target.value,
-                            customDescription: e.target.value,
+                          })
+                        }
+                      />
+                    )}
+                  </Form.Group> */}
+                  <Form.Group>
+                    <Form.Label>Description:</Form.Label>
+                    <Form.Select
+                      value={newItem.description}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (value === "custom") {
+                          setDescriptionValue(true); // ✅ show input
+                        } else {
+                          setDescriptionValue(false); // ✅ hide input when normal option selected
+                        }
+                        setNewItem({
+                          ...newItem,
+                          description: value,
+                        });
+                      }}
+                    >
+                      <option value="">Select Description</option>
+                      {companyNo === 1 || companyNo === 2 ? (
+                        <>
+                          <option value="Cost per Adult">Cost per Adult</option>
+                          <option value="Cost per Child">Cost per Child</option>
+                        </>
+                      ) : (
+                        <option value="Cost per Product">
+                          Cost per Product
+                        </option>
+                      )}
+                      <option value="custom">Other (Type Manually)</option>
+                    </Form.Select>
+
+                    {descriptionValue && (
+                      <Form.Control
+                        className="mt-2"
+                        type="text"
+                        placeholder="Enter custom description"
+                        value={
+                          newItem.description !== "custom"
+                            ? newItem.description
+                            : ""
+                        }
+                        onChange={(e) =>
+                          setNewItem({
+                            ...newItem,
+                            description: e.target.value, // ✅ keep typed custom value
                           })
                         }
                       />

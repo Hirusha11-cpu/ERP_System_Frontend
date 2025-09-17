@@ -114,7 +114,7 @@ const Invoice_sharmila_modal = ({
               {/* </div> */}
               <div>
                 <strong>Customer:</strong>{" "}
-                {formData.customer?.customer || "PICK YOUR TRAIL"}
+                {formData.customer?.customer || ""}
               </div>
 
               <div>{/* <strong>GST:</strong> {"7895"} */}</div>

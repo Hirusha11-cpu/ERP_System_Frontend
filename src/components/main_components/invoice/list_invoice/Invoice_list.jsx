@@ -13,7 +13,8 @@ import {
   OverlayTrigger,
   Tooltip,
   Pagination, // Added for pagination
-  Spinner, // Added for loading
+  Spinner,
+  Alert, // Added for loading
 } from "react-bootstrap";
 import {
   FaEye,
@@ -34,7 +35,8 @@ import {
   FaSearch,
   FaFilter,
   FaCreditCard,
-  FaSync, // For refresh
+  FaSync,
+  FaExchangeAlt, // For refresh
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -62,6 +64,7 @@ const Invoice_list = () => {
   const [showExchangeModal, setShowExchangeModal] = useState(false);
   const [isEditingPayments, setIsEditingPayments] = useState(false);
   const [currentInvoice, setCurrentInvoice] = useState(null);
+  const [currentInvoiceExchange, setCurrentInvoiceExchange] = useState(null);
   const [invoiceToDelete, setInvoiceToDelete] = useState(null);
   const [selectedInvoicePayments, setSelectedInvoicePayments] = useState([]);
   const [companyNo, setCompanyNo] = useState(null);
@@ -93,6 +96,9 @@ const Invoice_list = () => {
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10); // Number of invoices per page
+  const [exchangeRateLoading, setExchangeRateLoading] = useState(false);
+  const [exchangeRateError, setExchangeRateError] = useState(null);
+  const [exchangeRateSuccess, setExchangeRateSuccess] = useState("");
 
   useEffect(() => {
     const companyMap = {
@@ -232,7 +238,8 @@ const Invoice_list = () => {
 
     setSelectedInvoicePayments(invoice.exchange_rate_histories || []);
     setCurrentInvoice(invoice);
-    setShowPaymentModal(true);
+    // setShowPaymentModal(true);
+    setShowExchangeModal(true);
   };
 
   const handleAddPayment = () => {
@@ -446,6 +453,38 @@ const Invoice_list = () => {
   const confirmDelete = (invoice) => {
     setInvoiceToDelete(invoice);
     setShowDeleteModal(true);
+  };
+
+  const handleUpdateExchangeRate = async (invoice) => {
+    try {
+      setExchangeRateLoading(true);
+      setExchangeRateError(null);
+      setExchangeRateSuccess("");
+
+      console.log("Updating exchange rate for invoice:", invoice);
+
+      const response = await axios.post(
+        `/api/invoices/${invoice.id}/create-exchange-rate-histories`,
+        {}, // body (empty, since you're just triggering the backend)
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      console.log("Exchange rate history updated:", response.data);
+      setExchangeRateSuccess("Exchange rate history updated successfully!");
+
+      // Refresh the current invoice data to show the new exchange rate history
+      fetchInvoices(searchDaysCount || 0);
+    } catch (error) {
+      console.error("Failed to update exchange rate:", error);
+      setExchangeRateError(
+        error.response?.data?.error ||
+          "Failed to update exchange rate. Please try again."
+      );
+    } finally {
+      setExchangeRateLoading(false);
+    }
   };
 
   const formatInvoiceData = (invoice) => {
@@ -755,6 +794,74 @@ const Invoice_list = () => {
     }
   };
 
+  // const handleShowExchangedInvoice = (invoice) => {
+  //   console.log("Viewing exchanged invoice:", invoice);
+
+  //   //  setCurrentInvoice(invoice);
+  //   if (companyNo === 2) {
+  //     setShowPreviewModalAppleholidays(true);
+  //   } else if (companyNo === 3) {
+  //     setShowPreviewModalAahaas(true);
+  //   } else if (companyNo === 1) {
+  //     setShowPreviewModalShirmila(true);
+  //   } else {
+  //     setShowPreviewModalAahaas(true);
+  //   }
+  // }
+
+  const handleShowExchangedInvoice = (invoice) => {
+    console.log("Viewing current invoice:",currentInvoice);
+    
+    console.log("Viewing exchanged invoice:", invoice);
+
+    // Check if there are exchange rate histories
+    if (
+      invoice.exchange_rate_histories &&
+      invoice.exchange_rate_histories.length > 0
+    ) {
+      // Get the latest exchange rate history
+      const latestExchangeRate =
+        invoice.exchange_rate_histories[
+          invoice.exchange_rate_histories.length - 1
+        ];
+
+      // Create a modified invoice with exchanged amounts
+      const exchangedInvoice = {
+        ...invoice, // Keep all original properties
+        // Override the financial fields with exchanged values
+        
+        sub_total: latestExchangeRate.sub_total,
+        handling_fee: latestExchangeRate.handling_fee,
+        gst_amount: latestExchangeRate.gst_amount,
+        additional_tax: latestExchangeRate.additional_tax,
+        bank_charges: latestExchangeRate.bank_charges,
+        total_amount: latestExchangeRate.total_amount,
+        amount_received: latestExchangeRate.amount_received,
+        balance: latestExchangeRate.balance,
+        exchange_rate: latestExchangeRate.exchange_rate,
+        // Add a flag to indicate this is an exchanged version
+        is_exchanged: true,
+        exchange_rate_date: latestExchangeRate.rate_date,
+      };
+
+      // Set the modified invoice as current
+      setCurrentInvoiceExchange(exchangedInvoice);
+    } else {
+      // If no exchange rate history, use the original invoice
+      setCurrentInvoiceExchange(invoice);
+    }
+
+    // Show the appropriate modal based on company
+    if (companyNo === 2) {
+      setShowPreviewModalAppleholidays(true);
+    } else if (companyNo === 3) {
+      setShowPreviewModalAahaas(true);
+    } else if (companyNo === 1) {
+      setShowPreviewModalShirmila(true);
+    } else {
+      setShowPreviewModalAahaas(true);
+    }
+  };
   const ActionButton = ({
     icon,
     label,
@@ -1031,6 +1138,11 @@ const Invoice_list = () => {
                         <td className="text-start">
                           <div className="d-flex justify-content-start">
                             <ActionButton
+                              icon={<FaFileInvoiceDollar />}
+                              variant="warning"
+                              onClick={() => handleUpdateExchangeRate(invoice)}
+                            />
+                            <ActionButton
                               icon={<FaEye />}
                               variant="info"
                               onClick={() => handleViewInvoice(invoice)}
@@ -1184,6 +1296,16 @@ const Invoice_list = () => {
         show={showPreviewModalAppleholidays}
         onHide={() => setShowPreviewModalAppleholidays(false)}
         formData={formatInvoiceData(currentInvoice)}
+        countryOptions={countryOptions}
+        currencySymbols={currencySymbols}
+        printInvoice={handlePrintInvoiceAppleHolidays}
+        formatDate={formatDate}
+        xeRate={xeRate}
+      />
+      <Invoice_appleholidays_modal
+        show={showPreviewModalAppleholidays}
+        onHide={() => setShowPreviewModalAppleholidays(false)}
+        formData={formatInvoiceData(currentInvoiceExchange)}
         countryOptions={countryOptions}
         currencySymbols={currencySymbols}
         printInvoice={handlePrintInvoiceAppleHolidays}
@@ -1677,7 +1799,6 @@ const Invoice_list = () => {
           )}
         </Modal.Body>
       </Modal>
-
       <Modal
         show={showPaymentModal}
         onHide={() => setShowPaymentModal(false)}
@@ -1934,222 +2055,127 @@ const Invoice_list = () => {
       </Modal>
       <Modal
         show={showExchangeModal}
-        onHide={() => setShowExchangeModal(false)}
+        onHide={() => {
+          setShowExchangeModal(false);
+          setExchangeRateError(null);
+          setExchangeRateSuccess("");
+        }}
         size="lg"
         centered
       >
-        <Modal.Header closeButton className="bg-primary text-white">
+        <Modal.Header closeButton className="bg-info text-white">
           <Modal.Title className="d-flex align-items-center">
-            <FaMoneyBillWave className="me-2" />
-            Payment Details - {currentInvoice?.invoice_number}
+            <FaExchangeAlt className="me-2" />
+            Exchange Rate History - {currentInvoice?.invoice_number}
           </Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          {isEditingPayments ? (
-            <div>
-              <h5>Edit Payments</h5>
-              <div className="table-responsive">
-                <Table hover className="align-middle">
-                  <thead className="table-light">
-                    <tr>
-                      <th>ID</th>
-                      <th>Amount</th>
-                      <th>Payment Date</th>
-                      <th>Method</th>
-                      <th>Note</th>
-                      <th>Created At</th>
-                      <th>Updated At</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {selectedInvoicePayments.map((payment, index) => (
-                      <tr key={index}>
-                        <td>
-                          <Form.Control
-                            type="text"
-                            value={payment.id || "New"}
-                            disabled
-                            size="sm"
-                            style={{ minWidth: "80px" }} // ID field
-                          />
-                        </td>
-                        <td>
-                          <Form.Control
-                            type="number"
-                            step="0.01"
-                            min="0"
-                            value={payment.amount}
-                            onChange={(e) =>
-                              handlePaymentChange(
-                                index,
-                                "amount",
-                                e.target.value
-                              )
-                            }
-                            size="sm"
-                            required
-                            style={{ minWidth: "120px" }} // Amount field
-                          />
-                        </td>
-                        <td>
-                          <Form.Control
-                            type="date"
-                            value={
-                              payment.payment_date?.split("T")[0] ||
-                              payment.payment_date
-                            }
-                            onChange={(e) =>
-                              handlePaymentChange(
-                                index,
-                                "payment_date",
-                                e.target.value
-                              )
-                            }
-                            size="sm"
-                            required
-                            style={{ minWidth: "160px" }} // Date field
-                          />
-                        </td>
-                        <td>
-                          <Form.Select
-                            value={payment.method || ""}
-                            onChange={(e) =>
-                              handlePaymentChange(
-                                index,
-                                "method",
-                                e.target.value
-                              )
-                            }
-                            size="sm"
-                            style={{ minWidth: "150px" }} // Dropdown
-                          >
-                            <option value="">Select Method</option>
-                            <option value="bankTransfer">Bank Transfer</option>
-                            <option value="amex">Amex</option>
-                            <option value="googlePay">Google Pay</option>
-                            <option value="usdPortal">USD Portal</option>
-                          </Form.Select>
-                        </td>
-                        <td>
-                          <Form.Control
-                            type="text"
-                            value={payment.note || ""}
-                            onChange={(e) =>
-                              handlePaymentChange(index, "note", e.target.value)
-                            }
-                            size="sm"
-                            style={{ minWidth: "200px" }} // Note field (wider for text)
-                          />
-                        </td>
-                        <td>
-                          <Form.Control
-                            type="text"
-                            value={formatDate(payment.created_at)}
-                            disabled
-                            size="sm"
-                            style={{ minWidth: "140px" }} // Created At
-                          />
-                        </td>
-                        <td>
-                          <Form.Control
-                            type="text"
-                            value={formatDate(payment.updated_at)}
-                            disabled
-                            size="sm"
-                            style={{ minWidth: "140px" }} // Updated At
-                          />
-                        </td>
-                        <td>
-                          <Button
-                            variant="outline-danger"
-                            size="sm"
-                            onClick={() => handleRemovePayment(index)}
-                          >
-                            <FaTrash />
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </Table>
-              </div>
-              <div className="d-flex justify-content-between mt-3">
-                <Button
-                  variant="outline-primary"
-                  size="sm"
-                  onClick={handleAddPayment}
-                >
-                  <FaPlus className="me-1" /> Add Payment
-                </Button>
-                <div>
-                  <strong>
-                    Total Received:{" "}
-                    {currencySymbols[currentInvoice?.currency] ||
-                      currentInvoice?.currency}{" "}
-                    {selectedInvoicePayments
-                      .reduce(
-                        (sum, payment) =>
-                          sum + (parseFloat(payment.amount) || 0),
-                        0
-                      )
-                      .toFixed(2)}
-                  </strong>
-                </div>
-              </div>
-            </div>
-          ) : selectedInvoicePayments.length > 0 ? (
+          {/* Error Message */}
+          {exchangeRateError && (
+            <Alert variant="danger" className="d-flex align-items-center">
+              <FaInfoCircle className="me-2" />
+              {exchangeRateError}
+            </Alert>
+          )}
+
+          {/* Success Message */}
+          {exchangeRateSuccess && (
+            <Alert variant="success" className="d-flex align-items-center">
+              <FaInfoCircle className="me-2" />
+              {exchangeRateSuccess}
+            </Alert>
+          )}
+
+          {currentInvoice?.exchange_rate_histories?.length > 0 ? (
             <div className="table-responsive">
               <Table hover className="align-middle">
                 <thead className="table-light">
                   <tr>
                     <th>ID</th>
-                    <th>Amount</th>
-                    <th>Payment Date</th>
-                    <th>Method</th>
-                    <th>Note</th>
+                    <th>Sub Total</th>
+                    <th>Handling Fee</th>
+                    <th>GST Amount</th>
+                    <th>Additional Tax</th>
+                    <th>Bank Charges</th>
+                    <th>Total Amount</th>
+                    <th>Amount Received</th>
+                    <th>Balance</th>
+                    <th>Exchange Rate</th>
+                    <th>Rate Date</th>
                     <th>Created At</th>
-                    <th>Updated At</th>
+                    <th>Print Invoice</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {selectedInvoicePayments.map((payment) => (
-                    <tr key={payment.id}>
-                      <td>{payment.id}</td>
+                  {currentInvoice.exchange_rate_histories.map((history) => (
+                    <tr key={history.id}>
+                      <td>{history.id}</td>
                       <td>
                         {currencySymbols[currentInvoice?.currency] ||
                           currentInvoice?.currency}{" "}
-                        {payment.amount}
+                        {parseFloat(history.sub_total).toFixed(2)}
                       </td>
-                      <td>{formatDate(payment.payment_date)}</td>
-                      <td>{payment.method || "N/A"}</td>
-                      <td>{payment.note || "N/A"}</td>
-                      <td>{formatDate(payment.created_at)}</td>
-                      <td>{formatDate(payment.updated_at)}</td>
+                      <td>
+                        {currencySymbols[currentInvoice?.currency] ||
+                          currentInvoice?.currency}{" "}
+                        {parseFloat(history.handling_fee).toFixed(2)}
+                      </td>
+                      <td>
+                        {currencySymbols[currentInvoice?.currency] ||
+                          currentInvoice?.currency}{" "}
+                        {parseFloat(history.gst_amount).toFixed(2)}
+                      </td>
+                      <td>
+                        {currencySymbols[currentInvoice?.currency] ||
+                          currentInvoice?.currency}{" "}
+                        {parseFloat(history.additional_tax).toFixed(2)}
+                      </td>
+                      <td>
+                        {currencySymbols[currentInvoice?.currency] ||
+                          currentInvoice?.currency}{" "}
+                        {parseFloat(history.bank_charges).toFixed(2)}
+                      </td>
+                      <td>
+                        <strong>
+                          {currencySymbols[currentInvoice?.currency] ||
+                            currentInvoice?.currency}{" "}
+                          {parseFloat(history.total_amount).toFixed(2)}
+                        </strong>
+                      </td>
+                      <td>
+                        {currencySymbols[currentInvoice?.currency] ||
+                          currentInvoice?.currency}{" "}
+                        {parseFloat(history.amount_received).toFixed(2)}
+                      </td>
+                      <td>
+                        <strong>
+                          {currencySymbols[currentInvoice?.currency] ||
+                            currentInvoice?.currency}{" "}
+                          {parseFloat(history.balance).toFixed(2)}
+                        </strong>
+                      </td>
+                      <td>{history.exchange_rate}</td>
+                      <td>{formatDate(history.rate_date)}</td>
+                      <td>{formatDate(history.created_at)}</td>
+                      <td>
+                        <Button
+                          variant="warning"
+                          onClick={() => handleShowExchangedInvoice(history)}
+                        >
+                          show
+                        </Button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </Table>
-              <div className="d-flex justify-content-end mt-3">
-                <strong>
-                  Total Received:{" "}
-                  {currencySymbols[currentInvoice?.currency] ||
-                    currentInvoice?.currency}{" "}
-                  {selectedInvoicePayments
-                    .reduce(
-                      (sum, payment) => sum + (parseFloat(payment.amount) || 0),
-                      0
-                    )
-                    .toFixed(2)}
-                </strong>
-              </div>
             </div>
           ) : (
             <div className="text-center py-4">
-              <FaMoneyBillWave size={48} className="text-muted mb-3" />
-              <h5>No payment details available</h5>
+              <FaExchangeAlt size={48} className="text-muted mb-3" />
+              <h5>No exchange rate history available</h5>
               <p className="text-muted">
-                This invoice has no recorded payments.
+                This invoice has no recorded exchange rate history.
               </p>
             </div>
           )}
@@ -2157,36 +2183,33 @@ const Invoice_list = () => {
         <Modal.Footer>
           <Button
             variant="secondary"
-            onClick={() => setShowPaymentModal(false)}
+            onClick={() => {
+              setShowExchangeModal(false);
+              setExchangeRateError(null);
+              setExchangeRateSuccess("");
+            }}
           >
             Close
           </Button>
-          {isEditingPayments ? (
-            <>
-              <Button
-                variant="outline-secondary"
-                onClick={() => {
-                  setIsEditingPayments(false);
-                  setSelectedInvoicePayments(currentInvoice?.payments || []);
-                }}
-              >
-                Cancel
-              </Button>
-              <Button variant="primary" onClick={handleUpdatePayments}>
-                {"Save Changes"}
-              </Button>
-            </>
-          ) : (
-            <Button
-              variant="outline-primary"
-              onClick={() => setIsEditingPayments(true)}
-            >
-              <FaEdit className="me-1" /> Edit Payments
-            </Button>
-          )}
+          <Button
+            variant="primary"
+            onClick={() => handleUpdateExchangeRate(currentInvoice)}
+            disabled={exchangeRateLoading}
+          >
+            {exchangeRateLoading ? (
+              <>
+                <Spinner animation="border" size="sm" className="me-2" />
+                Updating...
+              </>
+            ) : (
+              <>
+                <FaSync className="me-2" />
+                Update Exchange Rate
+              </>
+            )}
+          </Button>
         </Modal.Footer>
       </Modal>
-
       <Modal
         show={showDeleteModal}
         onHide={() => {

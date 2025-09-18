@@ -308,6 +308,8 @@ const Invoice_create = () => {
       bank_charges: formData.totals.additionalTax.toFixed(2),
       amount_received: formData.totals.amountReceived.toFixed(2),
       balance: formData.totals.balance.toFixed(2),
+      from_currency: fromCurrency,
+      to_currency: toCurrency,
       // bank_charges:formData.additionalCharges
       //                   .reduce(
       //                     (sum, charge) => sum + parseFloat(charge.amount || 0),

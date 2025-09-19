@@ -812,43 +812,42 @@ const Invoice_list = () => {
   const handleShowExchangedInvoice = (invoice) => {
     console.log("Viewing current invoice:",currentInvoice);
     
-    console.log("Viewing exchanged invoice:", invoice);
+    console.log("Viewing exchanged invoice:", invoice.exchange_rate_histories);
 
     // Check if there are exchange rate histories
     if (
-      invoice.exchange_rate_histories &&
-      invoice.exchange_rate_histories.length > 0
+      currentInvoice.exchange_rate_histories &&
+      currentInvoice.exchange_rate_histories.length > 0
     ) {
       // Get the latest exchange rate history
       const latestExchangeRate =
-        invoice.exchange_rate_histories[
-          invoice.exchange_rate_histories.length - 1
+        currentInvoice.exchange_rate_histories[
+          currentInvoice.exchange_rate_histories.length - 1
         ];
 
-      // Create a modified invoice with exchanged amounts
       const exchangedInvoice = {
-        ...invoice, // Keep all original properties
-        // Override the financial fields with exchanged values
-        
-        sub_total: latestExchangeRate.sub_total,
-        handling_fee: latestExchangeRate.handling_fee,
-        gst_amount: latestExchangeRate.gst_amount,
-        additional_tax: latestExchangeRate.additional_tax,
-        bank_charges: latestExchangeRate.bank_charges,
-        total_amount: latestExchangeRate.total_amount,
-        amount_received: latestExchangeRate.amount_received,
-        balance: latestExchangeRate.balance,
-        exchange_rate: latestExchangeRate.exchange_rate,
+        ...currentInvoice, 
+        sub_total: invoice.sub_total,
+        handling_fee: invoice.handling_fee,
+        gst_amount: invoice.gst_amount,
+        additional_tax: invoice.additional_tax,
+        bank_charges: invoice.bank_charges,
+        total_amount: invoice.total_amount,
+        amount_received: invoice.amount_received,
+        balance: invoice.balance,
+        exchange_rate: invoice.exchange_rate,
         // Add a flag to indicate this is an exchanged version
         is_exchanged: true,
-        exchange_rate_date: latestExchangeRate.rate_date,
+        exchange_rate_date: invoice.rate_date,
       };
+      console.log("this is the exchanged rate", exchangedInvoice);
 
       // Set the modified invoice as current
       setCurrentInvoiceExchange(exchangedInvoice);
     } else {
       // If no exchange rate history, use the original invoice
       setCurrentInvoiceExchange(invoice);
+
     }
 
     // Show the appropriate modal based on company

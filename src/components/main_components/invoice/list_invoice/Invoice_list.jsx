@@ -99,6 +99,7 @@ const Invoice_list = () => {
   const [exchangeRateLoading, setExchangeRateLoading] = useState(false);
   const [exchangeRateError, setExchangeRateError] = useState(null);
   const [exchangeRateSuccess, setExchangeRateSuccess] = useState("");
+  const [loadingInvoiceId, setLoadingInvoiceId] = useState(null);
 
   useEffect(() => {
     const companyMap = {
@@ -457,6 +458,7 @@ const Invoice_list = () => {
 
   const handleUpdateExchangeRate = async (invoice) => {
     try {
+      setLoadingInvoiceId(invoice.id); // mark only this invoice row as loading
       setExchangeRateLoading(true);
       setExchangeRateError(null);
       setExchangeRateSuccess("");
@@ -484,6 +486,7 @@ const Invoice_list = () => {
       );
     } finally {
       setExchangeRateLoading(false);
+      setLoadingInvoiceId(null); // reset after request finishes
     }
   };
 
@@ -810,8 +813,8 @@ const Invoice_list = () => {
   // }
 
   const handleShowExchangedInvoice = (invoice) => {
-    console.log("Viewing current invoice:",currentInvoice);
-    
+    console.log("Viewing current invoice:", currentInvoice);
+
     console.log("Viewing exchanged invoice:", invoice.exchange_rate_histories);
 
     // Check if there are exchange rate histories
@@ -826,7 +829,7 @@ const Invoice_list = () => {
         ];
 
       const exchangedInvoice = {
-        ...currentInvoice, 
+        ...currentInvoice,
         sub_total: invoice.sub_total,
         handling_fee: invoice.handling_fee,
         gst_amount: invoice.gst_amount,
@@ -847,7 +850,6 @@ const Invoice_list = () => {
     } else {
       // If no exchange rate history, use the original invoice
       setCurrentInvoiceExchange(invoice);
-
     }
 
     // Show the appropriate modal based on company
@@ -1136,11 +1138,64 @@ const Invoice_list = () => {
                         </td>
                         <td className="text-start">
                           <div className="d-flex justify-content-start">
-                            <ActionButton
+                            {/* <ActionButton
                               icon={<FaFileInvoiceDollar />}
                               variant="warning"
+                              // onClick={() => handleUpdateExchangeRate(invoice)}
+                              onClick={() =>
+                                handleUpdateExchangeRate(invoice)
+                              }
+                              disabled={exchangeRateLoading}
+                              
+                            /> */}
+                            <ActionButton
+                              icon={
+                                loadingInvoiceId === invoice.id ? (
+                                  <Spinner
+                                    animation="border"
+                                    size="sm"
+                                    className="me-2"
+                                  />
+                                ) : (
+                                  <FaFileInvoiceDollar className="me-2" />
+                                )
+                              }
+                              variant={
+                                loadingInvoiceId === invoice.id
+                                  ? "secondary"
+                                  : "warning"
+                              }
                               onClick={() => handleUpdateExchangeRate(invoice)}
-                            />
+                              disabled={loadingInvoiceId === invoice.id}
+                            >
+                              {loadingInvoiceId === invoice.id
+                                ? "Updating..."
+                                : "Update Exchange Rate"}
+                            </ActionButton>
+
+                            {/* <Button
+                              variant="primary"
+                              onClick={() =>
+                                handleUpdateExchangeRate(currentInvoice)
+                              }
+                              disabled={exchangeRateLoading}
+                            >
+                              {exchangeRateLoading ? (
+                                <>
+                                  <Spinner
+                                    animation="border"
+                                    size="sm"
+                                    className="me-2"
+                                  />
+                                  Updating...
+                                </>
+                              ) : (
+                                <>
+                                  <FaSync className="me-2" />
+                                  Update Exchange Rate
+                                </>
+                              )}
+                            </Button> */}
                             <ActionButton
                               icon={<FaEye />}
                               variant="info"

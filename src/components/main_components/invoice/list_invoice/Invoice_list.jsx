@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useContext, useRef, useMemo } from "react";
+import ReactDOM from "react-dom/client"; // Add this import
+
 import {
   Table,
   Button,
@@ -42,7 +44,7 @@ import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { CompanyContext } from "../../../../contentApi/CompanyProvider";
 import { useUser } from "../../../../contentApi/UserProvider";
-import { PDFDownloadLink } from "@react-pdf/renderer";
+import { pdf, PDFDownloadLink } from "@react-pdf/renderer";
 import { InvoicePDF } from "../upload_invoice/InvoicePDF";
 import html2pdf from "html2pdf.js";
 import Invoice_aahaas_modal from "../create_invoice/aahaas/Invoice_aahaas_modal";
@@ -348,26 +350,37 @@ const Invoice_list = () => {
 
   const handlePrintInvoice = (invoice) => {
     setCurrentInvoice(invoice);
-    const pdfLink = (
+
+    // Create a temporary container
+    const tempDiv = document.createElement("div");
+    tempDiv.style.display = "none";
+    document.body.appendChild(tempDiv);
+
+    // Create a React root and render the PDFDownloadLink
+    const root = ReactDOM.createRoot(tempDiv);
+
+    root.render(
       <PDFDownloadLink
         document={<InvoicePDF invoice={invoice} />}
         fileName={`invoice_${invoice.invoice_number}.pdf`}
       >
-        {({ blob, url, loading, error }) =>
-          loading ? "Loading document..." : "Download now!"
-        }
+        {({ loading, url }) => {
+          if (!loading && url) {
+            // Once the PDF is ready, trigger download
+            setTimeout(() => {
+              const downloadLink = tempDiv.querySelector("a");
+              if (downloadLink) {
+                downloadLink.click();
+              }
+              // Clean up
+              root.unmount();
+              document.body.removeChild(tempDiv);
+            }, 100);
+          }
+          return loading ? "Generating PDF..." : "Download ready";
+        }}
       </PDFDownloadLink>
     );
-    const tempDiv = document.createElement("div");
-    document.body.appendChild(tempDiv);
-    ReactDOM.render(pdfLink, tempDiv);
-    setTimeout(() => {
-      const downloadLink = tempDiv.querySelector("a");
-      if (downloadLink) {
-        downloadLink.click();
-      }
-      document.body.removeChild(tempDiv);
-    }, 100);
   };
 
   const handleDownloadInvoiceAahaas = (invoice) => {
@@ -728,11 +741,11 @@ const Invoice_list = () => {
         payment_instructions: formData.payment_instructions,
         staff: formData.staff,
         remarks: formData.remarks,
-        payment_methods: formData.payment_methods
-          ? formData.payment_methods.split(",")
-          : currentInvoice.payment_methods,
-        items: items.filter((item) => item),
-        additional_charges: additionalCharges.filter((charge) => charge),
+        // payment_methods: formData.payment_methods
+        //   ? formData.payment_methods.split(",")
+        //   : currentInvoice.payment_methods,
+        // items: items.filter((item) => item),
+        // additional_charges: additionalCharges.filter((charge) => charge),
         amount_received: parseFloat(formData.amount_received) || 0,
       };
       await axios.put(
@@ -1148,30 +1161,43 @@ const Invoice_list = () => {
                               disabled={exchangeRateLoading}
                               
                             /> */}
-                            <ActionButton
-                              icon={
-                                loadingInvoiceId === invoice.id ? (
-                                  <Spinner
-                                    animation="border"
-                                    size="sm"
-                                    className="me-2"
-                                  />
-                                ) : (
-                                  <FaFileInvoiceDollar className="me-2" />
-                                )
+                            <OverlayTrigger
+                              placement="top"
+                              overlay={
+                                <Tooltip id={`tooltip-${invoice.id}`}>
+                                  Update this invoice's exchange rate
+                                </Tooltip>
                               }
-                              variant={
-                                loadingInvoiceId === invoice.id
-                                  ? "secondary"
-                                  : "warning"
-                              }
-                              onClick={() => handleUpdateExchangeRate(invoice)}
-                              disabled={loadingInvoiceId === invoice.id}
                             >
-                              {loadingInvoiceId === invoice.id
-                                ? "Updating..."
-                                : "Update Exchange Rate"}
-                            </ActionButton>
+                              <span>
+                                <ActionButton
+                                  icon={
+                                    loadingInvoiceId === invoice.id ? (
+                                      <Spinner
+                                        animation="border"
+                                        size="sm"
+                                        className="me-2"
+                                      />
+                                    ) : (
+                                      <FaFileInvoiceDollar className="me-2" />
+                                    )
+                                  }
+                                  variant={
+                                    loadingInvoiceId === invoice.id
+                                      ? "secondary"
+                                      : "warning"
+                                  }
+                                  onClick={() =>
+                                    handleUpdateExchangeRate(invoice)
+                                  }
+                                  disabled={loadingInvoiceId === invoice.id}
+                                >
+                                  {loadingInvoiceId === invoice.id
+                                    ? "Updating..."
+                                    : "Update Exchange Rate"}
+                                </ActionButton>
+                              </span>
+                            </OverlayTrigger>
 
                             {/* <Button
                               variant="primary"
@@ -1206,11 +1232,11 @@ const Invoice_list = () => {
                               variant="primary"
                               onClick={() => handleEditInvoice(invoice)}
                             />
-                            <ActionButton
+                            {/* <ActionButton
                               icon={<FaPrint />}
                               variant="secondary"
                               onClick={() => handlePrintInvoice(invoice.id)}
-                            />
+                            /> */}
                             <ActionButton
                               icon={<FaTrash />}
                               variant="danger"

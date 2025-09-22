@@ -90,6 +90,10 @@ const Invoice_create = () => {
         mobile: "",
         code: "",
         gstNo: "",
+        customer: "",
+      customer_email: "",
+      customer_number: "",
+      payment_method: "",
       },
       invoice: {
         country: "IN",
@@ -102,6 +106,7 @@ const Invoice_create = () => {
         printedBy: "",
         yourRef: "",
         bookingId: "",
+        paymentMethod: "",
       },
       currencyDetails: {
         currency: "USD",
@@ -284,6 +289,7 @@ const Invoice_create = () => {
     const dataToSend = {
       customer_id: formData.customer.id,
       country_code: formData.invoice.country,
+      payment_method: formData.invoice.paymentMethod,
       currency: formData.currencyDetails.currency,
       exchange_rate: formData.currencyDetails.exchangeRate,
       tax_treatment: formData.currencyDetails.taxTreatment,
@@ -554,6 +560,9 @@ const Invoice_create = () => {
       code: "",
       gstNo: "",
       customer: "",
+      customer_email: "",
+      customer_number: "",
+      payment_method: "",
     },
     invoice: {
       country: "IS",
@@ -568,6 +577,7 @@ const Invoice_create = () => {
       bookingId: "",
       startDate: "",
       endDate: "",
+      paymentMethod: "",
     },
     currencyDetails: {
       currency: "USD",
@@ -655,6 +665,10 @@ const Invoice_create = () => {
     address: "",
     mobile: "",
     gstNo: "",
+    customer: "",
+    customer_email: "",
+    customer_number: "",
+    payment_method: "",
   });
   const [customerSearch, setCustomerSearch] = useState("");
   const [filteredCustomers, setFilteredCustomers] = useState([]);
@@ -739,6 +753,9 @@ const Invoice_create = () => {
         code: customer.code,
         gstNo: customer.gstNo || "",
         customer: customer.customer || "",
+        customer_email: customer.customer_email || "",
+        customer_number: customer.customer_number || "",
+        payment_method: customer.paymentMethod || "",
       },
     });
     setCustomerSearch("");
@@ -764,6 +781,9 @@ const Invoice_create = () => {
         mobile: "",
         gstNo: "",
         customer: "",
+        customer_email: "",
+        customer_number: "",
+        payment_method: "",
       });
     } catch (error) {
       console.error("Error creating customer:", error);
@@ -773,6 +793,46 @@ const Invoice_create = () => {
       );
     }
   };
+const createNewCustomerAahaas = async () => {
+  try {
+    const response = await axios.post("/api/customers", newCustomer, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    const createdCustomer = response.data;
+
+    // Add to customer list
+    setCustomers([...customers, createdCustomer]);
+
+    // Assign it to formData.customer (Agent Details)
+    handleCustomerSelect(createdCustomer);
+
+    // Close modal
+    setShowCustomerModal(false);
+
+    // Reset newCustomer form
+    // setNewCustomer({
+    //   code: "",
+    //   name: "",
+    //   address: "",
+    //   mobile: "",
+    //   gstNo: "",
+    //   customer: "",
+    //   customer_email: "",
+    //   customer_number: "",
+    //   payment_method: "",
+    // });
+  } catch (error) {
+    console.error("Error creating customer:", error);
+    alert(
+      "Error creating customer: " +
+        (error.response?.data?.message || error.message)
+    );
+  }
+};
+
 
   // Handle input changes
   const handleInputChange = (section, field, value) => {
@@ -1842,6 +1902,10 @@ const Invoice_create = () => {
           mobile: "",
           code: "",
           gstNo: "",
+            customer: "",
+      customer_email: "",
+      customer_number: "",
+      payment_method: "",
         },
         invoice: {
           country: "IN",
@@ -1854,6 +1918,7 @@ const Invoice_create = () => {
           printedBy: "",
           yourRef: "",
           bookingId: "",
+          paymentMethod: "",
         },
         currencyDetails: {
           currency: "USD",
@@ -2140,115 +2205,214 @@ const Invoice_create = () => {
 
       {/* Customer and Invoice Information */}
       <Row className="mb-4">
-        <Col md={6}>
-          <Card className="h-100">
-            <Card.Body>
-              <h5 className="section-title fw-semibold mb-3">Agent Details</h5>
+        {(companyNo === 2 || companyNo === 1) && (
+          <Col md={6}>
+            <Card className="h-100">
+              <Card.Body>
+                <h5 className="section-title fw-semibold mb-3">
+                  Agent Details
+                </h5>
 
-              <Form.Group className="mb-3">
-                <Form.Label>Search Agent:</Form.Label>
-                <div className="input-group">
-                  <Form.Control
-                    type="text"
-                    placeholder="Search by name, code or phone"
-                    value={customerSearch}
-                    onChange={(e) => setCustomerSearch(e.target.value)}
-                  />
-                  <Button variant="primary">
-                    <FaSearch />
-                  </Button>
-                  <Button
-                    variant="success"
-                    onClick={() => setShowCustomerModal(true)}
-                  >
-                    <FaPlus />
-                  </Button>
-                </div>
-
-                {filteredCustomers.length > 0 && (
-                  <div
-                    className="mt-2 border rounded p-2"
-                    style={{ maxHeight: "200px", overflowY: "auto" }}
-                  >
-                    {filteredCustomers.map((customer) => (
-                      <div
-                        key={customer.id}
-                        className="p-2 border-bottom hover-bg"
-                        style={{ cursor: "pointer" }}
-                        onClick={() => handleCustomerSelect(customer)}
-                      >
-                        <strong>{customer.name}</strong> ({customer.code})<br />
-                        {customer.mobile} | {customer.address}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </Form.Group>
-
-              <Form.Group className="mb-3">
-                <Form.Label>Agent Name:</Form.Label>
-                <Form.Control
-                  type="text"
-                  value={formData.customer.name}
-                  onChange={(e) =>
-                    handleInputChange("customer", "name", e.target.value)
-                  }
-                />
-              </Form.Group>
-
-              <Form.Group className="mb-3">
-                <Form.Label>Address:</Form.Label>
-                <Form.Control
-                  as="textarea"
-                  rows={2}
-                  value={formData.customer.address}
-                  onChange={(e) =>
-                    handleInputChange("customer", "address", e.target.value)
-                  }
-                />
-              </Form.Group>
-
-              <Form.Group className="mb-3">
-                <Form.Label>Mobile:</Form.Label>
-                <Form.Control
-                  type="text"
-                  value={formData.customer.mobile}
-                  onChange={(e) =>
-                    handleInputChange("customer", "mobile", e.target.value)
-                  }
-                />
-              </Form.Group>
-
-              <Row className="align-items-end mb-3">
-                <Col md={9}>
-                  <Form.Group>
-                    <Form.Label>Customer Name:</Form.Label>
+                <Form.Group className="mb-3">
+                  <Form.Label>Search Agent:</Form.Label>
+                  <div className="input-group">
                     <Form.Control
                       type="text"
-                      value={formData.customer.customer}
-                      onChange={(e) =>
-                        handleInputChange(
-                          "customer",
-                          "customer",
-                          e.target.value
-                        )
-                      }
+                      placeholder="Search by name, code or phone"
+                      value={customerSearch}
+                      onChange={(e) => setCustomerSearch(e.target.value)}
                     />
-                  </Form.Group>
-                </Col>
-                <Col md={3}>
-                  <Button
-                    variant="primary"
-                    className="w-100"
-                    onClick={handleClick}
-                  >
-                    Submit
-                  </Button>
-                </Col>
-              </Row>
-            </Card.Body>
-          </Card>
-        </Col>
+                    <Button variant="primary">
+                      <FaSearch />
+                    </Button>
+                    <Button
+                      variant="success"
+                      onClick={() => setShowCustomerModal(true)}
+                    >
+                      <FaPlus />
+                    </Button>
+                  </div>
+
+                  {filteredCustomers.length > 0 && (
+                    <div
+                      className="mt-2 border rounded p-2"
+                      style={{ maxHeight: "200px", overflowY: "auto" }}
+                    >
+                      {filteredCustomers.map((customer) => (
+                        <div
+                          key={customer.id}
+                          className="p-2 border-bottom hover-bg"
+                          style={{ cursor: "pointer" }}
+                          onClick={() => handleCustomerSelect(customer)}
+                        >
+                          <strong>{customer.name}</strong> ({customer.code})
+                          <br />
+                          {customer.mobile} | {customer.address}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label>Agent Name:</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={formData.customer.name}
+                    onChange={(e) =>
+                      handleInputChange("customer", "name", e.target.value)
+                    }
+                  />
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label>Address:</Form.Label>
+                  <Form.Control
+                    as="textarea"
+                    rows={2}
+                    value={formData.customer.address}
+                    onChange={(e) =>
+                      handleInputChange("customer", "address", e.target.value)
+                    }
+                  />
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label>Mobile:</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={formData.customer.mobile}
+                    onChange={(e) =>
+                      handleInputChange("customer", "mobile", e.target.value)
+                    }
+                  />
+                </Form.Group>
+
+                <Row className="align-items-end mb-3">
+                  <Col md={9}>
+                    <Form.Group>
+                      <Form.Label>Customer Name:</Form.Label>
+                      <Form.Control
+                        type="text"
+                        value={formData.customer.customer}
+                        onChange={(e) =>
+                          handleInputChange(
+                            "customer",
+                            "customer",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={3}>
+                    <Button
+                      variant="primary"
+                      className="w-100"
+                      onClick={handleClick}
+                    >
+                      Submit
+                    </Button>
+                  </Col>
+                </Row>
+              </Card.Body>
+            </Card>
+          </Col>
+        )}
+        {companyNo === 3 && (
+          <Col md={6}>
+            <Card className="h-100">
+              <Card.Body>
+                <h5 className="section-title fw-semibold mb-3">
+                  Customer Details
+                </h5>
+
+                <Row className="align-items-end mb-3">
+                  <Col md={9}>
+                    <Form.Group>
+                      <Form.Label>Customer Name:</Form.Label>
+                      <Form.Control
+                        type="text"
+                        value={newCustomer.customer}
+                        onChange={(e) =>
+                          setNewCustomer({
+                            ...newCustomer,
+                            customer: e.target.value,
+                          })
+                        }
+                      />
+                      <Form.Label>Customer Email:</Form.Label>
+                      <Form.Control
+                        type="text"
+                        value={newCustomer.customer_email}
+                        onChange={(e) =>
+                          setNewCustomer({
+                            ...newCustomer,
+                            customer_email: e.target.value,
+                          })
+                        }
+                      />
+                      <Form.Label>Customer Mobile:</Form.Label>
+                      <Form.Control
+                        type="text"
+                        value={newCustomer.customer_number}
+                        onChange={(e) =>
+                          setNewCustomer({
+                            ...newCustomer,
+                            customer_number: e.target.value,
+                          })
+                        }
+                      />
+                      <Form.Label>Customer GST:</Form.Label>
+                      {/* <Form.Control
+                        type="text"
+                        value={formData.customer.gstNo}
+                        onChange={(e) =>
+                          handleInputChange("customer", "gstNo", e.target.value)
+                        }
+                      /> */}
+                      <Form.Control
+                        type="text"
+                        value={newCustomer.gstNo}
+                        onChange={(e) =>
+                          setNewCustomer({
+                            ...newCustomer,
+                            gstNo: e.target.value,
+                          })
+                        }
+                      />
+                      <Form.Label>Payment Method:</Form.Label>
+                      <Form.Select
+                        value={newCustomer.payment_method}
+                         onChange={(e) =>
+                          setNewCustomer({
+                            ...newCustomer,
+                            payment_method: e.target.value,
+                          })
+                        }
+                      >
+                        <option value="">-- Select Payment Method --</option>
+                        <option value="Aahaas Pay">Aahaas Pay</option>
+                        <option value="Credit Card">Credit Card</option>
+                        <option value="Bank Transfer">Bank Transfer</option>
+                        <option value="Cash">Cash</option>
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                  <Col md={3}>
+                    <Button
+                      variant="primary"
+                      className="w-100"
+                      onClick={createNewCustomerAahaas}
+                    >
+                      Submit
+                    </Button>
+                  </Col>
+                </Row>
+              </Card.Body>
+            </Card>
+          </Col>
+        )}
 
         <Col md={6}>
           <Card className="h-100">
@@ -4087,70 +4251,71 @@ const Invoice_create = () => {
         </Modal.Footer>
       </Modal>
       {/* Customer Modal */}
-      <Modal
-        show={showCustomerModal}
-        onHide={() => setShowCustomerModal(false)}
-      >
-        <Modal.Header closeButton>
-          <Modal.Title>Create New Agent</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Form.Group className="mb-3">
-            <Form.Label>Agent Code:</Form.Label>
-            <Form.Control
-              type="text"
-              value={newCustomer.code}
-              onChange={(e) =>
-                setNewCustomer({ ...newCustomer, code: e.target.value })
-              }
-            />
-          </Form.Group>
+      {(companyNo === 1 || companyNo === 2) && (
+        <Modal
+          show={showCustomerModal}
+          onHide={() => setShowCustomerModal(false)}
+        >
+          <Modal.Header closeButton>
+            <Modal.Title>Create New Agent</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <Form.Group className="mb-3">
+              <Form.Label>Agent Code:</Form.Label>
+              <Form.Control
+                type="text"
+                value={newCustomer.code}
+                onChange={(e) =>
+                  setNewCustomer({ ...newCustomer, code: e.target.value })
+                }
+              />
+            </Form.Group>
 
-          <Form.Group className="mb-3">
-            <Form.Label>Agent Name:</Form.Label>
-            <Form.Control
-              type="text"
-              value={newCustomer.name}
-              onChange={(e) =>
-                setNewCustomer({ ...newCustomer, name: e.target.value })
-              }
-            />
-          </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Agent Name:</Form.Label>
+              <Form.Control
+                type="text"
+                value={newCustomer.name}
+                onChange={(e) =>
+                  setNewCustomer({ ...newCustomer, name: e.target.value })
+                }
+              />
+            </Form.Group>
 
-          <Form.Group className="mb-3">
-            <Form.Label>Address:</Form.Label>
-            <Form.Control
-              as="textarea"
-              rows={3}
-              value={newCustomer.address}
-              onChange={(e) =>
-                setNewCustomer({ ...newCustomer, address: e.target.value })
-              }
-            />
-          </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Address:</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={3}
+                value={newCustomer.address}
+                onChange={(e) =>
+                  setNewCustomer({ ...newCustomer, address: e.target.value })
+                }
+              />
+            </Form.Group>
 
-          <Form.Group className="mb-3">
-            <Form.Label>Mobile:</Form.Label>
-            <Form.Control
-              type="text"
-              value={newCustomer.mobile}
-              onChange={(e) =>
-                setNewCustomer({ ...newCustomer, mobile: e.target.value })
-              }
-            />
-          </Form.Group>
-          <Form.Group className="mb-3">
-            <Form.Label>GST NO:</Form.Label>
-            <Form.Control
-              type="text"
-              value={newCustomer.gstNo}
-              onChange={(e) =>
-                setNewCustomer({ ...newCustomer, gstNo: e.target.value })
-              }
-            />
-          </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Mobile:</Form.Label>
+              <Form.Control
+                type="text"
+                value={newCustomer.mobile}
+                onChange={(e) =>
+                  setNewCustomer({ ...newCustomer, mobile: e.target.value })
+                }
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>GST NO:</Form.Label>
+              <Form.Control
+                type="text"
+                value={newCustomer.gstNo}
+                onChange={(e) =>
+                  setNewCustomer({ ...newCustomer, gstNo: e.target.value })
+                }
+              />
+            </Form.Group>
 
-          {/* <Form.Group className="mb-3">
+            {/* <Form.Group className="mb-3">
             <Form.Label>GST No:</Form.Label>
             <Form.Control
               type="text"
@@ -4160,19 +4325,21 @@ const Invoice_create = () => {
               }
             />
           </Form.Group> */}
-        </Modal.Body>
-        <Modal.Footer>
-          <Button
-            variant="secondary"
-            onClick={() => setShowCustomerModal(false)}
-          >
-            Cancel
-          </Button>
-          <Button variant="primary" onClick={createNewCustomer}>
-            Create Agent
-          </Button>
-        </Modal.Footer>
-      </Modal>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button
+              variant="secondary"
+              onClick={() => setShowCustomerModal(false)}
+            >
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={createNewCustomer}>
+              Create Agent
+            </Button>
+          </Modal.Footer>
+        </Modal>
+      )}
+
       {/* Preview Invoice Modal */}
       {companyNo === 1 && (
         <Invoice_sharmila_modal

@@ -13,7 +13,7 @@ const Invoice_appleholidays_modal = ({
   printInvoice,
   xeRate,
 }) => {
-  console.log("Invoice Data:", formData);
+  console.log("Invoice Data Apple:", formData);
   const calculateTravelDays = (start, end) => {
     const startDate = new Date(start);
     const endDate = new Date(end);
@@ -158,7 +158,7 @@ const Invoice_appleholidays_modal = ({
               </div>
               <div>
                 <strong>Booked ID :</strong>{" "}
-                {formData.invoice?.booking_id || "24567"}
+                {formData.invoice?.bookingId || "24567"}
               </div>
               <div>
                 <strong>Other Ref :</strong>{" "}

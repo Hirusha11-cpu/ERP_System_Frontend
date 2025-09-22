@@ -94,7 +94,8 @@ const Invoice_aahaas_modal = ({
                 <span className="meta-label pe-1">Invoice No: </span>
                 <span className="meta-value ">
                   {/* {formData.invoice.country+formData.invoice.number || "IS44641"} */}
-                  {"44641"}
+                  {formData?.invoice?.country + formData?.invoice?.number ||
+                    "IS44641"}
                 </span>
               </div>
               <div className="meta-item">
@@ -115,10 +116,11 @@ const Invoice_aahaas_modal = ({
                 <span className="meta-label pe-1">Payment Type:</span>
                 <span className="meta-value">
                   {/* {formData.payment.type === "credit" ? "Credit" : "Non-Credit"} | */}
-                  {formData.totals?.balance <= 0
+                  {/* {formData.totals?.balance <= 0
                     ? ""
                     : ""}{" "}
-                  | {"Credit Card"}
+                  | {"Credit Card"} */}
+                  {formData.invoice?.paymentMethod || "Credit Card"}
                   {/* {formData.payment.type === "non-credit" && (
                   <span> {formatDate(formData.payment.collectionDate)}</span>
                 )} */}
@@ -135,14 +137,16 @@ const Invoice_aahaas_modal = ({
                   <th>Address</th>
                   <th>Email</th>
                   <th>Contact</th>
+                  <th>GST</th>
                 </tr>
               </thead>
               <tbody>
                 <tr>
-                  <td>{formData.customer?.customer || "PICK YOUR TRAIL"}</td>
+                  <td>{formData.customer?.customer || ""}</td>
                   <td>{formData.customer?.address || "-"}</td>
-                  <td>{formData.customer?.email || "-"}</td>
-                  <td>{formData.customer?.phone || "-"}</td>
+                  <td>{formData.customer?.customer_email || "-"}</td>
+                  <td>{formData.customer?.customer_number || "-"}</td>
+                  <td>{formData.customer?.gstNo || "-"}</td>
                 </tr>
               </tbody>
             </table>

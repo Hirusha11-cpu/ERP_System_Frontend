@@ -106,6 +106,9 @@ const Invoice_sharmila_modal = ({
                 {formData.customer?.address || "Madurai"}
               </div>
               <div>
+                <strong>GST:</strong> {formatDate(formData.invoice?.gstNo)}
+              </div>
+              <div>
                 <strong>Date:</strong> {formatDate(formData.invoice?.issueDate)}
               </div>
               {/* <div> */}
@@ -121,7 +124,8 @@ const Invoice_sharmila_modal = ({
             </div>
             <div className="text-start">
               <div>
-                <strong>Tour No.</strong> {"S00001"}
+                {/* <strong>Tour No.</strong> {"S00001"} */}
+                <strong>Invoice No.</strong> {formData.invoice?.number  ? formData.invoice?.number : "S00001"}
               </div>
               {/* <div>
                 <strong>Order No.</strong>{" "}

@@ -102,6 +102,7 @@ const Invoice_list = () => {
   const [exchangeRateError, setExchangeRateError] = useState(null);
   const [exchangeRateSuccess, setExchangeRateSuccess] = useState("");
   const [loadingInvoiceId, setLoadingInvoiceId] = useState(null);
+  const [showExchangedVersion, setShowExchangedVersion] = useState(false);
 
   useEffect(() => {
     const companyMap = {
@@ -212,6 +213,7 @@ const Invoice_list = () => {
 
   const handleViewInvoice = (invoice) => {
     setCurrentInvoice(invoice);
+      setShowExchangedVersion(false); // Ensure original version is shown
     if (companyNo === 2) {
       setShowPreviewModalAppleholidays(true);
     } else if (companyNo === 3) {
@@ -514,6 +516,9 @@ const Invoice_list = () => {
         code: invoice.customer?.code || "",
         gstNo: invoice.customer?.gst_no || "",
         customer: invoice.customer?.customer || "",
+        customer_email: invoice.customer?.customer_email || "",
+        customer_number: invoice.customer?.customer_number || "",
+        payment_method: invoice.customer?.payment_method || "",
       },
       invoice: {
         country: invoice.country_code || "IN",
@@ -825,57 +830,78 @@ const Invoice_list = () => {
   //   }
   // }
 
-  const handleShowExchangedInvoice = (invoice) => {
-    console.log("Viewing current invoice:", currentInvoice);
-
-    console.log("Viewing exchanged invoice:", invoice.exchange_rate_histories);
-
-    // Check if there are exchange rate histories
-    if (
-      currentInvoice.exchange_rate_histories &&
-      currentInvoice.exchange_rate_histories.length > 0
-    ) {
-      // Get the latest exchange rate history
-      const latestExchangeRate =
-        currentInvoice.exchange_rate_histories[
-          currentInvoice.exchange_rate_histories.length - 1
-        ];
-
-      const exchangedInvoice = {
-        ...currentInvoice,
-        sub_total: invoice.sub_total,
-        handling_fee: invoice.handling_fee,
-        gst_amount: invoice.gst_amount,
-        additional_tax: invoice.additional_tax,
-        bank_charges: invoice.bank_charges,
-        total_amount: invoice.total_amount,
-        amount_received: invoice.amount_received,
-        balance: invoice.balance,
-        exchange_rate: invoice.exchange_rate,
-        // Add a flag to indicate this is an exchanged version
-        is_exchanged: true,
-        exchange_rate_date: invoice.rate_date,
-      };
-      console.log("this is the exchanged rate", exchangedInvoice);
-
-      // Set the modified invoice as current
-      setCurrentInvoiceExchange(exchangedInvoice);
-    } else {
-      // If no exchange rate history, use the original invoice
-      setCurrentInvoiceExchange(invoice);
-    }
-
-    // Show the appropriate modal based on company
-    if (companyNo === 2) {
-      setShowPreviewModalAppleholidays(true);
-    } else if (companyNo === 3) {
-      setShowPreviewModalAahaas(true);
-    } else if (companyNo === 1) {
-      setShowPreviewModalShirmila(true);
-    } else {
-      setShowPreviewModalAahaas(true);
-    }
+  const handleShowExchangedInvoice = (history) => {
+  const exchangedInvoice = {
+    ...currentInvoice,
+    sub_total: history.sub_total,
+    handling_fee: history.handling_fee,
+    gst_amount: history.gst_amount,
+    additional_tax: history.additional_tax,
+    bank_charges: history.bank_charges,
+    total_amount: history.total_amount,
+    amount_received: history.amount_received,
+    balance: history.balance,
+    exchange_rate: history.exchange_rate,
+    is_exchanged: true,
+    exchange_rate_date: history.rate_date,
   };
+  
+  setCurrentInvoiceExchange(exchangedInvoice);
+  setShowExchangedVersion(true);
+  setShowPreviewModalAppleholidays(true);
+};
+
+  // const handleShowExchangedInvoice = (invoice) => {
+  //   console.log("Viewing current invoice:", currentInvoice);
+
+  //   console.log("Viewing exchanged invoice:", invoice.exchange_rate_histories);
+
+  //   // Check if there are exchange rate histories
+  //   if (
+  //     currentInvoice.exchange_rate_histories &&
+  //     currentInvoice.exchange_rate_histories.length > 0
+  //   ) {
+  //     // Get the latest exchange rate history
+  //     const latestExchangeRate =
+  //       currentInvoice.exchange_rate_histories[
+  //         currentInvoice.exchange_rate_histories.length - 1
+  //       ];
+
+  //     const exchangedInvoice = {
+  //       ...currentInvoice,
+  //       sub_total: invoice.sub_total,
+  //       handling_fee: invoice.handling_fee,
+  //       gst_amount: invoice.gst_amount,
+  //       additional_tax: invoice.additional_tax,
+  //       bank_charges: invoice.bank_charges,
+  //       total_amount: invoice.total_amount,
+  //       amount_received: invoice.amount_received,
+  //       balance: invoice.balance,
+  //       exchange_rate: invoice.exchange_rate,
+  //       // Add a flag to indicate this is an exchanged version
+  //       is_exchanged: true,
+  //       exchange_rate_date: invoice.rate_date,
+  //     };
+  //     console.log("this is the exchanged rate", exchangedInvoice);
+
+  //     // Set the modified invoice as current
+  //     setCurrentInvoiceExchange(exchangedInvoice);
+  //   } else {
+  //     // If no exchange rate history, use the original invoice
+  //     setCurrentInvoiceExchange(invoice);
+  //   }
+
+  //   // Show the appropriate modal based on company
+  //   if (companyNo === 2) {
+  //     setShowPreviewModalAppleholidays(true);
+  //   } else if (companyNo === 3) {
+  //     setShowPreviewModalAahaas(true);
+  //   } else if (companyNo === 1) {
+  //     setShowPreviewModalShirmila(true);
+  //   } else {
+  //     setShowPreviewModalAahaas(true);
+  //   }
+  // };
   const ActionButton = ({
     icon,
     label,
@@ -1095,7 +1121,7 @@ const Invoice_list = () => {
                               <FaUser />
                             </div>
                             <div>
-                              <div>{invoice.customer?.name || "N/A"}</div>
+                              <div>{companyNo === 3 ? (invoice.customer?.customer || "N/A") : (invoice.customer?.name || "N/A")}</div>
                               <small className="text-muted">
                                 {invoice.customer?.email || ""}
                               </small>
@@ -1372,7 +1398,7 @@ const Invoice_list = () => {
         xeRate={xeRate}
       />
 
-      <Invoice_appleholidays_modal
+      {/* <Invoice_appleholidays_modal
         show={showPreviewModalAppleholidays}
         onHide={() => setShowPreviewModalAppleholidays(false)}
         formData={formatInvoiceData(currentInvoice)}
@@ -1382,6 +1408,7 @@ const Invoice_list = () => {
         formatDate={formatDate}
         xeRate={xeRate}
       />
+
       <Invoice_appleholidays_modal
         show={showPreviewModalAppleholidays}
         onHide={() => setShowPreviewModalAppleholidays(false)}
@@ -1391,7 +1418,23 @@ const Invoice_list = () => {
         printInvoice={handlePrintInvoiceAppleHolidays}
         formatDate={formatDate}
         xeRate={xeRate}
-      />
+      /> */}
+
+      <Invoice_appleholidays_modal
+  show={showPreviewModalAppleholidays}
+  onHide={() => {
+    setShowPreviewModalAppleholidays(false);
+    setShowExchangedVersion(false); // Reset when modal closes
+  }}
+  formData={formatInvoiceData(
+    showExchangedVersion ? currentInvoiceExchange : currentInvoice
+  )}
+  countryOptions={countryOptions}
+  currencySymbols={currencySymbols}
+  printInvoice={handlePrintInvoiceAppleHolidays}
+  formatDate={formatDate}
+  xeRate={xeRate}
+/>
 
       <Invoice_sharmila_modal
         show={showPreviewModalShirmila}
@@ -2242,7 +2285,7 @@ const Invoice_list = () => {
                           variant="warning"
                           onClick={() => handleShowExchangedInvoice(history)}
                         >
-                          show
+                          show Exchanged
                         </Button>
                       </td>
                     </tr>

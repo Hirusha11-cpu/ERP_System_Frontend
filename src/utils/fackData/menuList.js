@@ -176,7 +176,7 @@ export const menuList = [
     dropdownMenu: [
       {
         id: 1,
-        name: "API List",
+        name: "Receivables",
         path: "/receivables/api_list2",
         subdropdownMenu: true,
       },

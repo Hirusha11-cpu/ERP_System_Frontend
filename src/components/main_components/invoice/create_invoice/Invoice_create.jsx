@@ -10,6 +10,7 @@ import {
   Row,
   Col,
   Badge,
+  Spinner,
 } from "react-bootstrap";
 import "bootstrap/dist/css/bootstrap.min.css";
 import {
@@ -55,12 +56,14 @@ const Invoice_create = () => {
   const [toCurrency, setToCurrency] = useState("LKR");
   const [exchangeRates, setExchangeRates] = useState({});
   const [isLoadingRates, setIsLoadingRates] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const [convertFromCurrency, setConvertFromCurrency] = useState("USD");
   const [convertToCurrency, setConvertToCurrency] = useState("USD");
   const [originalAmount, setOriginalAmount] = useState(0);
   const [convertedAmount, setConvertedAmount] = useState(0);
   const [descriptionValue, setDescriptionValue] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Fetch customers and tax rates on component mount
   useEffect(() => {
@@ -281,7 +284,7 @@ const Invoice_create = () => {
 
   const handleSubmit = async () => {
     console.log(formData);
-
+    setIsSubmitting(true);
     const paymentMethodArray = Object.entries(formData.payment.methods)
       .filter(([_, value]) => value)
       .map(([key]) => key);
@@ -370,6 +373,8 @@ const Invoice_create = () => {
         "Error creating invoice: " +
           (error.response?.data?.message || error.message)
       );
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -636,7 +641,7 @@ const Invoice_create = () => {
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [newItem, setNewItem] = useState({
-    code: "",
+    code: "123",
     type: "hotel",
     description: "",
     checkin_time: "",
@@ -795,6 +800,7 @@ const Invoice_create = () => {
     }
   };
   const createNewCustomerAahaas = async () => {
+    setIsLoading(true);
     try {
       const response = await axios.post("/api/customers", newCustomer, {
         headers: {
@@ -831,6 +837,8 @@ const Invoice_create = () => {
         "Error creating customer: " +
           (error.response?.data?.message || error.message)
       );
+    } finally {
+      setIsLoading(false); // stop spinner no matter success or error
     }
   };
 
@@ -2016,6 +2024,7 @@ const Invoice_create = () => {
 
   const handleClick = () => {
     console.log("Form Data Submitted:", formData);
+    setIsLoading(true);
 
     axios
       .put(`/api/customers/${formData.customer.id}`, formData.customer, {
@@ -2028,6 +2037,9 @@ const Invoice_create = () => {
       })
       .catch((error) => {
         console.error("Error updating customer:", error);
+      })
+      .finally(() => {
+        setIsLoading(false); // stop spinner no matter success or error
       });
   };
 
@@ -2306,12 +2318,31 @@ const Invoice_create = () => {
                     </Form.Group>
                   </Col>
                   <Col md={3}>
-                    <Button
+                    {/* <Button
                       variant="primary"
                       className="w-100"
                       onClick={handleClick}
                     >
                       Submit
+                    </Button> */}
+                    <Button
+                      variant="primary"
+                      className="w-100"
+                      onClick={handleClick}
+                      disabled={isLoading}
+                    >
+                      {isLoading ? (
+                        <>
+                          <Spinner
+                            animation="border"
+                            size="sm"
+                            className="me-2"
+                          />
+                          Updating...
+                        </>
+                      ) : (
+                        "Submit"
+                      )}
                     </Button>
                   </Col>
                 </Row>
@@ -2400,12 +2431,31 @@ const Invoice_create = () => {
                     </Form.Group>
                   </Col>
                   <Col md={3}>
-                    <Button
+                    {/* <Button
                       variant="primary"
                       className="w-100"
                       onClick={createNewCustomerAahaas}
                     >
                       Submit
+                    </Button> */}
+                    <Button
+                      variant="primary"
+                      className="w-100"
+                      onClick={createNewCustomerAahaas}
+                      disabled={isLoading}
+                    >
+                      {isLoading ? (
+                        <>
+                          <Spinner
+                            animation="border"
+                            size="sm"
+                            className="me-2"
+                          />
+                          Submitting...
+                        </>
+                      ) : (
+                        "Submit"
+                      )}
                     </Button>
                   </Col>
                 </Row>
@@ -3236,9 +3286,27 @@ const Invoice_create = () => {
         <Button variant="primary" size="lg" onClick={generatePreview}>
           <FaEye className="me-2" /> Preview Invoice
         </Button>
-        <Button variant="success" size="lg" onClick={handleSubmit}>
+        {/* <Button variant="success" size="lg" onClick={handleSubmit}>
           <FaCog className="me-2" /> Create Invoice
+        </Button> */}
+        <Button
+          variant="success"
+          size="lg"
+          onClick={handleSubmit}
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? (
+            <>
+              <Spinner animation="border" size="sm" className="me-2" />
+              Creating...
+            </>
+          ) : (
+            <>
+              <FaCog className="me-2" /> Create Invoice
+            </>
+          )}
         </Button>
+
         <Button variant="secondary" size="lg" onClick={resetForm}>
           <FaSyncAlt className="me-2" /> Reset Form
         </Button>
@@ -3405,6 +3473,9 @@ const Invoice_create = () => {
                         <>
                           <option value="Cost per Adult">Cost per Adult</option>
                           <option value="Cost per Child">Cost per Child</option>
+                          <option value="Cost per Person">
+                            Cost per Person
+                          </option>
                         </>
                       ) : (
                         <option value="Cost per Product">
@@ -3832,7 +3903,7 @@ const Invoice_create = () => {
           <Tab.Content>
             <Tab.Pane eventKey="sell" active={activeTab === "sell"}>
               <Row>
-                {
+                {companyNo === 3 && (
                   <Col md={6} className="mb-3">
                     <Form.Group>
                       <Form.Label>Item Code:</Form.Label>
@@ -3845,7 +3916,7 @@ const Invoice_create = () => {
                       />
                     </Form.Group>
                   </Col>
-                }
+                )}
 
                 {companyNo === 3 && (
                   <Col md={6} className="mb-3">
@@ -3930,6 +4001,9 @@ const Invoice_create = () => {
                         <>
                           <option value="Cost per Adult">Cost per Adult</option>
                           <option value="Cost per Child">Cost per Child</option>
+                          <option value="Cost per Person">
+                            Cost per Person
+                          </option>
                         </>
                       ) : (
                         <option value="Cost per Product">

@@ -101,14 +101,23 @@ const Invoice_sharmila_modal = ({
                 <strong>To:</strong>{" "}
                 <strong>{formData.customer?.name || "PICK YOUR TRAIL"}</strong>
               </div>
-              <div>
+              {/* <div>
                 <strong>Address:</strong>{" "}
-                {formData.customer?.address || "Madurai"}
-              </div>
-              <div>
-                {/* <strong>GST:</strong> {formatDate(formData.invoice?.gstNo)} */}
+                {formData.customer?.address }
+              </div> */}
+              {formData.customer?.address && (
+                <div>
+                  <strong>Address:</strong> {formData.customer.address}
+                </div>
+              )}
+              {/* <div>
                 <strong>GST:</strong> {formData.customer?.gstNo}
-              </div>
+              </div> */}
+              {formData.customer?.gstNo && (
+                <div>
+                  <strong>GST:</strong> {formData.customer.gstNo}
+                </div>
+              )}
               <div>
                 <strong>Date:</strong> {formatDate(formData.invoice?.issueDate)}
               </div>
@@ -116,17 +125,19 @@ const Invoice_sharmila_modal = ({
               {/* <strong>Customer Info</strong>{" "} */}
               {/* {formData.customer.name || "PICK YOUR TRAIL"} */}
               {/* </div> */}
-              <div>
-                <strong>Customer:</strong>{" "}
-                {formData.customer?.customer || ""}
-              </div>
+              {formData.customer?.customer && (
+                <div>
+                  <strong>Customer:</strong> {formData.customer.customer}
+                </div>
+              )}
 
               <div>{/* <strong>GST:</strong> {"7895"} */}</div>
             </div>
             <div className="text-start">
               <div>
                 {/* <strong>Tour No.</strong> {"S00001"} */}
-                <strong>Invoice No.</strong> {formData.invoice?.number  ? formData.invoice?.number : "S00001"}
+                <strong>Invoice No.</strong>{" "}
+                {formData.invoice?.number ? formData.invoice?.number : "S00001"}
               </div>
               {/* <div>
                 <strong>Order No.</strong>{" "}
@@ -191,7 +202,7 @@ const Invoice_sharmila_modal = ({
                     {currencySymbols[formData.currencyDetails?.currency] || ""}
                     {(
                       (item?.price || 0) -
-                      (formData.totals?.handlingFee / (item?.qty) || 0)
+                      (formData.totals?.handlingFee / item?.qty || 0)
                     ).toLocaleString("en-US", {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
@@ -235,7 +246,7 @@ const Invoice_sharmila_modal = ({
                   })} */}
                     {(
                       ((item?.price || 0) -
-                        (formData.totals?.handlingFee || 0) / (item?.qty)) *
+                        (formData.totals?.handlingFee || 0) / item?.qty) *
                       (item?.qty || 1)
                     ).toLocaleString("en-US", {
                       minimumFractionDigits: 2,
@@ -251,9 +262,8 @@ const Invoice_sharmila_modal = ({
                   </td>
                   <td colSpan="3" style={{ textAlign: "right" }}>
                     {/* <strong>Handling Fee:</strong> */}
-                    
                   </td>
-          
+
                   <td style={{ textAlign: "right" }}>
                     {currencySymbols[formData.currencyDetails?.currency] || "$"}
                     {/* {formData.totals.handlingFee.toFixed(2)} */}

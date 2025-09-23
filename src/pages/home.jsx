@@ -1027,12 +1027,12 @@ const Home = () => {
                 className="mt-3"
                 style={{ height: "6px" }}
               />
-              <small className="text-muted">
+              {/* <small className="text-muted">
                 {filteredStats.total > 0
                   ? Math.round((filteredStats.paid / filteredStats.total) * 100)
                   : 0}
                 % Paid
-              </small>
+              </small> */}
             </Card.Body>
           </Card>
         </Col>

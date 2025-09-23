@@ -86,8 +86,8 @@ const Invoice_sharmila_modal = ({
             </div>
             <div className="mb-1">Tel: +91 0452 405 8375 / 4054704</div>
             <div className="mb-1">E-mail: chennal@sharmilatravels.com</div>
-            <div className="mb-1">Services Tax (Reg. No.): ADVFS44290</div>
-            <div className="mb-1">GSTIN: 33ADVFS442901ZV</div>
+            <div className="mb-1">Services Tax (Reg. No.): ADVFS4429D</div>
+            <div className="mb-1">GSTIN: 33ADVFS4429D1ZV</div>
 
             <h5 className="fw-bold mb-3 mt-4">
               INVOICE - {formData.invoice?.id ?? "3456"}
@@ -106,7 +106,8 @@ const Invoice_sharmila_modal = ({
                 {formData.customer?.address || "Madurai"}
               </div>
               <div>
-                <strong>GST:</strong> {formatDate(formData.invoice?.gstNo)}
+                {/* <strong>GST:</strong> {formatDate(formData.invoice?.gstNo)} */}
+                <strong>GST:</strong> {formData.customer?.gstNo}
               </div>
               <div>
                 <strong>Date:</strong> {formatDate(formData.invoice?.issueDate)}
@@ -177,8 +178,8 @@ const Invoice_sharmila_modal = ({
                   <td
                     style={{ padding: "8px", borderBottom: "1px solid #ddd" }}
                   >
-                    {/* {item?.description} */}
-                    Total Tour Cost
+                    {item?.description}
+                    {/* Total Tour Cost */}
                   </td>
                   <td
                     style={{

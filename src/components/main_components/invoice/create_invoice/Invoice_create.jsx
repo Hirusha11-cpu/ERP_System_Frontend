@@ -287,6 +287,7 @@ const Invoice_create = () => {
       .map(([key]) => key);
 
     const dataToSend = {
+      invoice_number: formData.invoice.number,
       customer_id: formData.customer.id,
       country_code: formData.invoice.country,
       payment_method: formData.invoice.paymentMethod,
@@ -2624,7 +2625,7 @@ const Invoice_create = () => {
               <thead className="table-light">
                 <tr>
                   <th>Code</th>
-                  <th>Type</th>
+                  {/* <th>Type</th> */}
                   <th>Description</th>
                   <th>Check-in</th>
                   <th>Check-out</th>
@@ -2639,7 +2640,7 @@ const Invoice_create = () => {
                 {formData.serviceItems.map((item) => (
                   <tr key={item.id}>
                     <td>{item.code}</td>
-                    <td>{item.type}</td>
+                    {/* <td>{item.type}</td> */}
                     <td>{item.description}</td>
                     <td>{item.checkin_time || "-"}</td>
                     <td>{item.checkout_time || "-"}</td>

@@ -94,14 +94,14 @@ const Invoice_aahaas_modal = ({
                 <span className="meta-label pe-1">Invoice No: </span>
                 <span className="meta-value ">
                   {/* {formData.invoice.country+formData.invoice.number || "IS44641"} */}
-                  {formData?.invoice?.country + formData?.invoice?.number ||
+                  { formData?.invoice?.number ||
                     "IS44641"}
                 </span>
               </div>
               <div className="meta-item">
                 <span className="meta-label pe-1">Order No:</span>
                 <span className="meta-value ">
-                  {formData?.invoice?.country + formData?.invoice?.number ||
+                  {formData?.invoice?.number ||
                     "IS44641"}
                 </span>
               </div>
@@ -120,7 +120,7 @@ const Invoice_aahaas_modal = ({
                     ? ""
                     : ""}{" "}
                   | {"Credit Card"} */}
-                  {formData.invoice?.paymentMethod || "Credit Card"}
+                  {formData.customer?.payment_method || "Credit Card"}
                   {/* {formData.payment.type === "non-credit" && (
                   <span> {formatDate(formData.payment.collectionDate)}</span>
                 )} */}

@@ -521,6 +521,7 @@ const Invoice_list = () => {
         payment_method: invoice.customer?.payment_method || "",
       },
       invoice: {
+        id: invoice.id || null,
         country: invoice.country_code || "IN",
         number: invoice.invoice_number || "",
         issueDate: invoice.issue_date || new Date().toISOString().split("T")[0],

@@ -91,9 +91,9 @@ const Invoice_create = () => {
         code: "",
         gstNo: "",
         customer: "",
-      customer_email: "",
-      customer_number: "",
-      payment_method: "",
+        customer_email: "",
+        customer_number: "",
+        payment_method: "",
       },
       invoice: {
         country: "IN",
@@ -793,46 +793,45 @@ const Invoice_create = () => {
       );
     }
   };
-const createNewCustomerAahaas = async () => {
-  try {
-    const response = await axios.post("/api/customers", newCustomer, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+  const createNewCustomerAahaas = async () => {
+    try {
+      const response = await axios.post("/api/customers", newCustomer, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-    const createdCustomer = response.data;
+      const createdCustomer = response.data;
 
-    // Add to customer list
-    setCustomers([...customers, createdCustomer]);
+      // Add to customer list
+      setCustomers([...customers, createdCustomer]);
 
-    // Assign it to formData.customer (Agent Details)
-    handleCustomerSelect(createdCustomer);
+      // Assign it to formData.customer (Agent Details)
+      handleCustomerSelect(createdCustomer);
 
-    // Close modal
-    setShowCustomerModal(false);
+      // Close modal
+      setShowCustomerModal(false);
 
-    // Reset newCustomer form
-    // setNewCustomer({
-    //   code: "",
-    //   name: "",
-    //   address: "",
-    //   mobile: "",
-    //   gstNo: "",
-    //   customer: "",
-    //   customer_email: "",
-    //   customer_number: "",
-    //   payment_method: "",
-    // });
-  } catch (error) {
-    console.error("Error creating customer:", error);
-    alert(
-      "Error creating customer: " +
-        (error.response?.data?.message || error.message)
-    );
-  }
-};
-
+      // Reset newCustomer form
+      // setNewCustomer({
+      //   code: "",
+      //   name: "",
+      //   address: "",
+      //   mobile: "",
+      //   gstNo: "",
+      //   customer: "",
+      //   customer_email: "",
+      //   customer_number: "",
+      //   payment_method: "",
+      // });
+    } catch (error) {
+      console.error("Error creating customer:", error);
+      alert(
+        "Error creating customer: " +
+          (error.response?.data?.message || error.message)
+      );
+    }
+  };
 
   // Handle input changes
   const handleInputChange = (section, field, value) => {
@@ -1902,10 +1901,10 @@ const createNewCustomerAahaas = async () => {
           mobile: "",
           code: "",
           gstNo: "",
-            customer: "",
-      customer_email: "",
-      customer_number: "",
-      payment_method: "",
+          customer: "",
+          customer_email: "",
+          customer_number: "",
+          payment_method: "",
         },
         invoice: {
           country: "IN",
@@ -2384,7 +2383,7 @@ const createNewCustomerAahaas = async () => {
                       <Form.Label>Payment Method:</Form.Label>
                       <Form.Select
                         value={newCustomer.payment_method}
-                         onChange={(e) =>
+                        onChange={(e) =>
                           setNewCustomer({
                             ...newCustomer,
                             payment_method: e.target.value,
@@ -2535,6 +2534,19 @@ const createNewCustomerAahaas = async () => {
                       }
                     />
                   </Form.Group>
+                </Col>
+                <Col md={6} className="mb-3">
+                  <Form.Label>Agent Type:</Form.Label>
+                  <Form.Select
+                    value={formData.payment.type}
+                    onChange={(e) =>
+                      handleInputChange("payment", "type", e.target.value)
+                    }
+                  >
+                    <option value="">-- Select Agent Type --</option>
+                    <option value="credit">Credit</option>
+                    <option value="non-credit">Non-Credit</option>
+                  </Form.Select>
                 </Col>
               </Row>
             </Card.Body>

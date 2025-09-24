@@ -23,12 +23,12 @@ export const menuList = [
     path: "/",
     icon: "feather-airplay",
     dropdownMenu: [
-      {
-        id: 1,
-        name: "Dashboard",
-        path: "/",
-        subdropdownMenu: false,
-      },
+      // {
+      //   id: 1,
+      //   name: "Dashboard",
+      //   path: "/",
+      //   subdropdownMenu: false,
+      // },
       {
         id: 2,
         name: "Invoice",

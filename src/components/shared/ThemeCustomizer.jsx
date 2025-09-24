@@ -119,9 +119,9 @@ const ThemeCustomizer = () => {
     return (
         <div className={`theme-customizer ${open ? "theme-customizer-open" : ""}`}>
             <div className="customizer-handle">
-                <a href="#" className="cutomizer-open-trigger bg-primary" onClick={(e) => { e.preventDefault(), setOpen(true) }}>
+                {/* <a href="#" className="cutomizer-open-trigger bg-primary" onClick={(e) => { e.preventDefault(), setOpen(true) }}>
                     <i className='lh-1'><FiSettings size={16} /></i>
-                </a>
+                </a> */}
             </div>
             <div className="customizer-sidebar-wrapper">
                 <div className="customizer-sidebar-header px-4 ht-80 border-bottom d-flex align-items-center justify-content-between">

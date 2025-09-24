@@ -71,6 +71,8 @@ import WidgetsMiscellaneous from "../pages/widgets-miscellaneous";
 // import Invoice_preview from "@/components/main_components/invoice/invoice_preview";
 import Invoice_preview from "../components/main_components/invoice/Invoice_preview";
 import { useUser } from "../contentApi/UserProvider";
+// import ForgotPassword from "../components/authentication/ForgotPassword";
+import ForgotPassword from "../pages/reset-creative";
 
 // const ProtectedRoute = ({ children }) => {
 //   const token = localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
@@ -263,6 +265,7 @@ export const router = createBrowserRouter([
         path: "/invoice/upload-cost-sheet",
         element: <ProtectedRoute><Invoice_preview target="upload_cost_sheet" /></ProtectedRoute>,
       },
+    
             {
                 path: "/payment/view",
                 element: <PaymentView />
@@ -459,7 +462,7 @@ export const router = createBrowserRouter([
                 element: <ResetMinimal />
             },
             {
-                path: "/authentication/reset/creative",
+                path: "/forgot-password",
                 element: <ResetCreative />
             },
             {

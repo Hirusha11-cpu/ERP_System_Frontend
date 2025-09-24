@@ -38,1008 +38,501 @@ import {
 import axios from "axios";
 
 const Upload_Cost_Sheet = () => {
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [uploadType, setUploadType] = useState("single");
-  const [invoiceNumber, setInvoiceNumber] = useState("");
   const [uploading, setUploading] = useState(false);
-  const [message, setMessage] = useState({ type: "", text: "" });
   const [costSheets, setCostSheets] = useState([]);
-  const [loadingSheets, setLoadingSheets] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [processingDetails, setProcessingDetails] = useState([]);
-  const [showCostModal, setShowCostModal] = useState(false);
-  const [editingCost, setEditingCost] = useState(null);
-  // const [costForm, setCostForm] = useState({
-  //   type: "accommodation",
-  //   description: "",
-  //   quantity: 1,
-  //   rate: 0,
-  //   total: 0,
-  // });
-  const [manualCosts, setManualCosts] = useState([]);
-  const [extractedData, setExtractedData] = useState(null);
-  const [activeInvoice, setActiveInvoice] = useState(null);
+  const [invoiceNumber, setInvoiceNumber] = useState("");
+  const [file, setFile] = useState(null);
+  const [message, setMessage] = useState({ type: "", text: "" });
+  const [showModal, setShowModal] = useState(false);
+  const [selectedCostSheet, setSelectedCostSheet] = useState(null);
+  const [editCostData, setEditCostData] = useState({});
+  const [activeTab, setActiveTab] = useState("upload");
   const fileInputRef = useRef(null);
-  const initialCostForm = {
-    id: null, // for editing existing
-    invoice_id: null, // active invoice ID
-    type: "", // string
-    details: {
-      // JSON field
-      description: "",
-      quantity: 1,
-      rate: 0,
-    },
-    total: 0, // number
-    total_mega_cost: 0, // number
-    total_tour_cost_without_markup: 0, // number
-    profit_loss: 0, // number
-    cost_per_person_single: 0, // number
-    total_tour_cost: 0, // number
-    currency: "USD", // string
-  };
-  const [costForm, setCostForm] = useState(initialCostForm);
 
-  const costTypes = [
-    { value: "accommodation", label: "Accommodation", icon: <FaHotel /> },
-    { value: "meal", label: "Meal", icon: <FaUtensils /> },
-    { value: "tickets", label: "Tickets", icon: <FaTicketAlt /> },
-    { value: "transport", label: "Transport", icon: <FaBus /> },
-    { value: "other", label: "Other", icon: <FaListAlt /> },
-  ];
-
-  const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      if (uploadType === "single") {
-        const validTypes = [
-          "application/pdf",
-          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-        ];
-        if (!validTypes.includes(file.type)) {
-          setMessage({
-            type: "danger",
-            text: "Please select a PDF or DOCX file.",
-          });
-          return;
-        }
-      } else {
-        if (file.type !== "application/zip" && !file.name.endsWith(".zip")) {
-          setMessage({ type: "danger", text: "Please select a ZIP file." });
-          return;
-        }
-      }
-
-      setSelectedFile(file);
-      setMessage({ type: "", text: "" });
-      setProcessingDetails([]);
-    }
-  };
-
-  const handleUpload = async () => {
-    if (!selectedFile) {
-      setMessage({ type: "danger", text: "Please select a file." });
-      return;
-    }
-
-    if (uploadType === "single" && !invoiceNumber) {
-      setMessage({
-        type: "danger",
-        text: "Please enter an invoice number for single file upload.",
-      });
-      return;
-    }
-
-    setUploading(true);
-    setProcessingDetails([
-      { type: "info", message: "Starting upload process..." },
-    ]);
-
-    const formData = new FormData();
-    formData.append("cost_sheet", selectedFile);
-
-    if (uploadType === "single") {
-      formData.append("invoice_number", invoiceNumber);
-    } else {
-      formData.append("upload_type", "zip");
-    }
-
-    try {
-      const endpoint =
-        uploadType === "single"
-          ? "/api/invoices/cost-sheet"
-          : "/api/invoices/cost-sheet-zip";
-
-      const response = await axios.post(endpoint, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-        },
-        onUploadProgress: (progressEvent) => {
-          const percentCompleted = Math.round(
-            (progressEvent.loaded * 100) / progressEvent.total
-          );
-          setUploadProgress(percentCompleted);
-
-          if (uploadType === "zip") {
-            setProcessingDetails((prev) => [
-              ...prev,
-              {
-                type: "info",
-                message: `Upload progress: ${percentCompleted}%`,
-              },
-            ]);
-          }
-        },
-      });
-
-      setMessage({
-        type: "success",
-        text: response.data.message || "Files uploaded successfully!",
-      });
-
-      // Store extracted data for display
-      if (response.data.extracted_content) {
-        setExtractedData(response.data.extracted_content);
-        setActiveInvoice(invoiceNumber);
-      }
-
-      // Add processing details for ZIP files
-      if (uploadType === "zip" && response.data.processed_files) {
-        setProcessingDetails((prev) => [
-          ...prev,
-          {
-            type: "success",
-            message: `Processed ${response.data.processed_files} files successfully`,
-          },
-        ]);
-      }
-
-      setSelectedFile(null);
-      setInvoiceNumber("");
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-      fetchCostSheets();
-    } catch (error) {
-      console.error("Upload error:", error);
-      const errorMsg =
-        error.response?.data?.message || "Failed to upload file(s).";
-      setMessage({ type: "danger", text: errorMsg });
-
-      setProcessingDetails((prev) => [
-        ...prev,
-        { type: "error", message: `Error: ${errorMsg}` },
-      ]);
-    } finally {
-      setUploading(false);
-      setUploadProgress(0);
-    }
-  };
-
-  const fetchCostSheets = async () => {
-    setLoadingSheets(true);
-    try {
-      const response = await axios.get("/api/invoices/cost-sheets", {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-        },
-      });
-      setCostSheets(response.data.data || []);
-    } catch (error) {
-      console.error("Error fetching cost sheets:", error);
-      // setMessage({ type: "danger", text: "Failed to load cost sheets." });
-    } finally {
-      setLoadingSheets(false);
-    }
-  };
-
-  const fetchInvoiceCosts = async (invoiceNumber) => {
-    try {
-      const response = await axios.get(`/api/invoices/${invoiceNumber}/costs`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-        },
-      });
-      setManualCosts(response.data.data || []);
-    } catch (error) {
-      console.error("Error fetching invoice costs:", error);
-    }
-  };
-
-  const handleDownload = async (costSheet) => {
-    try {
-      const response = await axios.get(
-        `/api/invoices/cost-sheet/${costSheet.id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-          },
-          responseType: "blob",
-        }
-      );
-
-      const blob = new Blob([response.data], {
-        type:
-          costSheet.file_type === "docx"
-            ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-            : "application/pdf",
-      });
-
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.setAttribute("download", costSheet.file_name);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error("Download error:", error);
-      setMessage({ type: "danger", text: "Failed to download file." });
-    }
-  };
-
-  const handleViewDetails = async (costSheet) => {
-    try {
-      const response = await axios.get(
-        `/api/invoices/${costSheet.invoice_number}/cost-details`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-          },
-        }
-      );
-      setExtractedData(response.data);
-      setActiveInvoice(costSheet.invoice_number);
-      fetchInvoiceCosts(costSheet.invoice_number);
-    } catch (error) {
-      console.error("Error fetching cost details:", error);
-      setMessage({ type: "danger", text: "Failed to load cost details." });
-    }
-  };
-
-  const handleAddCost = () => {
-    setEditingCost(null);
-    setCostForm({
-      type: "accommodation",
-      description: "",
-      quantity: 1,
-      rate: 0,
-      total: 0,
-    });
-    setShowCostModal(true);
-  };
-
-  const handleEditCost = (cost) => {
-    setEditingCost(cost);
-    setCostForm({
-      type: cost.type,
-      description: cost.description,
-      quantity: cost.quantity,
-      rate: cost.rate,
-      total: cost.total,
-    });
-    setShowCostModal(true);
-  };
-
-  const handleDeleteCost = async (costId) => {
-    if (window.confirm("Are you sure you want to delete this cost?")) {
-      try {
-        await axios.delete(`/api/costs/${costId}`, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-          },
-        });
-        setMessage({ type: "success", text: "Cost deleted successfully." });
-        fetchInvoiceCosts(activeInvoice);
-      } catch (error) {
-        console.error("Error deleting cost:", error);
-        setMessage({ type: "danger", text: "Failed to delete cost." });
-      }
-    }
-  };
-
-  const handleSaveCost = async () => {
-    try {
-      const costData = {
-        invoice_id: activeInvoice,
-        type: costForm.type,
-        details: costForm.details, // JSON sent directly
-        total: costForm.total,
-        total_mega_cost: costForm.total_mega_cost,
-        total_tour_cost_without_markup: costForm.total_tour_cost_without_markup,
-        profit_loss: costForm.profit_loss,
-        cost_per_person_single: costForm.cost_per_person_single,
-        total_tour_cost: costForm.total_tour_cost,
-        currency: costForm.currency,
-      };
-
-      if (editingCost) {
-        await axios.put(`/api/cost-of-invoices/${activeInvoice}`, costData, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-          },
-        });
-      } else {
-        await axios.post("/api/cost-of-invoices", costData, {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-          },
-        });
-      }
-
-      setShowCostModal(false);
-      fetchInvoiceCosts(activeInvoice);
-    } catch (error) {
-      console.error("Error saving cost:", error);
-    }
-  };
-
-  const calculateTotals = () => {
-    const extractedTotal = extractedData?.summary?.total_tour_cost || 0;
-    const manualTotal = manualCosts.reduce(
-      (sum, cost) => sum + cost.quantity * cost.rate,
-      0
-    );
-    return {
-      extracted: extractedTotal,
-      manual: manualTotal,
-      combined: extractedTotal + manualTotal,
-    };
-  };
+  const token = localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
 
   useEffect(() => {
     fetchCostSheets();
   }, []);
 
-  const totals = calculateTotals();
+  const fetchCostSheets = async () => {
+    try {
+      const response = await axios.get("/api/invoices/cost-sheets", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setCostSheets(response.data.data || []);
+    } catch (error) {
+      setMessage({
+        type: "danger",
+        text: error.response?.data?.message || "Failed to fetch cost sheets",
+      });
+    }
+  };
+
+  const handleFileUpload = async (e) => {
+    e.preventDefault();
+    if (!file || !invoiceNumber) {
+      setMessage({ type: "warning", text: "Please provide both invoice number and file" });
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("cost_sheet", file);
+    formData.append("invoice_number", invoiceNumber);
+
+    setUploading(true);
+    setMessage({ type: "", text: "" });
+
+    try {
+      const response = await axios.post("/api/invoices/cost-sheet", formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      setMessage({ type: "success", text: response.data.message });
+      fetchCostSheets();
+      setInvoiceNumber("");
+      setFile(null);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || "Failed to upload cost sheet";
+      setMessage({ type: "danger", text: errorMessage });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDownload = async (id, originalName) => {
+    try {
+      const response = await axios.get(`/api/invoices/cost-sheet/${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: "blob",
+      });
+
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", originalName);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      setMessage({ type: "danger", text: "Failed to download cost sheet" });
+    }
+  };
+
+  const viewCostSheetDetails = (costSheet) => {
+    setSelectedCostSheet(costSheet);
+    setEditCostData(costSheet.extracted_data ? JSON.parse(costSheet.extracted_data) : {});
+    setShowModal(true);
+  };
+
+  const handleUpdateCostData = async () => {
+    if (!selectedCostSheet) return;
+
+    try {
+      const response = await axios.put(
+        `/api/cost-of-invoices/${selectedCostSheet.id}`,
+        {
+          invoice_id: selectedCostSheet.id,
+          type: editCostData.summary ? "summary" : "",
+          details: editCostData,
+          total: editCostData.summary?.total_mega_cost || 0,
+          total_mega_cost: editCostData.summary?.total_mega_cost || 0,
+          total_tour_cost_without_markup: editCostData.summary?.total_tour_cost_without_markup || 0,
+          profit_loss: editCostData.summary?.profit_loss || 0,
+          cost_per_person_single: editCostData.summary?.cost_per_person_single || 0,
+          total_tour_cost: editCostData.summary?.total_tour_cost || 0,
+          currency: editCostData.currency || "USD",
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      setMessage({ type: "success", text: response.data.message });
+      setShowModal(false);
+      fetchCostSheets();
+    } catch (error) {
+      setMessage({
+        type: "danger",
+        text: error.response?.data?.message || "Failed to update cost data",
+      });
+    }
+  };
+
+  const renderCostSheetData = (data) => {
+    if (!data) return <p>No data extracted</p>;
+
+    return (
+      <Tabs defaultActiveKey="summary" id="cost-sheet-tabs" className="mb-3">
+        <Tab eventKey="summary" title={<><FaChartBar /> Summary</>}>
+          <ListGroup>
+            {data.summary && (
+              <>
+                <ListGroup.Item>
+                  Total Mega Cost: ${data.summary.total_mega_cost?.toFixed(2) || 0}
+                </ListGroup.Item>
+                <ListGroup.Item>
+                  Total Tour Cost (No Markup): ${data.summary.total_tour_cost_without_markup?.toFixed(2) || 0}
+                </ListGroup.Item>
+                <ListGroup.Item>
+                  Profit/Loss: ${data.summary.profit_loss?.toFixed(2) || 0}
+                </ListGroup.Item>
+                <ListGroup.Item>
+                  Cost Per Person: ${data.summary.cost_per_person_single?.toFixed(2) || 0}
+                </ListGroup.Item>
+                <ListGroup.Item>
+                  Total Tour Cost: ${data.summary.total_tour_cost?.toFixed(2) || 0}
+                </ListGroup.Item>
+              </>
+            )}
+            <ListGroup.Item>Currency: {data.currency || "USD"}</ListGroup.Item>
+          </ListGroup>
+        </Tab>
+        <Tab eventKey="accommodation" title={<><FaHotel /> Accommodation</>}>
+          <Table striped bordered size="sm">
+            <thead>
+              <tr>
+                <th>Hotel</th>
+                <th>Nights</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.accommodation?.map((item, index) => (
+                <tr key={index}>
+                  <td>{item.hotel}</td>
+                  <td>{item.nights}</td>
+                  <td>${item.total?.toFixed(2)}</td>
+                </tr>
+              ))}
+              {data.accommodation_total && (
+                <tr>
+                  <td colSpan="2"><strong>Total</strong></td>
+                  <td><strong>${data.accommodation_total.toFixed(2)}</strong></td>
+                </tr>
+              )}
+            </tbody>
+          </Table>
+        </Tab>
+        <Tab eventKey="meal" title={<><FaUtensils /> Meals</>}>
+          <Table striped bordered size="sm">
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Adults</th>
+                <th>Children</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.meal?.map((item, index) => (
+                <tr key={index}>
+                  <td>{item.type}</td>
+                  <td>{item.adults}</td>
+                  <td>{item.children}</td>
+                  <td>${item.total?.toFixed(2)}</td>
+                </tr>
+              ))}
+              {data.meal_total && (
+                <tr>
+                  <td colSpan="3"><strong>Total</strong></td>
+                  <td><strong>${data.meal_total.toFixed(2)}</strong></td>
+                </tr>
+              )}
+            </tbody>
+          </Table>
+        </Tab>
+        <Tab eventKey="tickets" title={<><FaTicketAlt /> Tickets</>}>
+          <ListGroup>
+            <ListGroup.Item>
+              Total: ${data.tickets_total?.toFixed(2) || 0}
+            </ListGroup.Item>
+          </ListGroup>
+        </Tab>
+        <Tab eventKey="transport" title={<><FaBus /> Transport</>}>
+          <Table striped bordered size="sm">
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Distance/Days</th>
+                <th>Rate</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.transport?.map((item, index) => (
+                <tr key={index}>
+                  <td>{item.type}</td>
+                  <td>{item.distance_days}</td>
+                  <td>${item.rate?.toFixed(2)}</td>
+                  <td>${item.total?.toFixed(2)}</td>
+                </tr>
+              ))}
+              {data.transport_total && (
+                <tr>
+                  <td colSpan="3"><strong>Total</strong></td>
+                  <td><strong>${data.transport_total.toFixed(2)}</strong></td>
+                </tr>
+              )}
+            </tbody>
+          </Table>
+        </Tab>
+        <Tab eventKey="other" title={<><FaListAlt /> Other Rates</>}>
+          <Table striped bordered size="sm">
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Pax</th>
+                <th>Rate</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.other_rates?.map((item, index) => (
+                <tr key={index}>
+                  <td>{item.type}</td>
+                  <td>{item.pax}</td>
+                  <td>${item.rate}</td>
+                  <td>${item.total?.toFixed(2)}</td>
+                </tr>
+              ))}
+              {data.other_rates_total && (
+                <tr>
+                  <td colSpan="3"><strong>Total</strong></td>
+                  <td><strong>${data.other_rates_total.toFixed(2)}</strong></td>
+                </tr>
+              )}
+            </tbody>
+          </Table>
+        </Tab>
+      </Tabs>
+    );
+  };
 
   return (
     <div className="container py-4">
-      <h2 className="mb-4">Cost Sheet Management</h2>
-
       {message.text && (
-        <Alert
-          variant={message.type}
-          dismissible
-          onClose={() => setMessage({ type: "", text: "" })}
-        >
+        <Alert variant={message.type} onClose={() => setMessage({ type: "", text: "" })} dismissible>
           {message.text}
         </Alert>
       )}
 
-      <Card className="mb-4">
-        <Card.Header className="bg-primary text-white">
+      <Card className="shadow">
+        <Card.Header className="bg-primary text-white d-flex justify-content-between align-items-center">
           <h5 className="mb-0">
-            <FaUpload className="me-2" />
-            Upload Cost Sheet
+            <FaFilePdf className="me-2" />
+            Cost Sheet Management
           </h5>
         </Card.Header>
+
         <Card.Body>
           <Tabs
-            activeKey={uploadType}
-            onSelect={(k) => setUploadType(k)}
-            className="mb-3"
+            activeKey={activeTab}
+            onSelect={(k) => setActiveTab(k)}
+            id="cost-sheet-tabs"
+            className="mb-4"
           >
-            <Tab
-              eventKey="single"
-              title={
-                <span>
-                  <FaFileWord className="me-1" /> Single File
-                </span>
-              }
-            >
-              <Form.Group className="mb-3 mt-3">
-                <Form.Label>Invoice Number</Form.Label>
-                <Form.Control
-                  type="text"
-                  placeholder="Enter invoice number (e.g., IS46135)"
-                  value={invoiceNumber}
-                  onChange={(e) => setInvoiceNumber(e.target.value)}
-                />
-              </Form.Group>
-
-              <Form.Group className="mb-3">
-                <Form.Label>Cost Sheet File (PDF or DOCX)</Form.Label>
-                <Form.Control
-                  type="file"
-                  ref={fileInputRef}
-                  accept=".pdf,.docx"
-                  onChange={handleFileChange}
-                />
-                <Form.Text className="text-muted">
-                  Maximum file size: 2MB. Files will be organized by
-                  month/day/invoice automatically.
-                </Form.Text>
-              </Form.Group>
+            <Tab eventKey="upload" title={<><FaUpload /> Upload</>}>
+              <Card className="mb-4">
+                <Card.Body>
+                  <Form onSubmit={handleFileUpload}>
+                    <Row>
+                      <Col md={6}>
+                        <Form.Group className="mb-3">
+                          <Form.Label>
+                            <strong>Invoice Number <FaInfoCircle className="text-muted" size={12} /></strong>
+                          </Form.Label>
+                          <Form.Control
+                            type="text"
+                            placeholder="Enter invoice number (e.g., VN12345)"
+                            value={invoiceNumber}
+                            onChange={(e) => setInvoiceNumber(e.target.value)}
+                            required
+                          />
+                          <Form.Text className="text-muted">
+                            Must match an existing invoice in the system
+                          </Form.Text>
+                        </Form.Group>
+                      </Col>
+                      <Col md={6}>
+                        <Form.Group className="mb-3">
+                          <Form.Label>
+                            <strong>Cost Sheet File <FaInfoCircle className="text-muted" size={12} /></strong>
+                          </Form.Label>
+                          <Form.Control
+                            type="file"
+                            accept=".pdf,.docx"
+                            onChange={(e) => setFile(e.target.files[0])}
+                            ref={fileInputRef}
+                            disabled={uploading}
+                            required
+                          />
+                          <Form.Text className="text-muted">
+                            Supported formats: PDF, DOCX. Max size: 2MB
+                          </Form.Text>
+                        </Form.Group>
+                      </Col>
+                    </Row>
+                    <Button type="submit" variant="primary" disabled={uploading || !file || !invoiceNumber}>
+                      {uploading ? (
+                        <>
+                          <Spinner animation="border" size="sm" className="me-2" />
+                          Uploading...
+                        </>
+                      ) : (
+                        <>
+                          <FaUpload className="me-2" />
+                          Upload Cost Sheet
+                        </>
+                      )}
+                    </Button>
+                  </Form>
+                </Card.Body>
+              </Card>
             </Tab>
 
-            <Tab
-              eventKey="zip"
-              title={
-                <span>
-                  <FaArchive className="me-1" /> Zip Archive
-                </span>
-              }
-            >
-              <div className="mt-3">
-                <Alert variant="info">
-                  <FaInfoCircle className="me-2" />
-                  <strong>Zip File Structure Requirements:</strong>
-                  <ul className="mb-0 mt-2">
-                    <li>
-                      ZIP should contain month folders (e.g., "Dec", "Jan")
-                    </li>
-                    <li>
-                      Month folders should contain date folders (e.g., "01 Dec")
-                    </li>
-                    <li>
-                      Date folders should contain invoice folders (e.g.,
-                      "IS46224 - Nethlie")
-                    </li>
-                    <li>Invoice folders should contain PDF or DOCX files</li>
-                    <li>
-                      Example:{" "}
-                      <code>Dec/01 Dec/IS46224 - Nethlie/document.pdf</code>
-                    </li>
-                  </ul>
-                </Alert>
-
-                <Form.Group className="mb-3">
-                  <Form.Label>Zip File with Month Folders</Form.Label>
-                  <Form.Control
-                    type="file"
-                    ref={fileInputRef}
-                    accept=".zip"
-                    onChange={handleFileChange}
-                  />
-                  <Form.Text className="text-muted">
-                    Maximum file size: 100MB. The system will automatically
-                    extract and organize files.
-                  </Form.Text>
-                </Form.Group>
-              </div>
-            </Tab>
-          </Tabs>
-
-          {uploading && (
-            <div className="mb-3">
-              <div className="d-flex justify-content-between align-items-center mb-1">
-                <span>
-                  {uploadType === "single"
-                    ? "Uploading..."
-                    : "Processing ZIP file..."}
-                </span>
-                <span>{uploadProgress}%</span>
-              </div>
-              <ProgressBar
-                now={uploadProgress}
-                label={`${uploadProgress}%`}
-                animated
-              />
-            </div>
-          )}
-
-          {processingDetails.length > 0 && (
-            <div className="mb-3">
-              <h6>Processing Details:</h6>
-              <ListGroup>
-                {processingDetails.map((detail, index) => (
-                  <ListGroup.Item
-                    key={index}
-                    variant={
-                      detail.type === "error"
-                        ? "danger"
-                        : detail.type === "success"
-                        ? "success"
-                        : "info"
-                    }
-                  >
-                    {detail.message}
-                  </ListGroup.Item>
-                ))}
-              </ListGroup>
-            </div>
-          )}
-
-          <Button
-            variant="primary"
-            onClick={handleUpload}
-            disabled={
-              uploading ||
-              !selectedFile ||
-              (uploadType === "single" && !invoiceNumber)
-            }
-          >
-            {uploading ? (
-              <>
-                <Spinner animation="border" size="sm" className="me-2" />
-                {uploadType === "single" ? "Uploading..." : "Processing..."}
-              </>
-            ) : (
-              <>
-                <FaUpload className="me-2" />
-                {uploadType === "single"
-                  ? "Upload Cost Sheet"
-                  : "Process ZIP File"}
-              </>
-            )}
-          </Button>
-        </Card.Body>
-      </Card>
-
-      {/* Extracted Data Display */}
-      {extractedData && activeInvoice && (
-        <Card className="mb-4">
-          <Card.Header className="bg-info text-white">
-            <div className="d-flex justify-content-between align-items-center">
-              <h5 className="mb-0">
-                <FaChartBar className="me-2" />
-                Extracted Cost Data - {activeInvoice}
-              </h5>
-              <Button variant="outline-light" size="sm" onClick={handleAddCost}>
-                <FaPlus className="me-1" /> Add Manual Cost
-              </Button>
-            </div>
-          </Card.Header>
-          <Card.Body>
-            <Row className="mb-4">
-              <Col md={6}>
-                <h6>Basic Information</h6>
-                <Table size="sm" bordered>
-                  <tbody>
-                    <tr>
-                      <td>
-                        <strong>Agent:</strong>
-                      </td>
-                      <td>{extractedData.agent || "N/A"}</td>
-                    </tr>
-                    <tr>
-                      <td>
-                        <strong>Tour Number:</strong>
-                      </td>
-                      <td>{extractedData.tour_number || "N/A"}</td>
-                    </tr>
-                    <tr>
-                      <td>
-                        <strong>Pax:</strong>
-                      </td>
-                      <td>{extractedData.pax || "N/A"}</td>
-                    </tr>
-                    <tr>
-                      <td>
-                        <strong>Nights:</strong>
-                      </td>
-                      <td>{extractedData.no_of_night || "N/A"}</td>
-                    </tr>
-                  </tbody>
-                </Table>
-              </Col>
-              <Col md={6}>
-                <h6>Financial Summary</h6>
-                <Table size="sm" bordered>
-                  <tbody>
-                    <tr>
-                      <td>
-                        <strong>Total Mega Cost:</strong>
-                      </td>
-                      <td>
-                        $
-                        {extractedData.summary?.total_mega_cost?.toFixed(2) ||
-                          "0.00"}
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>
-                        <strong>Total Tour Cost:</strong>
-                      </td>
-                      <td>
-                        $
-                        {extractedData.summary?.total_tour_cost?.toFixed(2) ||
-                          "0.00"}
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>
-                        <strong>Profit/Loss:</strong>
-                      </td>
-                      <td>
-                        $
-                        {extractedData.summary?.profit_loss?.toFixed(2) ||
-                          "0.00"}
-                      </td>
-                    </tr>
-                    <tr>
-                      <td>
-                        <strong>Cost Per Person:</strong>
-                      </td>
-                      <td>
-                        $
-                        {extractedData.summary?.cost_per_person_single?.toFixed(
-                          2
-                        ) || "0.00"}
-                      </td>
-                    </tr>
-                  </tbody>
-                </Table>
-              </Col>
-            </Row>
-
-            {/* Manual Costs Section */}
-            <div className="mt-4">
-              <h6>Manual Costs</h6>
-              {manualCosts.length > 0 ? (
-                <Table striped bordered size="sm">
+            <Tab eventKey="list" title={<><FaListAlt /> Cost Sheets</>}>
+              <div className="table-responsive">
+                <Table hover responsive>
                   <thead>
                     <tr>
+                      <th>Invoice #</th>
+                      <th>File Name</th>
                       <th>Type</th>
-                      <th>Description</th>
-                      <th>Qty</th>
-                      <th>Rate</th>
-                      <th>Total</th>
+                      <th>Uploaded By</th>
+                      <th>Date</th>
+                      <th>Total Cost</th>
                       <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {manualCosts.map((cost) => (
-                      <tr key={cost.id}>
+                    {costSheets.map((sheet) => (
+                      <tr key={sheet.id}>
                         <td>
-                          <Badge bg="secondary">
-                            {costTypes.find((t) => t.value === cost.type)?.icon}{" "}
-                            {
-                              costTypes.find((t) => t.value === cost.type)
-                                ?.label
-                            }
+                          <Badge bg="primary">{sheet.invoice_number}</Badge>
+                        </td>
+                        <td>{sheet.original_name}</td>
+                        <td>
+                          <Badge bg={sheet.file_type === "pdf" ? "danger" : "info"}>
+                            {sheet.file_type.toUpperCase()}
                           </Badge>
                         </td>
-                        <td>{cost.description}</td>
-                        <td>{cost.quantity}</td>
-                        <td>${cost.rate.toFixed(2)}</td>
-                        <td>${(cost.quantity * cost.rate).toFixed(2)}</td>
+                        <td>{sheet.uploader?.name || "N/A"}</td>
+                        <td>{new Date(sheet.created_at).toLocaleDateString()}</td>
+                        <td>
+                          ${sheet.extracted_data?.summary?.total_mega_cost?.toFixed(2) || "0.00"}
+                        </td>
                         <td>
                           <Button
                             variant="outline-primary"
                             size="sm"
-                            className="me-1"
-                            onClick={() => handleEditCost(cost)}
+                            className="me-2"
+                            onClick={() => viewCostSheetDetails(sheet)}
                           >
-                            <FaEdit />
+                            <FaEye /> View
                           </Button>
                           <Button
-                            variant="outline-danger"
+                            variant="outline-success"
                             size="sm"
-                            onClick={() => handleDeleteCost(cost.id)}
+                            className="me-2"
+                            onClick={() => handleDownload(sheet.id, sheet.original_name)}
                           >
-                            <FaTrash />
+                            <FaDownload /> Download
                           </Button>
                         </td>
                       </tr>
                     ))}
+                    {costSheets.length === 0 && (
+                      <tr>
+                        <td colSpan="7" className="text-center py-4">
+                          <div className="text-muted">
+                            <FaFilePdf className="mb-2" size={48} />
+                            <p>No cost sheets uploaded yet. Upload one above!</p>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </Table>
-              ) : (
-                <Alert variant="info">
-                  No manual costs added yet. Click "Add Manual Cost" to add
-                  expenses.
-                </Alert>
-              )}
-            </div>
-
-            {/* Combined Totals */}
-            <div className="mt-4 p-3 bg-light rounded">
-              <h6>Combined Cost Summary</h6>
-              <Row>
-                <Col md={4}>
-                  <strong>Extracted Costs:</strong> $
-                  {totals.extracted.toFixed(2)}
-                </Col>
-                <Col md={4}>
-                  <strong>Manual Costs:</strong> ${totals.manual.toFixed(2)}
-                </Col>
-                <Col md={4}>
-                  <strong>Total Combined:</strong> ${totals.combined.toFixed(2)}
-                </Col>
-              </Row>
-            </div>
-          </Card.Body>
-        </Card>
-      )}
-
-      {/* <Card>
-        <Card.Header className="bg-light">
-          <div className="d-flex justify-content-between align-items-center">
-            <h5 className="mb-0">
-              <FaFolder className="me-2" />
-              Uploaded Cost Sheets
-            </h5>
-            <Button
-              variant="outline-secondary"
-              size="sm"
-              onClick={fetchCostSheets}
-            >
-              Refresh
-            </Button>
-          </div>
-        </Card.Header>
-        <Card.Body>
-          {loadingSheets ? (
-            <div className="text-center py-4">
-              <Spinner animation="border" role="status">
-                <span className="visually-hidden">Loading...</span>
-              </Spinner>
-              <p className="mt-2">Loading cost sheets...</p>
-            </div>
-          ) : costSheets.length > 0 ? (
-            <Table responsive striped hover>
-              <thead>
-                <tr>
-                  <th>Invoice Number</th>
-                  <th>File Name</th>
-                  <th>Type</th>
-                  <th>Upload Date</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {costSheets.map((sheet) => (
-                  <tr key={sheet.id}>
-                    <td>{sheet.invoice_number}</td>
-                    <td>{sheet.file_name}</td>
-                    <td>
-                      <Badge
-                        bg={sheet.file_type === "pdf" ? "danger" : "primary"}
-                      >
-                        {sheet.file_type === "pdf" ? (
-                          <FaFilePdf className="me-1" />
-                        ) : (
-                          <FaFileWord className="me-1" />
-                        )}
-                        {sheet.file_type.toUpperCase()}
-                      </Badge>
-                    </td>
-                    <td>{new Date(sheet.created_at).toLocaleDateString()}</td>
-                    <td>
-                      <Button
-                        variant="outline-primary"
-                        size="sm"
-                        className="me-1"
-                        onClick={() => handleDownload(sheet)}
-                        title="Download"
-                      >
-                        <FaDownload />
-                      </Button>
-                      <Button
-                        variant="outline-info"
-                        size="sm"
-                        onClick={() => handleViewDetails(sheet)}
-                        title="View Details"
-                      >
-                        <FaInfoCircle />
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-          ) : (
-            <div className="text-center py-4 text-muted">
-              <FaFolder size={48} className="mb-3" />
-              <p>No cost sheets uploaded yet.</p>
-            </div>
-          )}
+              </div>
+            </Tab>
+          </Tabs>
         </Card.Body>
-      </Card> */}
+      </Card>
 
-      {/* Add/Edit Cost Modal */}
-      <Modal show={showCostModal} onHide={() => setShowCostModal(false)}>
+      <Modal show={showModal} onHide={() => setShowModal(false)} size="xl">
         <Modal.Header closeButton>
           <Modal.Title>
-            {editingCost ? "Edit Cost" : "Add Manual Cost"}
+            Cost Sheet: {selectedCostSheet?.original_name}
+            <Badge className="ms-2" bg={selectedCostSheet?.file_type === "pdf" ? "danger" : "info"}>
+              {selectedCostSheet?.file_type?.toUpperCase()}
+            </Badge>
+            <Badge className="ms-2" bg="primary">
+              {selectedCostSheet?.invoice_number}
+            </Badge>
           </Modal.Title>
         </Modal.Header>
+        <Modal.Body style={{ maxHeight: "70vh", overflowY: "auto" }}>
+          {selectedCostSheet && (
+            <div>
+              <Row className="mb-4">
+                <Col md={6}>
+                  <h6><FaInfoCircle /> Basic Information</h6>
+                  <ListGroup>
+                    <ListGroup.Item>
+                      Invoice: {selectedCostSheet.invoice_number}
+                    </ListGroup.Item>
+                    <ListGroup.Item>
+                      Tour: {JSON.parse(selectedCostSheet.extracted_data)?.tour_number || "N/A"}
+                    </ListGroup.Item>
+                    <ListGroup.Item>
+                      Agent: {JSON.parse(selectedCostSheet.extracted_data)?.agent || "N/A"}
+                    </ListGroup.Item>
+                    <ListGroup.Item>
+                      Pax: {JSON.parse(selectedCostSheet.extracted_data)?.pax || "N/A"}
+                    </ListGroup.Item>
+                    <ListGroup.Item>
+                      Travel Date: {JSON.parse(selectedCostSheet.extracted_data)?.travel_date || "N/A"}
+                    </ListGroup.Item>
+                  </ListGroup>
+                </Col>
+                <Col md={6}>
+                  <h6><FaMoneyBillWave /> Financial Summary</h6>
+                  <ListGroup>
+                    <ListGroup.Item>
+                      Total Mega Cost: ${editCostData.summary?.total_mega_cost?.toFixed(2) || "0.00"}
+                    </ListGroup.Item>
+                    <ListGroup.Item>
+                      Profit/Loss: ${editCostData.summary?.profit_loss?.toFixed(2) || "0.00"}
+                    </ListGroup.Item>
+                    <ListGroup.Item>
+                      Currency: {editCostData.currency || "USD"}
+                    </ListGroup.Item>
+                  </ListGroup>
+                </Col>
+              </Row>
 
-        <Modal.Body>
-          <Form>
-            {/* Cost Type */}
-            <Form.Group className="mb-3">
-              <Form.Label>Cost Type</Form.Label>
-              <Form.Select
-                value={costForm.type}
-                onChange={(e) =>
-                  setCostForm({ ...costForm, type: e.target.value })
-                }
-                required
-              >
-                {costTypes.map((type) => (
-                  <option key={type.value} value={type.value}>
-                    {type.icon} {type.label}
-                  </option>
-                ))}
-              </Form.Select>
-            </Form.Group>
-
-            {/* Description */}
-            <Form.Group className="mb-3">
-              <Form.Label>Description</Form.Label>
-              <Form.Control
-                type="text"
-                value={costForm.description}
-                onChange={(e) =>
-                  setCostForm({ ...costForm, description: e.target.value })
-                }
-                placeholder="Enter cost description"
-                required
-              />
-            </Form.Group>
-
-            {/* Quantity & Rate */}
-            <Row>
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Quantity</Form.Label>
-                  <Form.Control
-                    type="number"
-                    value={costForm.quantity}
-                    onChange={(e) =>
-                      setCostForm({
-                        ...costForm,
-                        quantity: parseInt(e.target.value) || 0,
-                        total:
-                          (parseInt(e.target.value) || 0) *
-                          (costForm.rate || 0),
-                      })
-                    }
-                    min="1"
-                    required
-                  />
-                </Form.Group>
-              </Col>
-
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Rate ($)</Form.Label>
-                  <InputGroup>
-                    <InputGroup.Text>$</InputGroup.Text>
-                    <Form.Control
-                      type="number"
-                      value={costForm.rate}
-                      onChange={(e) =>
-                        setCostForm({
-                          ...costForm,
-                          rate: parseFloat(e.target.value) || 0,
-                          total:
-                            (costForm.quantity || 0) *
-                            (parseFloat(e.target.value) || 0),
-                        })
-                      }
-                      step="0.01"
-                      min="0"
-                      required
-                    />
-                  </InputGroup>
-                </Form.Group>
-              </Col>
-            </Row>
-
-            {/* Total */}
-            <Form.Group className="mb-3">
-              <Form.Label>Total</Form.Label>
-              <InputGroup>
-                <InputGroup.Text>$</InputGroup.Text>
-                <Form.Control
-                  type="number"
-                  value={costForm.total || costForm.quantity * costForm.rate}
-                  readOnly
-                  className="fw-bold"
-                />
-              </InputGroup>
-            </Form.Group>
-
-            {/* Additional Fields */}
-            <Row>
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Total Mega Cost</Form.Label>
-                  <Form.Control
-                    type="number"
-                    value={costForm.total_mega_cost}
-                    onChange={(e) =>
-                      setCostForm({
-                        ...costForm,
-                        total_mega_cost: parseFloat(e.target.value) || 0,
-                      })
-                    }
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Total Tour Cost (Without Markup)</Form.Label>
-                  <Form.Control
-                    type="number"
-                    value={costForm.total_tour_cost_without_markup}
-                    onChange={(e) =>
-                      setCostForm({
-                        ...costForm,
-                        total_tour_cost_without_markup:
-                          parseFloat(e.target.value) || 0,
-                      })
-                    }
-                  />
-                </Form.Group>
-              </Col>
-            </Row>
-
-            <Row>
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Profit / Loss</Form.Label>
-                  <Form.Control
-                    type="number"
-                    value={costForm.profit_loss}
-                    onChange={(e) =>
-                      setCostForm({
-                        ...costForm,
-                        profit_loss: parseFloat(e.target.value) || 0,
-                      })
-                    }
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={6}>
-                <Form.Group className="mb-3">
-                  <Form.Label>Cost per Person (Single)</Form.Label>
-                  <Form.Control
-                    type="number"
-                    value={costForm.cost_per_person_single}
-                    onChange={(e) =>
-                      setCostForm({
-                        ...costForm,
-                        cost_per_person_single: parseFloat(e.target.value) || 0,
-                      })
-                    }
-                  />
-                </Form.Group>
-              </Col>
-            </Row>
-
-            <Form.Group className="mb-3">
-              <Form.Label>Total Tour Cost</Form.Label>
-              <Form.Control
-                type="number"
-                value={costForm.total_tour_cost}
-                onChange={(e) =>
-                  setCostForm({
-                    ...costForm,
-                    total_tour_cost: parseFloat(e.target.value) || 0,
-                  })
-                }
-              />
-            </Form.Group>
-
-            {/* Currency */}
-            <Form.Group className="mb-3">
-              <Form.Label>Currency</Form.Label>
-              <Form.Control
-                type="text"
-                value={costForm.currency || "USD"}
-                onChange={(e) =>
-                  setCostForm({ ...costForm, currency: e.target.value })
-                }
-                maxLength={3}
-                placeholder="e.g., USD"
-              />
-            </Form.Group>
-          </Form>
+              {renderCostSheetData(JSON.parse(selectedCostSheet.extracted_data || "{}"))}
+            </div>
+          )}
         </Modal.Body>
-
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowCostModal(false)}>
-            Cancel
+          <Button variant="secondary" onClick={() => setShowModal(false)}>
+            Close
           </Button>
-          <Button variant="primary" onClick={handleSaveCost}>
-            {editingCost ? "Update Cost" : "Add Cost"}
+          <Button
+            variant="success"
+            onClick={() => handleDownload(selectedCostSheet?.id, selectedCostSheet?.original_name)}
+          >
+            <FaDownload /> Download
+          </Button>
+          <Button variant="primary" onClick={handleUpdateCostData}>
+            <FaEdit /> Update Data
           </Button>
         </Modal.Footer>
       </Modal>

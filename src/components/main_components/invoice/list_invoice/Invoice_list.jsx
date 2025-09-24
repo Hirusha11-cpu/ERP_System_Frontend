@@ -17,6 +17,7 @@ import {
   Pagination, // Added for pagination
   Spinner,
   Alert, // Added for loading
+   Dropdown, // Added for export dropdown
 } from "react-bootstrap";
 import {
   FaEye,
@@ -39,6 +40,11 @@ import {
   FaCreditCard,
   FaSync,
   FaExchangeAlt, // For refresh
+   FaFileExcel, // For Excel export
+  FaFilePdf,   // For PDF export
+  FaFileCsv,   // For CSV export
+  FaStepBackward, // For first page
+  FaStepForward,  // For last page
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -156,6 +162,134 @@ const Invoice_list = () => {
       timeoutId = setTimeout(() => func(...args), delay);
     };
   };
+
+    const handleExport = (format) => {
+    const dataToExport = filteredInvoices.map(invoice => ({
+      'Invoice Number': invoice.invoice_number,
+      'Tour Ref No': invoice.id,
+      'Customer': companyNo === 3 ? (invoice.customer?.customer || 'N/A') : (invoice.customer?.name || 'N/A'),
+      'Issue Date': formatDate(invoice.issue_date),
+      'Travel Period': `${formatDate(invoice.start_date)} - ${formatDate(invoice.end_date)}`,
+      'Credit/Non-Credit': invoice.payment_type,
+      'Balance': `${currencySymbols[invoice.currency] || invoice.currency} ${invoice.balance}`,
+      'Total': `${currencySymbols[invoice.currency] || invoice.currency} ${invoice.total_amount}`,
+      'Status': invoice.status === 'draft' ? 'open' : invoice.status,
+      'Currency': invoice.currency,
+      'Due Date': formatDate(invoice.due_date),
+    }));
+
+    if (format === 'csv') {
+      exportToCSV(dataToExport);
+    } else if (format === 'excel') {
+      exportToExcel(dataToExport);
+    } else if (format === 'pdf') {
+      exportToPDF(dataToExport);
+    }
+  };
+
+  const exportToCSV = (data) => {
+    const headers = Object.keys(data[0]).join(',');
+    const csvContent = data.map(row => 
+      Object.values(row).map(field => `"${field}"`).join(',')
+    ).join('\n');
+    
+    const blob = new Blob([headers + '\n' + csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `invoices_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  const exportToExcel = (data) => {
+    // Simple Excel export using CSV (for basic functionality)
+    // For advanced Excel features, you might want to use a library like xlsx
+    const headers = Object.keys(data[0]).join('\t');
+    const excelContent = data.map(row => 
+      Object.values(row).join('\t')
+    ).join('\n');
+    
+    const blob = new Blob([headers + '\n' + excelContent], { type: 'application/vnd.ms-excel' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `invoices_${new Date().toISOString().split('T')[0]}.xls`;
+    link.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  const exportToPDF = (data) => {
+    // Simple PDF export - you can enhance this with a proper PDF library
+    const content = `
+      <html>
+        <head>
+          <title>Invoices Export</title>
+          <style>
+            body { font-family: Arial, sans-serif; }
+            table { width: 100%; border-collapse: collapse; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f2f2f2; }
+          </style>
+        </head>
+        <body>
+          <h1>Invoices Report</h1>
+          <p>Generated on: ${new Date().toLocaleDateString()}</p>
+          <table>
+            <thead>
+              <tr>
+                ${Object.keys(data[0]).map(key => `<th>${key}</th>`).join('')}
+              </tr>
+            </thead>
+            <tbody>
+              ${data.map(row => `
+                <tr>
+                  ${Object.values(row).map(value => `<td>${value}</td>`).join('')}
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `;
+
+    const blob = new Blob([content], { type: 'text/html' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `invoices_${new Date().toISOString().split('T')[0]}.html`;
+    link.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  // Enhanced pagination functions
+  const goToFirstPage = () => setCurrentPage(1);
+  const goToLastPage = () => setCurrentPage(pageNumbers.length);
+
+  // Enhanced ActionButton component with tooltips
+  const ActionButton = ({
+    icon,
+    label,
+    variant = "primary",
+    onClick,
+    disabled = false,
+    tooltip = "",
+  }) => (
+    <OverlayTrigger placement="top" overlay={<Tooltip>{tooltip || label}</Tooltip>}>
+      <Button
+        variant={variant}
+        size="sm"
+        className="me-1 mb-1"
+        onClick={onClick}
+        disabled={disabled}
+        style={{ minWidth: '40px' }}
+      >
+        {icon} 
+        <span className="d-none d-lg-inline">{label}</span>
+      </Button>
+    </OverlayTrigger>
+  );
+
 
   // Memoized filtered invoices to optimize computation
   const filteredInvoices = useMemo(() => {
@@ -903,25 +1037,25 @@ const Invoice_list = () => {
   //     setShowPreviewModalAahaas(true);
   //   }
   // };
-  const ActionButton = ({
-    icon,
-    label,
-    variant = "primary",
-    onClick,
-    disabled = false,
-  }) => (
-    <OverlayTrigger placement="top" overlay={<Tooltip>{label}</Tooltip>}>
-      <Button
-        variant={variant}
-        size="sm"
-        className="me-2"
-        onClick={onClick}
-        disabled={disabled}
-      >
-        {icon} <span className="d-none d-md-inline">{label}</span>
-      </Button>
-    </OverlayTrigger>
-  );
+  // const ActionButton = ({
+  //   icon,
+  //   label,
+  //   variant = "primary",
+  //   onClick,
+  //   disabled = false,
+  // }) => (
+  //   <OverlayTrigger placement="top" overlay={<Tooltip>{label}</Tooltip>}>
+  //     <Button
+  //       variant={variant}
+  //       size="sm"
+  //       className="me-2"
+  //       onClick={onClick}
+  //       disabled={disabled}
+  //     >
+  //       {icon} <span className="d-none d-md-inline">{label}</span>
+  //     </Button>
+  //   </OverlayTrigger>
+  // );
 
   return (
     <div className="container py-4">
@@ -1249,14 +1383,18 @@ const Invoice_list = () => {
                                 </>
                               )}
                             </Button> */}
-                            <ActionButton
+                             <ActionButton
                               icon={<FaEye />}
+                              label=""
                               variant="info"
+                              tooltip="View Invoice"
                               onClick={() => handleViewInvoice(invoice)}
                             />
-                            <ActionButton
+                                 <ActionButton
                               icon={<FaEdit />}
+                              label=""
                               variant="primary"
+                              tooltip="Edit Invoice"
                               onClick={() => handleEditInvoice(invoice)}
                             />
                             {/* <ActionButton
@@ -1266,7 +1404,9 @@ const Invoice_list = () => {
                             /> */}
                             <ActionButton
                               icon={<FaTrash />}
+                              label=""
                               variant="danger"
+                              tooltip="Cancel Invoice"
                               onClick={() => handleCancelInvoice(invoice)}
                               disabled={invoice.status === "cancelled"}
                             />
@@ -1303,51 +1443,14 @@ const Invoice_list = () => {
           )}
           {/* Pagination */}
           {filteredInvoices.length > itemsPerPage && (
-            <Pagination className="justify-content-center mt-3">
-              {/* First Page */}
-              <Pagination.Item
-                key={1}
-                active={1 === currentPage}
-                onClick={() => paginate(1)}
+             <Pagination className="justify-content-center mt-3">
+              {/* First Page Button */}
+              <Pagination.First 
+                onClick={goToFirstPage}
+                disabled={currentPage === 1}
               >
-                1
-              </Pagination.Item>
-
-              {/* Second Page (if applicable) */}
-              {pageNumbers.length > 1 && (
-                <Pagination.Item
-                  key={2}
-                  active={2 === currentPage}
-                  onClick={() => paginate(2)}
-                >
-                  2
-                </Pagination.Item>
-              )}
-
-              {/* Ellipsis if there are more than 2 pages */}
-              {pageNumbers.length > 2 && currentPage > 3 && (
-                <Pagination.Ellipsis />
-              )}
-
-              {/* Current page (if not 1 or 2) */}
-              {currentPage > 2 && currentPage < pageNumbers.length && (
-                <Pagination.Item active>{currentPage}</Pagination.Item>
-              )}
-
-              {/* Ellipsis before Last if needed */}
-              {pageNumbers.length > 2 &&
-                currentPage < pageNumbers.length - 1 && <Pagination.Ellipsis />}
-
-              {/* Last Page (if more than 2 pages) */}
-              {pageNumbers.length > 2 && (
-                <Pagination.Item
-                  key={pageNumbers.length}
-                  active={pageNumbers.length === currentPage}
-                  onClick={() => paginate(pageNumbers.length)}
-                >
-                  {pageNumbers.length}
-                </Pagination.Item>
-              )}
+                <FaStepBackward />
+              </Pagination.First>
 
               {/* Previous Button */}
               <Pagination.Prev
@@ -1355,17 +1458,47 @@ const Invoice_list = () => {
                 disabled={currentPage === 1}
               />
 
+              {/* Page Numbers */}
+              {pageNumbers.map(number => {
+                // Show first 2 pages, last 2 pages, and pages around current page
+                if (
+                  number === 1 || 
+                  number === 2 || 
+                  number === pageNumbers.length - 1 || 
+                  number === pageNumbers.length ||
+                  (number >= currentPage - 1 && number <= currentPage + 1)
+                ) {
+                  return (
+                    <Pagination.Item
+                      key={number}
+                      active={number === currentPage}
+                      onClick={() => paginate(number)}
+                    >
+                      {number}
+                    </Pagination.Item>
+                  );
+                } else if (
+                  number === currentPage - 2 || 
+                  number === currentPage + 2
+                ) {
+                  return <Pagination.Ellipsis key={number} />;
+                }
+                return null;
+              })}
+
               {/* Next Button */}
               <Pagination.Next
                 onClick={() => paginate(currentPage + 1)}
                 disabled={currentPage === pageNumbers.length}
               />
 
-              {/* Last Button */}
+              {/* Last Page Button */}
               <Pagination.Last
-                onClick={() => paginate(pageNumbers.length)}
+                onClick={goToLastPage}
                 disabled={currentPage === pageNumbers.length}
-              />
+              >
+                <FaStepForward />
+              </Pagination.Last>
             </Pagination>
           )}
         </Card.Body>
@@ -1373,13 +1506,28 @@ const Invoice_list = () => {
         {filteredInvoices.length > 0 && (
           <Card.Footer className="d-flex justify-content-between align-items-center">
             <div>
-              Showing <strong>{filteredInvoices.length}</strong> of{" "}
-              <strong>{invoices.length}</strong> invoices
+              Showing <strong>{indexOfFirstItem + 1}-{Math.min(indexOfLastItem, filteredInvoices.length)}</strong> of{" "}
+              <strong>{filteredInvoices.length}</strong> invoices
             </div>
             <div className="d-flex">
-              <Button variant="outline-primary" size="sm" className="me-2">
-                <FaDownload className="me-1" /> Export
-              </Button>
+              {/* Enhanced Export Dropdown */}
+              <Dropdown className="me-2">
+                <Dropdown.Toggle variant="outline-primary" size="sm" id="export-dropdown" style={{ color: "black", borderColor: "black" }}>
+                  <FaDownload className="me-1" /> Export
+                </Dropdown.Toggle>
+                <Dropdown.Menu>
+                  <Dropdown.Item onClick={() => handleExport('csv')} >
+                    <FaFileCsv className="me-2" /> Export as CSV
+                  </Dropdown.Item>
+                  <Dropdown.Item onClick={() => handleExport('excel')}>
+                    <FaFileExcel className="me-2" /> Export as Excel
+                  </Dropdown.Item>
+                  <Dropdown.Item onClick={() => handleExport('pdf')}>
+                    <FaFilePdf className="me-2" /> Export as PDF
+                  </Dropdown.Item>
+                </Dropdown.Menu>
+              </Dropdown>
+              
               <Button variant="outline-secondary" size="sm">
                 <FaPrint className="me-1" /> Print List
               </Button>

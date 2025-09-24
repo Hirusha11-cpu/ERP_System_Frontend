@@ -95,12 +95,14 @@ const Bank_accounts = () => {
           },
         });
       }
-      await fetchAccounts();
       handleCloseModal();
+      await fetchAccounts();
     } catch (err) {
       console.error("Error saving account:", err);
+      handleCloseModal();
       setError("Failed to save account. Please try again.");
     } finally {
+      handleCloseModal();
       setLoading(false);
     }
   };
@@ -195,7 +197,7 @@ const Bank_accounts = () => {
                         {acc.company_id === 2 && "Apple Holidays"}
                         {acc.company_id === 3 && "Aahaas"}
                       </td>
-                      <td>
+                      <td className="">
                         <Button
                           variant="outline-primary"
                           size="sm"
@@ -210,6 +212,7 @@ const Bank_accounts = () => {
                           size="sm"
                           onClick={() => handleDelete(acc.id)}
                           disabled={loading}
+                          className="mb-2"
                         >
                           <FaTrash />
                         </Button>

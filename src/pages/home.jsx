@@ -834,7 +834,8 @@ const Home = () => {
           <Dropdown className="me-2">
             <Dropdown.Toggle
               variant="outline-secondary"
-              className="d-flex align-items-center"
+              className="d-flex align-items-center text-black"
+              style={{ color: "black", borderColor: "black" }}
             >
               {currency} {getCurrencySymbol()}
             </Dropdown.Toggle>
@@ -862,7 +863,8 @@ const Home = () => {
           <Dropdown className="me-2">
             <Dropdown.Toggle
               variant="outline-primary"
-              className="d-flex align-items-center"
+              className="d-flex align-items-center text-black"
+              style={{ color: "black", borderColor: "black" }}
             >
               <FiCalendar className="me-2" />
               {dateFilter === "today" && "Today"}
@@ -900,7 +902,8 @@ const Home = () => {
           <Dropdown className="me-2">
             <Dropdown.Toggle
               variant="outline-primary"
-              className="d-flex align-items-center"
+              className="d-flex align-items-center text-black"
+              style={{ color: "black", borderColor: "black" }}
             >
               <FiCreditCard className="me-2" />
               {paymentTypeFilter === "credit" && "Credit"}
@@ -1423,6 +1426,8 @@ const Home = () => {
                                   variant="link"
                                   size="sm"
                                   className="p-0"
+                                  style={{ color: "black"}}
+                                  // onClick={() => handleViewInvoice(invoice.id)}
                                 >
                                   View
                                 </Button>
@@ -1471,6 +1476,7 @@ const Home = () => {
                                   variant="link"
                                   size="sm"
                                   className="p-0"
+                                  style={{ color: "black"}}
                                 >
                                   View
                                 </Button>

@@ -208,7 +208,7 @@ const Bank_accounts = () => {
                           <FaEye />
                         </Button>
                         <Button
-                          variant="outline-danger"
+                          variant="danger"
                           size="sm"
                           onClick={() => handleDelete(acc.id)}
                           disabled={loading}

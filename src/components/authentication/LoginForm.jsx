@@ -93,7 +93,7 @@ const LoginForm = () => {
         </div>
 
         <div className="d-flex align-items-center justify-content-between mb-3">
-          <div className="form-check">
+          {/* <div className="form-check">
             <input
               type="checkbox"
               className="form-check-input"
@@ -104,7 +104,7 @@ const LoginForm = () => {
             <label className="form-check-label fs-12" htmlFor="rememberMe">
               Remember me
             </label>
-          </div>
+          </div> */}
           <div>
             <Link to="/forgot-password" className="fs-11 text-primary text-decoration-none">
               Forgot password?

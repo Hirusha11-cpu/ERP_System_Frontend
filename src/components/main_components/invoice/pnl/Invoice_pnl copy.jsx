@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext } from "react";
+import React, { useState, useEffect, useContext, useRef } from "react";
 import {
   Table,
   Card,
@@ -11,6 +11,10 @@ import {
   ProgressBar,
   OverlayTrigger,
   Tooltip,
+  Alert,
+  InputGroup,
+  Spinner,
+  Dropdown
 } from "react-bootstrap";
 import {
   FaFilter,
@@ -22,804 +26,571 @@ import {
   FaPrint,
   FaDownload,
   FaEye,
+  FaExchangeAlt,
+  FaCalculator,
+  FaCheckCircle,
+  FaExclamationTriangle,
+  FaFileExcel,
+  FaFilePdf
 } from "react-icons/fa";
 import axios from "axios";
 import { CompanyContext } from "../../../../contentApi/CompanyProvider";
+import jsPDF from "jspdf";
+import "jspdf-autotable";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
 
 const Invoice_pnl = () => {
-  const [invoices, setInvoices] = useState([]);
-  const [filteredInvoices, setFilteredInvoices] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filters, setFilters] = useState({
-    dateRange: "all",
-    profitStatus: "all",
-    currency: "all",
-  });
-  const [selectedInvoice, setSelectedInvoice] = useState(null);
-  const [showModal, setShowModal] = useState(false);
   const { selectedCompany } = useContext(CompanyContext);
-  const token =
-    localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+  const [invoiceNumber, setInvoiceNumber] = useState("IS46224");
+  const [pnlData, setPnlData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [exchangeRate, setExchangeRate] = useState(300);
+  const [showDetails, setShowDetails] = useState(false);
+  const tableRef = useRef();
 
-  useEffect(() => {
-    fetchInvoices();
-  }, []);
+  const token = localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
 
-  useEffect(() => {
-    applyFilters();
-  }, [invoices, searchTerm, filters]);
-
-  // const focus = useFocus
-
-  useEffect(() => {
-    if (!selectedCompany) return;
-
-    // You can map it to company_id here
-    const companyMap = {
-      appleholidays: 2,
-      shirmila: 1,
-      aahaas: 3,
-    };
-
-    const company_id = companyMap[selectedCompany.toLowerCase()] || 3;
-
-    if (company_id) {
-      // Call API or any action here
-      fetchInvoices(company_id);
-    }
-  }, [selectedCompany]);
-
-  const fetchInvoices = async (company_id) => {
+  const fetchPnLData = async () => {
+    if (!invoiceNumber) return;
+    
     setLoading(true);
+    setError(null);
+    
     try {
-      const response = await axios.get(
-        `/api/invoices?company_id=${company_id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+      const response = await axios.get(`/api/pnl/invoice/${invoiceNumber}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
         }
-      );
-      setInvoices(response.data.data || []);
-      setFilteredInvoices(response.data.data || []);
-    } catch (error) {
-      console.error("Error fetching invoices:", error);
+      });
+      setPnlData(response.data.data);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to fetch P&L data');
+      console.error('Error fetching P&L data:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  //   const fetchInvoices = async () => {
-  //     try {
-  //       setLoading(true);
-  //       let company_id;
+  useEffect(() => {
+    fetchPnLData();
+  }, [invoiceNumber]);
 
-  //       switch (selectedCompany) {
-  //         case "appleholidays":
-  //           company_id = 2;
-  //           break;
-  //         case "shirmila":
-  //           company_id = 1;
-  //           break;
-  //         case "aahaas":
-  //           company_id = 3;
-  //           break;
-  //         default:
-  //           company_id = 1; // or any fallback
-  //       }
-  //       console.log(company_id);
-
-  //       const response = await axios.get("/api/invoices", {
-  //         params: { company_id},
-  //       });
-  //       setInvoices(response.data.data || []);
-  //     } catch (error) {
-  //       console.error("Error fetching invoices:", error);
-  //     } finally {
-  //       setLoading(false);
-  //     }
-  //   };
-
-  const applyFilters = () => {
-    let result = [...invoices];
-
-    // Apply search filter
-    if (searchTerm) {
-      result = result.filter(
-        (invoice) =>
-          invoice.invoice_number
-            .toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
-          invoice.customer?.name
-            .toLowerCase()
-            .includes(searchTerm.toLowerCase())
-      );
-    }
-
-    // Apply profit status filter
-    if (filters.profitStatus !== "all") {
-      result = result.filter((invoice) => {
-        if (filters.profitStatus === "profit") {
-          return invoice.profit?.profit > 0;
-        } else if (filters.profitStatus === "loss") {
-          return invoice.profit?.profit < 0;
-        } else {
-          return invoice.profit?.profit === 0;
-        }
-      });
-    }
-
-    // Apply currency filter
-    if (filters.currency !== "all") {
-      result = result.filter(
-        (invoice) => invoice.currency === filters.currency
-      );
-    }
-
-    // Apply date range filter
-    const now = new Date();
-    if (filters.dateRange !== "all") {
-      result = result.filter((invoice) => {
-        const issueDate = new Date(invoice.issue_date);
-        const diffDays = Math.floor((now - issueDate) / (1000 * 60 * 60 * 24));
-
-        if (filters.dateRange === "week") {
-          return diffDays <= 7;
-        } else if (filters.dateRange === "month") {
-          return diffDays <= 30;
-        } else if (filters.dateRange === "quarter") {
-          return diffDays <= 90;
-        }
-        return true;
-      });
-    }
-
-    setFilteredInvoices(result);
+  const calculateLkrValue = (usdAmount) => {
+    return usdAmount * exchangeRate;
   };
 
-  const getProfitBadge = (profit) => {
-    if (profit > 0) {
-      return <Badge bg="success">Profit</Badge>;
-    } else if (profit < 0) {
-      return <Badge bg="danger">Loss</Badge>;
-    } else {
-      return <Badge bg="secondary">Break-even</Badge>;
-    }
+  const formatCurrency = (amount, currency = 'USD') => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(amount);
   };
 
-  const calculateTotal = (field) => {
-    return filteredInvoices.reduce((sum, invoice) => {
-      return sum + parseFloat(invoice.profit?.[field] || 0);
-    }, 0);
+  const formatPercentage = (value) => {
+    return `${value.toFixed(2)}%`;
   };
 
-  const handleViewDetails = (invoice) => {
-    console.log("Selected Invoice:", invoice);
-    setSelectedInvoice(invoice);
-    setShowModal(true);
-  };
-
-  if (loading) {
-    return (
-      <div className="text-center py-5">
-        <div className="spinner-border text-primary" role="status">
-          <span className="visually-hidden">Loading...</span>
-        </div>
-        <p className="mt-2">Loading invoice data...</p>
-      </div>
+  const getStatusBadge = (status) => {
+    return status === 'matched' ? (
+      <Badge bg="success"><FaCheckCircle className="me-1" /> Matched</Badge>
+    ) : (
+      <Badge bg="warning"><FaExclamationTriangle className="me-1" /> Mismatch</Badge>
     );
-  }
+  };
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const exportToExcel = () => {
+    if (!pnlData) return;
+
+    const workbook = XLSX.utils.book_new();
+    
+    // Main P&L Data
+    const mainData = [
+      ['Profit & Loss Statement', '', '', ''],
+      ['Invoice Number', pnlData.invoice.invoice_number, '', ''],
+      ['Customer', pnlData.invoice.customer, '', ''],
+      ['Issue Date', new Date(pnlData.invoice.issue_date).toLocaleDateString(), '', ''],
+      ['Currency', pnlData.invoice.currency, '', ''],
+      ['Exchange Rate', exchangeRate, '', ''],
+      ['', '', '', ''],
+      ['Description', 'USD', 'Exchange Rate', 'LKR'],
+      ['Invoice Revenue', pnlData.revenue_breakdown.total_revenue, exchangeRate, calculateLkrValue(pnlData.revenue_breakdown.total_revenue)],
+      ['GST', pnlData.revenue_breakdown.gst_amount, exchangeRate, calculateLkrValue(pnlData.revenue_breakdown.gst_amount)],
+      ['Total Costs', pnlData.financial_summary.total_cost, exchangeRate, calculateLkrValue(pnlData.financial_summary.total_cost)],
+      ['Profit', pnlData.financial_summary.profit_loss, exchangeRate, calculateLkrValue(pnlData.financial_summary.profit_loss)],
+      ['Profit % (Margin)', pnlData.financial_summary.profit_margin + '%', '', ''],
+      ['Profit % (Markup)', pnlData.financial_summary.profit_markup + '%', '', ''],
+      ['', '', '', ''],
+      ['Validation Results', '', '', ''],
+      ['Revenue vs Mega Cost Status', pnlData.validation.revenue_vs_mega_cost.status, '', ''],
+      ['Revenue vs Mega Cost Difference', pnlData.validation.revenue_vs_mega_cost.difference, '', ''],
+      ['Profit Comparison Status', pnlData.validation.profit_comparison.status, '', ''],
+      ['Profit Comparison Difference', pnlData.validation.profit_comparison.difference, '', '']
+    ];
+
+    const mainWorksheet = XLSX.utils.aoa_to_sheet(mainData);
+    XLSX.utils.book_append_sheet(workbook, mainWorksheet, 'P&L Summary');
+
+    // Revenue Breakdown
+    const revenueData = [
+      ['Revenue Breakdown', ''],
+      ['Sub Total', pnlData.revenue_breakdown.sub_total],
+      ['Bank Charges', pnlData.revenue_breakdown.bank_charges],
+      ['GST Amount', pnlData.revenue_breakdown.gst_amount],
+      ['Additional Tax', pnlData.revenue_breakdown.additional_tax],
+      ['Handling Fee', pnlData.revenue_breakdown.handling_fee],
+      ['Total Revenue', pnlData.revenue_breakdown.total_revenue]
+    ];
+
+    const revenueWorksheet = XLSX.utils.aoa_to_sheet(revenueData);
+    XLSX.utils.book_append_sheet(workbook, revenueWorksheet, 'Revenue Details');
+
+    // Cost Breakdown
+    const costData = [
+      ['Cost Breakdown', ''],
+      ['Accommodation', pnlData.cost_breakdown.accommodation],
+      ['Meals', pnlData.cost_breakdown.meal],
+      ['Tickets', pnlData.cost_breakdown.tickets],
+      ['Transport', pnlData.cost_breakdown.transport],
+      ['Other Rates', pnlData.cost_breakdown.other_rates],
+      ['Total Cost', pnlData.financial_summary.total_cost]
+    ];
+
+    const costWorksheet = XLSX.utils.aoa_to_sheet(costData);
+    XLSX.utils.book_append_sheet(workbook, costWorksheet, 'Cost Details');
+
+    // Generate Excel file
+    const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+    const data = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    saveAs(data, `P&L_Report_${pnlData.invoice.invoice_number}_${new Date().toISOString().split('T')[0]}.xlsx`);
+  };
+
+  const exportToPDF = () => {
+    if (!pnlData) return;
+
+    const doc = new jsPDF();
+    
+    // Title
+    doc.setFontSize(18);
+    doc.setTextColor(40, 40, 40);
+    doc.text('PROFIT & LOSS REPORT', 105, 15, { align: 'center' });
+    
+    // Invoice Info
+    doc.setFontSize(12);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Invoice: ${pnlData.invoice.invoice_number}`, 14, 25);
+    doc.text(`Customer: ${pnlData.invoice.customer}`, 14, 32);
+    doc.text(`Date: ${new Date(pnlData.invoice.issue_date).toLocaleDateString()}`, 14, 39);
+    doc.text(`Currency: ${pnlData.invoice.currency}`, 14, 46);
+    doc.text(`Exchange Rate: ${exchangeRate}`, 14, 53);
+
+    // Main Table
+    doc.autoTable({
+      startY: 60,
+      head: [['Description', 'USD', 'Exchange Rate', 'LKR']],
+      body: [
+        ['Invoice Revenue', formatCurrency(pnlData.revenue_breakdown.total_revenue), exchangeRate, formatCurrency(calculateLkrValue(pnlData.revenue_breakdown.total_revenue), 'LKR')],
+        ['GST', formatCurrency(pnlData.revenue_breakdown.gst_amount), exchangeRate, formatCurrency(calculateLkrValue(pnlData.revenue_breakdown.gst_amount), 'LKR')],
+        ['Total Costs', formatCurrency(pnlData.financial_summary.total_cost), exchangeRate, formatCurrency(calculateLkrValue(pnlData.financial_summary.total_cost), 'LKR')],
+        ['Profit', formatCurrency(pnlData.financial_summary.profit_loss), exchangeRate, formatCurrency(calculateLkrValue(pnlData.financial_summary.profit_loss), 'LKR')],
+        ['Profit % (Margin)', formatPercentage(pnlData.financial_summary.profit_margin), '', ''],
+        ['Profit % (Markup)', formatPercentage(pnlData.financial_summary.profit_markup), '', '']
+      ],
+      theme: 'grid',
+      headStyles: {
+        fillColor: [41, 128, 185],
+        textColor: 255,
+        fontStyle: 'bold'
+      },
+      alternateRowStyles: {
+        fillColor: [240, 240, 240]
+      }
+    });
+
+    // Validation Section
+    const finalY = doc.lastAutoTable.finalY + 10;
+    doc.setFontSize(14);
+    doc.setTextColor(40, 40, 40);
+    doc.text('VALIDATION RESULTS', 14, finalY);
+
+    doc.autoTable({
+      startY: finalY + 5,
+      body: [
+        ['Revenue vs Mega Cost', pnlData.validation.revenue_vs_mega_cost.status, formatCurrency(pnlData.validation.revenue_vs_mega_cost.difference)],
+        ['Profit Comparison', pnlData.validation.profit_comparison.status, formatCurrency(pnlData.validation.profit_comparison.difference)]
+      ],
+      theme: 'grid',
+      head: [['Validation Type', 'Status', 'Difference']],
+      headStyles: {
+        fillColor: [52, 152, 219],
+        textColor: 255,
+        fontStyle: 'bold'
+      }
+    });
+
+    // Footer
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(10);
+      doc.setTextColor(100, 100, 100);
+      doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, doc.internal.pageSize.height - 10);
+      doc.text(`Page ${i} of ${pageCount}`, doc.internal.pageSize.width - 30, doc.internal.pageSize.height - 10, { align: 'right' });
+    }
+
+    // Save PDF
+    doc.save(`P&L_Report_${pnlData.invoice.invoice_number}_${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
+  const handleExport = (format) => {
+    switch (format) {
+      case 'excel':
+        exportToExcel();
+        break;
+      case 'pdf':
+        exportToPDF();
+        break;
+      default:
+        console.log('Unknown format');
+    }
+  };
 
   return (
-    <div className="container py-4">
-      <Card className="shadow">
-        <Card.Header className="bg-primary text-white">
-          <h5 className="mb-0 d-flex align-items-center">
+    <div className="container-fluid py-4">
+      {/* Header Section */}
+      <Card className="mb-4">
+        <Card.Header className="bg-primary text-white d-flex justify-content-between align-items-center">
+          <h4 className="mb-0">
             <FaChartLine className="me-2" />
-            Invoice Profit & Loss Analysis
-          </h5>
+            Profit & Loss Report
+          </h4>
+          <div>
+            <Button variant="outline-light" size="sm" className="me-2" onClick={handlePrint}>
+              <FaPrint className="me-1" /> Print
+            </Button>
+            
+            <Dropdown>
+              <Dropdown.Toggle variant="outline-light" size="sm">
+                <FaDownload className="me-1" /> Export
+              </Dropdown.Toggle>
+              <Dropdown.Menu>
+                <Dropdown.Item onClick={() => handleExport('excel')}>
+                  <FaFileExcel className="me-2 text-success" /> Excel
+                </Dropdown.Item>
+                <Dropdown.Item onClick={() => handleExport('pdf')}>
+                  <FaFilePdf className="me-2 text-danger" /> PDF
+                </Dropdown.Item>
+              </Dropdown.Menu>
+            </Dropdown>
+          </div>
         </Card.Header>
-
         <Card.Body>
-          {/* Summary Cards */}
-          <Row className="mb-4">
-            <Col md={4}>
-              <Card className="border-success">
-                <Card.Body>
-                  <h6 className="text-muted">Total Revenue</h6>
-                  <h3 className="text-success">
-                    {calculateTotal("total_revenue").toLocaleString("en-US", {
-                      style: "currency",
-                      currency: "USD",
-                    })}
-                  </h3>
-                  <small className="text-muted">Across all invoices</small>
-                </Card.Body>
-              </Card>
+          <Row>
+            <Col md={6}>
+              <Form.Group>
+                <Form.Label>Invoice Number</Form.Label>
+                <InputGroup>
+                  <Form.Control
+                    type="text"
+                    placeholder="Enter invoice number (e.g., IS46224)"
+                    value={invoiceNumber}
+                    onChange={(e) => setInvoiceNumber(e.target.value.toUpperCase())}
+                  />
+                  <Button variant="primary" onClick={fetchPnLData}>
+                    <FaSearch />
+                  </Button>
+                </InputGroup>
+              </Form.Group>
             </Col>
-            <Col md={4}>
-              <Card className="border-info">
-                <Card.Body>
-                  <h6 className="text-muted">Total Profit</h6>
-                  <h3 className="text-info">
-                    {calculateTotal("profit").toLocaleString("en-US", {
-                      style: "currency",
-                      currency: "USD",
-                    })}
-                  </h3>
-                  <small className="text-muted">
-                    Avg. margin:{" "}
-                    {filteredInvoices.length > 0
-                      ? (
-                          (calculateTotal("profit") /
-                            calculateTotal("total_revenue")) *
-                          100
-                        ).toFixed(2)
-                      : 0}
-                    %
-                  </small>
-                </Card.Body>
-              </Card>
-            </Col>
-            <Col md={4}>
-              <Card className="border-warning">
-                <Card.Body>
-                  <h6 className="text-muted">Total Cost</h6>
-                  <h3 className="text-warning">
-                    {calculateTotal("total_cost").toLocaleString("en-US", {
-                      style: "currency",
-                      currency: "USD",
-                    })}
-                  </h3>
-                  <small className="text-muted">
-                    {filteredInvoices.length} invoices
-                  </small>
-                </Card.Body>
-              </Card>
+            <Col md={6}>
+              <Form.Group>
+                <Form.Label>Exchange Rate (USD to LKR)</Form.Label>
+                <InputGroup>
+                  <InputGroup.Text>
+                    <FaExchangeAlt />
+                  </InputGroup.Text>
+                  <Form.Control
+                    type="number"
+                    step="0.01"
+                    value={exchangeRate}
+                    onChange={(e) => setExchangeRate(parseFloat(e.target.value) || 300)}
+                  />
+                </InputGroup>
+              </Form.Group>
             </Col>
           </Row>
+        </Card.Body>
+      </Card>
 
-          {/* Filters */}
+      {error && (
+        <Alert variant="danger" className="mb-4">
+          <FaExclamationTriangle className="me-2" />
+          {error}
+        </Alert>
+      )}
+
+      {pnlData && (
+        <>
+          {/* Invoice Header */}
           <Card className="mb-4">
             <Card.Body>
               <Row>
-                <Col md={4}>
-                  <Form.Group>
-                    <Form.Label>
-                      <FaSearch className="me-2" />
-                      Search
-                    </Form.Label>
-                    <Form.Control
-                      type="text"
-                      placeholder="Search invoices..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                  </Form.Group>
+                <Col md={6}>
+                  <h5>{pnlData.invoice.invoice_number} - {pnlData.invoice.customer}</h5>
+                  <p className="text-muted mb-0">
+                    Issue Date: {new Date(pnlData.invoice.issue_date).toLocaleDateString()}
+                  </p>
                 </Col>
-                <Col md={2}>
-                  <Form.Group>
-                    <Form.Label>
-                      <FaFilter className="me-2" />
-                      Profit Status
-                    </Form.Label>
-                    <Form.Select
-                      value={filters.profitStatus}
-                      onChange={(e) =>
-                        setFilters({ ...filters, profitStatus: e.target.value })
-                      }
-                    >
-                      <option value="all">All</option>
-                      <option value="profit">Profit</option>
-                      <option value="loss">Loss</option>
-                      <option value="neutral">Break-even</option>
-                    </Form.Select>
-                  </Form.Group>
-                </Col>
-                <Col md={2}>
-                  <Form.Group>
-                    <Form.Label>
-                      <FaFilter className="me-2" />
-                      Currency
-                    </Form.Label>
-                    <Form.Select
-                      value={filters.currency}
-                      onChange={(e) =>
-                        setFilters({ ...filters, currency: e.target.value })
-                      }
-                    >
-                      <option value="all">All</option>
-                      <option value="USD">USD</option>
-                      <option value="LKR">LKR</option>
-                      <option value="INR">INR</option>
-                    </Form.Select>
-                  </Form.Group>
-                </Col>
-                <Col md={2}>
-                  <Form.Group>
-                    <Form.Label>
-                      <FaFilter className="me-2" />
-                      Date Range
-                    </Form.Label>
-                    <Form.Select
-                      value={filters.dateRange}
-                      onChange={(e) =>
-                        setFilters({ ...filters, dateRange: e.target.value })
-                      }
-                    >
-                      <option value="all">All Time</option>
-                      <option value="week">Last 7 Days</option>
-                      <option value="month">Last 30 Days</option>
-                      <option value="quarter">Last 90 Days</option>
-                    </Form.Select>
-                  </Form.Group>
-                </Col>
-                <Col md={2} className="d-flex align-items-end">
-                  <Button
-                    variant="outline-secondary"
-                    onClick={fetchInvoices}
-                    className="w-100"
-                  >
-                    Refresh
-                  </Button>
+                <Col md={6} className="text-end">
+                  <Badge bg="info" className="fs-6">
+                    Currency: {pnlData.invoice.currency}
+                  </Badge>
                 </Col>
               </Row>
             </Card.Body>
           </Card>
 
-          {/* Invoice P&L Table */}
-          <div className="table-responsive">
-            <Table hover className="align-middle">
-              <thead className="table-light">
-                <tr>
-                  <th>Invoice No.</th>
-                  <th>Customer</th>
-                  <th>Date</th>
-                  <th>Revenue</th>
-                  <th>Cost</th>
-                  <th>Profit</th>
-                  <th>Margin</th>
-                  <th>Status</th>
-                  <th className="text-end">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredInvoices.length > 0 ? (
-                  filteredInvoices.map((invoice) => (
-                    <tr key={invoice.id}>
-                      <td>
-                        <strong>{invoice.invoice_number}</strong>
-                      </td>
-                      <td>{invoice.customer?.name || "N/A"}</td>
-                      <td>
-                        {new Date(invoice.issue_date).toLocaleDateString()}
-                      </td>
-                      <td>
-                        {parseFloat(
-                          invoice.profit?.total_revenue || 0
-                        ).toLocaleString("en-US", {
-                          style: "currency",
-                          currency: invoice.currency || "USD",
-                        })}
-                      </td>
-                      <td>
-                        {parseFloat(
-                          invoice.profit?.total_cost || 0
-                        ).toLocaleString("en-US", {
-                          style: "currency",
-                          currency: invoice.currency || "USD",
-                        })}
-                      </td>
-                      <td
-                        className={
-                          invoice.profit?.profit > 0
-                            ? "text-success"
-                            : invoice.profit?.profit < 0
-                            ? "text-danger"
-                            : "text-muted"
-                        }
-                      >
-                        {parseFloat(invoice.profit?.profit || 0).toLocaleString(
-                          "en-US",
-                          {
-                            style: "currency",
-                            currency: invoice.currency || "USD",
-                          }
-                        )}
-                      </td>
-                      <td>
-                        <ProgressBar
-                          now={Math.abs(invoice.profit?.profit_margin || 0)}
-                          variant={
-                            invoice.profit?.profit > 0
-                              ? "success"
-                              : invoice.profit?.profit < 0
-                              ? "danger"
-                              : "info"
-                          }
-                          label={`${invoice.profit?.profit_margin || 0}%`}
-                        />
-                      </td>
-                      <td>{getProfitBadge(invoice.profit?.profit)}</td>
-                      <td className="text-end">
-                        <OverlayTrigger
-                          overlay={<Tooltip>View Details</Tooltip>}
-                        >
-                          <Button
-                            variant="outline-primary"
-                            size="sm"
-                            onClick={() => handleViewDetails(invoice)}
-                          >
-                            <FaEye />
-                          </Button>
-                        </OverlayTrigger>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="9" className="text-center py-4">
-                      No invoices found matching your criteria
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </Table>
-          </div>
-        </Card.Body>
-
-        <Card.Footer className="d-flex justify-content-between align-items-center">
-          <div>
-            Showing <strong>{filteredInvoices.length}</strong> of{" "}
-            <strong>{invoices.length}</strong> invoices
-          </div>
-          <div>
-            <Button variant="outline-primary" className="me-2">
-              <FaDownload className="me-1" /> Export
-            </Button>
-            <Button variant="outline-secondary">
-              <FaPrint className="me-1" /> Print
-            </Button>
-          </div>
-        </Card.Footer>
-      </Card>
-
-      {/* Invoice Detail Modal */}
-      <Modal show={showModal} onHide={() => setShowModal(false)} size="lg">
-        <Modal.Header closeButton>
-          <Modal.Title>
-            Invoice Details - {selectedInvoice?.invoice_number}
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {selectedInvoice && (
-            <div>
-              <Row className="mb-3">
-                <Col md={6}>
-                  <p>
-                    <strong>Client Name:</strong>{" "}
-                    {selectedInvoice.customer?.code || "N/A"}
-                  </p>
-                  <p>
-                    <strong>Agent:</strong> {selectedInvoice.sales_id || "N/A"}
-                  </p>
-                  <p>
-                    <strong>Client Name:</strong>{" "}
-                    {selectedInvoice.customer?.name || "N/A"}
-                  </p>
-                  <p>
-                    <strong>Travel Date:</strong>{" "}
-                    {selectedInvoice.start_date || "N/A"} -{" "}
-                    {selectedInvoice.end_date !== "1970-01-01"
-                      ? selectedInvoice.end_date
-                      : "N/A"}
-                  </p>
-                </Col>
-                <Col md={6}>
-                  <p>
-                    <strong>Agent Type:</strong>{" "}
-                    {selectedInvoice.payment_type || "N/A"}
-                  </p>
-                  <p>
-                    <strong>Invoice Received Currency:</strong>{" "}
-                    {selectedInvoice.currency || "N/A"}
-                  </p>
-                </Col>
-              </Row>
-
-              <Row className="mb-3">
-                <Col md={4}>
-                  <Card className="border-primary">
-                    <Card.Body className="py-2">
-                      <p className="mb-0">
-                        <strong>Total Invoice Value</strong>
-                      </p>
-                      <h5 className="mb-0">
-                        {selectedInvoice.currency}{" "}
-                        {parseFloat(
-                          selectedInvoice.total_amount || 0
-                        ).toLocaleString("en-US", {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}
-                      </h5>
-                    </Card.Body>
-                  </Card>
-                </Col>
-                <Col md={4}>
-                  <Card className="border-success">
-                    <Card.Body className="py-2">
-                      <p className="mb-0">
-                        <strong>Amount Received</strong>
-                      </p>
-                      <h5 className="mb-0 text-success">
-                        {selectedInvoice.currency}{" "}
-                        {parseFloat(
-                          selectedInvoice.amount_received || 0
-                        ).toLocaleString("en-US", {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}
-                      </h5>
-                    </Card.Body>
-                  </Card>
-                </Col>
-                <Col md={4}>
-                  <Card
-                    className={
-                      selectedInvoice.balance >= 0
-                        ? "border-warning"
-                        : "border-danger"
-                    }
-                  >
-                    <Card.Body className="py-2">
-                      <p className="mb-0">
-                        <strong>Balance</strong>
-                      </p>
-                      <h5 className="mb-0">
-                        {selectedInvoice.currency}{" "}
-                        {parseFloat(
-                          selectedInvoice.balance || 0
-                        ).toLocaleString("en-US", {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}
-                      </h5>
-                    </Card.Body>
-                  </Card>
-                </Col>
-              </Row>
-
-              <h6 className="mt-4">Cost Breakdown</h6>
-              <Table bordered>
-                <thead className="table-light">
+          {/* Main P&L Table */}
+          <Card className="mb-4">
+            <Card.Header className="bg-light">
+              <h6 className="mb-0">
+                <FaMoneyBillWave className="me-2" />
+                Profit & Loss Statement
+              </h6>
+            </Card.Header>
+            <Card.Body className="p-0">
+              <Table striped bordered className="mb-0">
+                <thead className="table-dark">
                   <tr>
                     <th>Description</th>
-                    <th>USD</th>
-                    <th>Exchange Rate</th>
-                    <th>LKR</th>
+                    <th className="text-end">USD</th>
+                    <th className="text-end">Exchange Rate</th>
+                    <th className="text-end">LKR</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {/* Invoice Items */}
-                  {selectedInvoice.items?.map((item, index) => (
-                    <tr key={`item-${index}`}>
-                      <td>{item.description}</td>
-                      <td>
-                        {parseFloat(item.price || 0).toLocaleString("en-US", {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}
-                      </td>
-                      <td>
-                        {parseFloat(
-                          selectedInvoice.exchange_rate || 0
-                        ).toLocaleString("en-US", {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}
-                      </td>
-                      <td>
-                        {(
-                          parseFloat(item.price || 0) *
-                          parseFloat(selectedInvoice.exchange_rate || 1)
-                        ).toLocaleString("en-US", {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}
-                      </td>
-                    </tr>
-                  ))}
+                  {/* Invoice Revenue */}
+                  <tr>
+                    <td>
+                      <strong>Invoice Revenue</strong>
+                      <br />
+                      <small className="text-muted">Sub Total: {formatCurrency(pnlData.revenue_breakdown.sub_total)}</small>
+                    </td>
+                    <td className="text-end">{formatCurrency(pnlData.revenue_breakdown.total_revenue)}</td>
+                    <td className="text-end">{exchangeRate.toFixed(2)}</td>
+                    <td className="text-end">{formatCurrency(calculateLkrValue(pnlData.revenue_breakdown.total_revenue), 'LKR')}</td>
+                  </tr>
 
-                  {/* Additional Charges */}
-                  {selectedInvoice.additional_charges?.map((charge, index) => (
-                    <tr key={`charge-${index}`}>
-                      <td>{charge.description}</td>
-                      <td>
-                        {parseFloat(charge.amount || 0).toLocaleString(
-                          "en-US",
-                          {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          }
-                        )}
-                      </td>
-                      <td>
-                        {parseFloat(
-                          selectedInvoice.exchange_rate || 0
-                        ).toLocaleString("en-US", {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}
-                      </td>
-                      <td>
-                        {(
-                          parseFloat(charge.amount || 0) *
-                          parseFloat(selectedInvoice.exchange_rate || 1)
-                        ).toLocaleString("en-US", {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}
-                      </td>
+                  {/* Taxes and Charges */}
+                  {pnlData.revenue_breakdown.gst_amount > 0 && (
+                    <tr>
+                      <td>GST</td>
+                      <td className="text-end">{formatCurrency(pnlData.revenue_breakdown.gst_amount)}</td>
+                      <td className="text-end">{exchangeRate.toFixed(2)}</td>
+                      <td className="text-end">{formatCurrency(calculateLkrValue(pnlData.revenue_breakdown.gst_amount), 'LKR')}</td>
                     </tr>
-                  ))}
-
-                  {/* Cost Breakdown */}
-                  {selectedInvoice.costs?.length > 0 && (
-                    <>
-                      <tr>
-                        <td>Ticket Cost</td>
-                        <td>
-                          {parseFloat(
-                            selectedInvoice.costs[0].ticket_cost || 0
-                          ).toLocaleString("en-US", {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
-                        </td>
-                        <td>
-                          {parseFloat(
-                            selectedInvoice.exchange_rate || 0
-                          ).toLocaleString("en-US", {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
-                        </td>
-                        <td>
-                          {(
-                            parseFloat(
-                              selectedInvoice.costs[0].ticket_cost || 0
-                            ) * parseFloat(selectedInvoice.exchange_rate || 1)
-                          ).toLocaleString("en-US", {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td>Hotel Cost</td>
-                        <td>
-                          {parseFloat(
-                            selectedInvoice.costs[0].hotel_cost || 0
-                          ).toLocaleString("en-US", {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
-                        </td>
-                        <td>
-                          {parseFloat(
-                            selectedInvoice.exchange_rate || 0
-                          ).toLocaleString("en-US", {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
-                        </td>
-                        <td>
-                          {(
-                            parseFloat(
-                              selectedInvoice.costs[0].hotel_cost || 0
-                            ) * parseFloat(selectedInvoice.exchange_rate || 1)
-                          ).toLocaleString("en-US", {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td>Transport Cost</td>
-                        <td>
-                          {parseFloat(
-                            selectedInvoice.costs[0].transport_cost || 0
-                          ).toLocaleString("en-US", {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
-                        </td>
-                        <td>
-                          {parseFloat(
-                            selectedInvoice.exchange_rate || 0
-                          ).toLocaleString("en-US", {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
-                        </td>
-                        <td>
-                          {(
-                            parseFloat(
-                              selectedInvoice.costs[0].transport_cost || 0
-                            ) * parseFloat(selectedInvoice.exchange_rate || 1)
-                          ).toLocaleString("en-US", {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
-                        </td>
-                      </tr>
-                    </>
                   )}
+
+                  {/* Total Costs */}
+                  <tr className="table-danger">
+                    <td>
+                      <strong>Total Costs</strong>
+                      <br />
+                      <small className="text-muted">
+                        Accommodation: {formatCurrency(pnlData.cost_breakdown.accommodation)} | 
+                        Transport: {formatCurrency(pnlData.cost_breakdown.transport)}
+                      </small>
+                    </td>
+                    <td className="text-end">{formatCurrency(pnlData.financial_summary.total_cost)}</td>
+                    <td className="text-end">{exchangeRate.toFixed(2)}</td>
+                    <td className="text-end">({formatCurrency(calculateLkrValue(pnlData.financial_summary.total_cost), 'LKR')})</td>
+                  </tr>
+
+                  {/* Profit */}
+                  <tr className="table-success">
+                    <td>
+                      <strong>Profit</strong>
+                    </td>
+                    <td className="text-end">{formatCurrency(pnlData.financial_summary.profit_loss)}</td>
+                    <td className="text-end">{exchangeRate.toFixed(2)}</td>
+                    <td className="text-end">{formatCurrency(calculateLkrValue(pnlData.financial_summary.profit_loss), 'LKR')}</td>
+                  </tr>
+
+                  {/* Profit Percentage */}
+                  <tr>
+                    <td>
+                      <strong>Profit % (Margin)</strong>
+                      <OverlayTrigger
+                        placement="top"
+                        overlay={
+                          <Tooltip>
+                            Profit Margin = (Profit / Total Revenue) × 100
+                          </Tooltip>
+                        }
+                      >
+                        <FaInfoCircle className="ms-2 text-info" />
+                      </OverlayTrigger>
+                    </td>
+                    <td className="text-end" colSpan="3">
+                      <strong>{formatPercentage(pnlData.financial_summary.profit_margin)}</strong>
+                    </td>
+                  </tr>
+
+                  <tr>
+                    <td>
+                      <strong>Profit % (Markup)</strong>
+                      <OverlayTrigger
+                        placement="top"
+                        overlay={
+                          <Tooltip>
+                            Profit Markup = (Profit / Total Cost) × 100
+                          </Tooltip>
+                        }
+                      >
+                        <FaInfoCircle className="ms-2 text-info" />
+                      </OverlayTrigger>
+                    </td>
+                    <td className="text-end" colSpan="3">
+                      <strong>{formatPercentage(pnlData.financial_summary.profit_markup)}</strong>
+                    </td>
+                  </tr>
                 </tbody>
               </Table>
+            </Card.Body>
+          </Card>
 
-              <Row className="mt-4">
-                <Col md={6}></Col>
+          {/* Validation Section */}
+          <Card className="mb-4">
+            <Card.Header className="bg-light">
+              <h6 className="mb-0">
+                <FaCalculator className="me-2" />
+                Data Validation
+              </h6>
+            </Card.Header>
+            <Card.Body>
+              <Row>
                 <Col md={6}>
-                  <Table bordered>
-                    <tbody>
-                      <tr className="table-success">
-                        <td>
-                          <strong>Profit</strong>
-                        </td>
-                        <td className="text-end">
-                          {selectedInvoice.currency}{" "}
-                          {parseFloat(
-                            selectedInvoice.profit?.profit || 0
-                          ).toLocaleString("en-US", {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
-                        </td>
-                      </tr>
-                      <tr>
-                        <td>
-                          <strong>Profit % (Margin)</strong>
-                        </td>
-                        <td className="text-end">
-                          {parseFloat(
-                            selectedInvoice.profit?.profit_margin || 0
-                          ).toLocaleString("en-US", {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
-                          %
-                        </td>
-                      </tr>
-                      <tr>
-                        <td>
-                          <strong>Profit % (Markup)</strong>
-                        </td>
-                        <td className="text-end">
-                          {parseFloat(
-                            selectedInvoice.profit?.profit_markup || 0
-                          ).toLocaleString("en-US", {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}
-                          %
-                        </td>
-                      </tr>
-                    </tbody>
-                  </Table>
+                  <div className="d-flex justify-content-between align-items-center mb-2">
+                    <span>Revenue vs Mega Cost:</span>
+                    {getStatusBadge(pnlData.validation.revenue_vs_mega_cost.status)}
+                  </div>
+                  <ProgressBar 
+                    variant={pnlData.validation.revenue_vs_mega_cost.status === 'matched' ? 'success' : 'warning'}
+                    now={100}
+                    label={`Difference: ${formatCurrency(pnlData.validation.revenue_vs_mega_cost.difference)}`}
+                  />
+                </Col>
+                <Col md={6}>
+                  <div className="d-flex justify-content-between align-items-center mb-2">
+                    <span>Profit Comparison:</span>
+                    {getStatusBadge(pnlData.validation.profit_comparison.status)}
+                  </div>
+                  <ProgressBar 
+                    variant={pnlData.validation.profit_comparison.status === 'matched' ? 'success' : 'warning'}
+                    now={100}
+                    label={`Difference: ${formatCurrency(pnlData.validation.profit_comparison.difference)}`}
+                  />
                 </Col>
               </Row>
-            </div>
+            </Card.Body>
+          </Card>
+
+          {/* Detailed Breakdown Toggle */}
+          <div className="text-center mb-4">
+            <Button 
+              variant="outline-primary" 
+              onClick={() => setShowDetails(!showDetails)}
+            >
+              <FaEye className="me-2" />
+              {showDetails ? 'Hide Detailed Breakdown' : 'Show Detailed Breakdown'}
+            </Button>
+          </div>
+
+          {/* Detailed Breakdown */}
+          {showDetails && (
+            <Row>
+              <Col md={6}>
+                <Card className="mb-4">
+                  <Card.Header className="bg-info text-white">
+                    <h6 className="mb-0">Revenue Breakdown</h6>
+                  </Card.Header>
+                  <Card.Body>
+                    <Table size="sm">
+                      <tbody>
+                        <tr>
+                          <td>Sub Total:</td>
+                          <td className="text-end">{formatCurrency(pnlData.revenue_breakdown.sub_total)}</td>
+                        </tr>
+                        <tr>
+                          <td>Bank Charges:</td>
+                          <td className="text-end">{formatCurrency(pnlData.revenue_breakdown.bank_charges)}</td>
+                        </tr>
+                        <tr>
+                          <td>GST Amount:</td>
+                          <td className="text-end">{formatCurrency(pnlData.revenue_breakdown.gst_amount)}</td>
+                        </tr>
+                        <tr>
+                          <td>Additional Tax:</td>
+                          <td className="text-end">{formatCurrency(pnlData.revenue_breakdown.additional_tax)}</td>
+                        </tr>
+                        <tr className="table-primary">
+                          <td><strong>Total Revenue:</strong></td>
+                          <td className="text-end"><strong>{formatCurrency(pnlData.revenue_breakdown.total_revenue)}</strong></td>
+                        </tr>
+                      </tbody>
+                    </Table>
+                  </Card.Body>
+                </Card>
+              </Col>
+
+              <Col md={6}>
+                <Card className="mb-4">
+                  <Card.Header className="bg-warning text-dark">
+                    <h6 className="mb-0">Cost Breakdown</h6>
+                  </Card.Header>
+                  <Card.Body>
+                    <Table size="sm">
+                      <tbody>
+                        <tr>
+                          <td>Accommodation:</td>
+                          <td className="text-end">{formatCurrency(pnlData.cost_breakdown.accommodation)}</td>
+                        </tr>
+                        <tr>
+                          <td>Meals:</td>
+                          <td className="text-end">{formatCurrency(pnlData.cost_breakdown.meal)}</td>
+                        </tr>
+                        <tr>
+                          <td>Tickets:</td>
+                          <td className="text-end">{formatCurrency(pnlData.cost_breakdown.tickets)}</td>
+                        </tr>
+                        <tr>
+                          <td>Transport:</td>
+                          <td className="text-end">{formatCurrency(pnlData.cost_breakdown.transport)}</td>
+                        </tr>
+                        <tr>
+                          <td>Other Rates:</td>
+                          <td className="text-end">{formatCurrency(pnlData.cost_breakdown.other_rates)}</td>
+                        </tr>
+                        <tr className="table-danger">
+                          <td><strong>Total Cost:</strong></td>
+                          <td className="text-end"><strong>{formatCurrency(pnlData.financial_summary.total_cost)}</strong></td>
+                        </tr>
+                      </tbody>
+                    </Table>
+                  </Card.Body>
+                </Card>
+              </Col>
+            </Row>
           )}
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowModal(false)}>
-            Close
-          </Button>
-        </Modal.Footer>
-      </Modal>
+        </>
+      )}
     </div>
   );
 };

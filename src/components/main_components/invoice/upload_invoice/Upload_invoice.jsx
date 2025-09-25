@@ -669,14 +669,14 @@ const cleanAmount = (amountStr) => {
                 >
                   {isLoading ? "Processing..." : `Submit ${processedData.length} Invoices`}
                 </Button>
-                {failedRecords.length > 0 && (
+                {/* {failedRecords.length > 0 && (
                   <Button
                     variant="outline-warning"
                     onClick={() => setShowFailedModal(true)}
                   >
                     Review Failed Records ({failedRecords.length})
                   </Button>
-                )}
+                )} */}
               </div>
 
               <div className="table-responsive mb-4">

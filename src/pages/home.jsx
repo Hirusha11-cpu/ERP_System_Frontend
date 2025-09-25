@@ -1490,7 +1490,7 @@ const Home = () => {
                 )}
 
                 <div className="d-flex justify-content-end mt-3">
-                  <Button variant="link" className="text-decoration-none">
+                  <Button variant="link" className="text-decoration-none"  style={{ color: "black"}}>
                     View All Invoices <FiChevronRight />
                   </Button>
                 </div>

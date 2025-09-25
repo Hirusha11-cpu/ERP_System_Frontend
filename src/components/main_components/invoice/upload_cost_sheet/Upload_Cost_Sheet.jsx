@@ -34,6 +34,7 @@ import {
   FaBus,
   FaListAlt,
   FaChartBar,
+  FaEye,
 } from "react-icons/fa";
 import axios from "axios";
 
@@ -57,7 +58,7 @@ const Upload_Cost_Sheet = () => {
 
   const fetchCostSheets = async () => {
     try {
-      const response = await axios.get("/api/invoices/cost-sheets", {
+      const response = await axios.get("/api/sinvoices/cost-sheets", {
         headers: { Authorization: `Bearer ${token}` },
       });
       setCostSheets(response.data.data || []);

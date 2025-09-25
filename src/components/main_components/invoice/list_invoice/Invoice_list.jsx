@@ -1593,9 +1593,9 @@ const Invoice_list = () => {
                 </Dropdown.Menu>
               </Dropdown>
 
-              <Button variant="outline-secondary" size="sm">
+              {/* <Button variant="outline-secondary" size="sm">
                 <FaPrint className="me-1" /> Print List
-              </Button>
+              </Button> */}
             </div>
           </Card.Footer>
         )}

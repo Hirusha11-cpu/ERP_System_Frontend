@@ -3796,7 +3796,8 @@ const Invoice_create = () => {
           <Button variant="secondary" onClick={() => setShowChargeModal(false)}>
             Cancel
           </Button>
-          <Button variant="primary" onClick={addNewCharge}>
+          <Button variant="primary" onClick={addNewCharge}
+          disabled={!newCharge.description || !newCharge.amount}>
             Add Charge
           </Button>
         </Modal.Footer>

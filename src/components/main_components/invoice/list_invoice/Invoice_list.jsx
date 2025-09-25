@@ -17,7 +17,7 @@ import {
   Pagination, // Added for pagination
   Spinner,
   Alert, // Added for loading
-   Dropdown, // Added for export dropdown
+  Dropdown, // Added for export dropdown
 } from "react-bootstrap";
 import {
   FaEye,
@@ -40,11 +40,11 @@ import {
   FaCreditCard,
   FaSync,
   FaExchangeAlt, // For refresh
-   FaFileExcel, // For Excel export
-  FaFilePdf,   // For PDF export
-  FaFileCsv,   // For CSV export
+  FaFileExcel, // For Excel export
+  FaFilePdf, // For PDF export
+  FaFileCsv, // For CSV export
   FaStepBackward, // For first page
-  FaStepForward,  // For last page
+  FaStepForward, // For last page
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -109,6 +109,8 @@ const Invoice_list = () => {
   const [exchangeRateSuccess, setExchangeRateSuccess] = useState("");
   const [loadingInvoiceId, setLoadingInvoiceId] = useState(null);
   const [showExchangedVersion, setShowExchangedVersion] = useState(false);
+  const [showCostModal, setShowCostModal] = useState(false);
+  const [currentInvoiceCosts, setCurrentInvoiceCosts] = useState([]);
 
   useEffect(() => {
     const companyMap = {
@@ -163,41 +165,54 @@ const Invoice_list = () => {
     };
   };
 
-    const handleExport = (format) => {
-    const dataToExport = filteredInvoices.map(invoice => ({
-      'Invoice Number': invoice.invoice_number,
-      'Tour Ref No': invoice.id,
-      'Customer': companyNo === 3 ? (invoice.customer?.customer || 'N/A') : (invoice.customer?.name || 'N/A'),
-      'Issue Date': formatDate(invoice.issue_date),
-      'Travel Period': `${formatDate(invoice.start_date)} - ${formatDate(invoice.end_date)}`,
-      'Credit/Non-Credit': invoice.payment_type,
-      'Balance': `${currencySymbols[invoice.currency] || invoice.currency} ${invoice.balance}`,
-      'Total': `${currencySymbols[invoice.currency] || invoice.currency} ${invoice.total_amount}`,
-      'Status': invoice.status === 'draft' ? 'open' : invoice.status,
-      'Currency': invoice.currency,
-      'Due Date': formatDate(invoice.due_date),
+  const handleExport = (format) => {
+    const dataToExport = filteredInvoices.map((invoice) => ({
+      "Invoice Number": invoice.invoice_number,
+      "Tour Ref No": invoice.id,
+      Customer:
+        companyNo === 3
+          ? invoice.customer?.customer || "N/A"
+          : invoice.customer?.name || "N/A",
+      "Issue Date": formatDate(invoice.issue_date),
+      "Travel Period": `${formatDate(invoice.start_date)} - ${formatDate(
+        invoice.end_date
+      )}`,
+      "Credit/Non-Credit": invoice.payment_type,
+      Balance: `${currencySymbols[invoice.currency] || invoice.currency} ${
+        invoice.balance
+      }`,
+      Total: `${currencySymbols[invoice.currency] || invoice.currency} ${
+        invoice.total_amount
+      }`,
+      Status: invoice.status === "draft" ? "open" : invoice.status,
+      Currency: invoice.currency,
+      "Due Date": formatDate(invoice.due_date),
     }));
 
-    if (format === 'csv') {
+    if (format === "csv") {
       exportToCSV(dataToExport);
-    } else if (format === 'excel') {
+    } else if (format === "excel") {
       exportToExcel(dataToExport);
-    } else if (format === 'pdf') {
+    } else if (format === "pdf") {
       exportToPDF(dataToExport);
     }
   };
 
   const exportToCSV = (data) => {
-    const headers = Object.keys(data[0]).join(',');
-    const csvContent = data.map(row => 
-      Object.values(row).map(field => `"${field}"`).join(',')
-    ).join('\n');
-    
-    const blob = new Blob([headers + '\n' + csvContent], { type: 'text/csv' });
+    const headers = Object.keys(data[0]).join(",");
+    const csvContent = data
+      .map((row) =>
+        Object.values(row)
+          .map((field) => `"${field}"`)
+          .join(",")
+      )
+      .join("\n");
+
+    const blob = new Blob([headers + "\n" + csvContent], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = url;
-    link.download = `invoices_${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = `invoices_${new Date().toISOString().split("T")[0]}.csv`;
     link.click();
     window.URL.revokeObjectURL(url);
   };
@@ -205,16 +220,18 @@ const Invoice_list = () => {
   const exportToExcel = (data) => {
     // Simple Excel export using CSV (for basic functionality)
     // For advanced Excel features, you might want to use a library like xlsx
-    const headers = Object.keys(data[0]).join('\t');
-    const excelContent = data.map(row => 
-      Object.values(row).join('\t')
-    ).join('\n');
-    
-    const blob = new Blob([headers + '\n' + excelContent], { type: 'application/vnd.ms-excel' });
+    const headers = Object.keys(data[0]).join("\t");
+    const excelContent = data
+      .map((row) => Object.values(row).join("\t"))
+      .join("\n");
+
+    const blob = new Blob([headers + "\n" + excelContent], {
+      type: "application/vnd.ms-excel",
+    });
     const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = url;
-    link.download = `invoices_${new Date().toISOString().split('T')[0]}.xls`;
+    link.download = `invoices_${new Date().toISOString().split("T")[0]}.xls`;
     link.click();
     window.URL.revokeObjectURL(url);
   };
@@ -238,26 +255,34 @@ const Invoice_list = () => {
           <table>
             <thead>
               <tr>
-                ${Object.keys(data[0]).map(key => `<th>${key}</th>`).join('')}
+                ${Object.keys(data[0])
+                  .map((key) => `<th>${key}</th>`)
+                  .join("")}
               </tr>
             </thead>
             <tbody>
-              ${data.map(row => `
+              ${data
+                .map(
+                  (row) => `
                 <tr>
-                  ${Object.values(row).map(value => `<td>${value}</td>`).join('')}
+                  ${Object.values(row)
+                    .map((value) => `<td>${value}</td>`)
+                    .join("")}
                 </tr>
-              `).join('')}
+              `
+                )
+                .join("")}
             </tbody>
           </table>
         </body>
       </html>
     `;
 
-    const blob = new Blob([content], { type: 'text/html' });
+    const blob = new Blob([content], { type: "text/html" });
     const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = url;
-    link.download = `invoices_${new Date().toISOString().split('T')[0]}.html`;
+    link.download = `invoices_${new Date().toISOString().split("T")[0]}.html`;
     link.click();
     window.URL.revokeObjectURL(url);
   };
@@ -275,21 +300,23 @@ const Invoice_list = () => {
     disabled = false,
     tooltip = "",
   }) => (
-    <OverlayTrigger placement="top" overlay={<Tooltip>{tooltip || label}</Tooltip>}>
+    <OverlayTrigger
+      placement="top"
+      overlay={<Tooltip>{tooltip || label}</Tooltip>}
+    >
       <Button
         variant={variant}
         size="sm"
         className="me-1 mb-1"
         onClick={onClick}
         disabled={disabled}
-        style={{ minWidth: '40px' }}
+        style={{ minWidth: "40px" }}
       >
-        {icon} 
+        {icon}
         <span className="d-none d-lg-inline">{label}</span>
       </Button>
     </OverlayTrigger>
   );
-
 
   // Memoized filtered invoices to optimize computation
   const filteredInvoices = useMemo(() => {
@@ -340,6 +367,17 @@ const Invoice_list = () => {
     fetchInvoices(days);
   };
 
+  const handleViewCosts = (invoice) => {
+    console.log("Viewing costs for invoice:", invoice);
+
+    // Filter only summary type costs
+    const summaryCosts =
+      invoice.cost_of_invoices?.filter((cost) => cost.type === "summary") || [];
+    setCurrentInvoiceCosts(summaryCosts);
+    setCurrentInvoice(invoice);
+    setShowCostModal(true);
+  };
+
   const resetDaysFilter = () => {
     setSearchDaysCount("");
     fetchInvoices(0); // Fetch all invoices
@@ -347,7 +385,7 @@ const Invoice_list = () => {
 
   const handleViewInvoice = (invoice) => {
     setCurrentInvoice(invoice);
-      setShowExchangedVersion(false); // Ensure original version is shown
+    setShowExchangedVersion(false); // Ensure original version is shown
     if (companyNo === 2) {
       setShowPreviewModalAppleholidays(true);
     } else if (companyNo === 3) {
@@ -966,25 +1004,25 @@ const Invoice_list = () => {
   // }
 
   const handleShowExchangedInvoice = (history) => {
-  const exchangedInvoice = {
-    ...currentInvoice,
-    sub_total: history.sub_total,
-    handling_fee: history.handling_fee,
-    gst_amount: history.gst_amount,
-    additional_tax: history.additional_tax,
-    bank_charges: history.bank_charges,
-    total_amount: history.total_amount,
-    amount_received: history.amount_received,
-    balance: history.balance,
-    exchange_rate: history.exchange_rate,
-    is_exchanged: true,
-    exchange_rate_date: history.rate_date,
+    const exchangedInvoice = {
+      ...currentInvoice,
+      sub_total: history.sub_total,
+      handling_fee: history.handling_fee,
+      gst_amount: history.gst_amount,
+      additional_tax: history.additional_tax,
+      bank_charges: history.bank_charges,
+      total_amount: history.total_amount,
+      amount_received: history.amount_received,
+      balance: history.balance,
+      exchange_rate: history.exchange_rate,
+      is_exchanged: true,
+      exchange_rate_date: history.rate_date,
+    };
+
+    setCurrentInvoiceExchange(exchangedInvoice);
+    setShowExchangedVersion(true);
+    setShowPreviewModalAppleholidays(true);
   };
-  
-  setCurrentInvoiceExchange(exchangedInvoice);
-  setShowExchangedVersion(true);
-  setShowPreviewModalAppleholidays(true);
-};
 
   // const handleShowExchangedInvoice = (invoice) => {
   //   console.log("Viewing current invoice:", currentInvoice);
@@ -1225,6 +1263,7 @@ const Invoice_list = () => {
                     <th>Status</th>
                     <th>Payments</th>
                     <th>Exchange-Rates</th>
+                    <th>Costs</th>
                     <th className="text-end">Actions</th>
                   </tr>
                 </thead>
@@ -1256,7 +1295,11 @@ const Invoice_list = () => {
                               <FaUser />
                             </div>
                             <div>
-                              <div>{companyNo === 3 ? (invoice.customer?.customer || "N/A") : (invoice.customer?.name || "N/A")}</div>
+                              <div>
+                                {companyNo === 3
+                                  ? invoice.customer?.customer || "N/A"
+                                  : invoice.customer?.name || "N/A"}
+                              </div>
                               <small className="text-muted">
                                 {invoice.customer?.email || ""}
                               </small>
@@ -1308,6 +1351,19 @@ const Invoice_list = () => {
                             label="View Exchange Rates"
                             variant="warning"
                             onClick={() => handleExchangeRates(invoice)}
+                          />
+                        </td>
+                        <td>
+                          <ActionButton
+                            icon={<FaMoneyBillWave />}
+                            label="View Costs"
+                            variant="success"
+                            onClick={() => handleViewCosts(invoice)}
+                            disabled={
+                              !invoice.cost_of_invoices ||
+                              invoice.cost_of_invoices.length === 0
+                            }
+                            tooltip="View Cost Details"
                           />
                         </td>
                         <td className="text-start">
@@ -1383,14 +1439,14 @@ const Invoice_list = () => {
                                 </>
                               )}
                             </Button> */}
-                             <ActionButton
+                            <ActionButton
                               icon={<FaEye />}
                               label=""
                               variant="info"
                               tooltip="View Invoice"
                               onClick={() => handleViewInvoice(invoice)}
                             />
-                                 <ActionButton
+                            <ActionButton
                               icon={<FaEdit />}
                               label=""
                               variant="primary"
@@ -1443,9 +1499,9 @@ const Invoice_list = () => {
           )}
           {/* Pagination */}
           {filteredInvoices.length > itemsPerPage && (
-             <Pagination className="justify-content-center mt-3">
+            <Pagination className="justify-content-center mt-3">
               {/* First Page Button */}
-              <Pagination.First 
+              <Pagination.First
                 onClick={goToFirstPage}
                 disabled={currentPage === 1}
               >
@@ -1459,12 +1515,12 @@ const Invoice_list = () => {
               />
 
               {/* Page Numbers */}
-              {pageNumbers.map(number => {
+              {pageNumbers.map((number) => {
                 // Show first 2 pages, last 2 pages, and pages around current page
                 if (
-                  number === 1 || 
-                  number === 2 || 
-                  number === pageNumbers.length - 1 || 
+                  number === 1 ||
+                  number === 2 ||
+                  number === pageNumbers.length - 1 ||
                   number === pageNumbers.length ||
                   (number >= currentPage - 1 && number <= currentPage + 1)
                 ) {
@@ -1478,7 +1534,7 @@ const Invoice_list = () => {
                     </Pagination.Item>
                   );
                 } else if (
-                  number === currentPage - 2 || 
+                  number === currentPage - 2 ||
                   number === currentPage + 2
                 ) {
                   return <Pagination.Ellipsis key={number} />;
@@ -1506,28 +1562,37 @@ const Invoice_list = () => {
         {filteredInvoices.length > 0 && (
           <Card.Footer className="d-flex justify-content-between align-items-center">
             <div>
-              Showing <strong>{indexOfFirstItem + 1}-{Math.min(indexOfLastItem, filteredInvoices.length)}</strong> of{" "}
-              <strong>{filteredInvoices.length}</strong> invoices
+              Showing{" "}
+              <strong>
+                {indexOfFirstItem + 1}-
+                {Math.min(indexOfLastItem, filteredInvoices.length)}
+              </strong>{" "}
+              of <strong>{filteredInvoices.length}</strong> invoices
             </div>
             <div className="d-flex">
               {/* Enhanced Export Dropdown */}
               <Dropdown className="me-2">
-                <Dropdown.Toggle variant="outline-primary" size="sm" id="export-dropdown" style={{ color: "black", borderColor: "black" }}>
+                <Dropdown.Toggle
+                  variant="outline-primary"
+                  size="sm"
+                  id="export-dropdown"
+                  style={{ color: "black", borderColor: "black" }}
+                >
                   <FaDownload className="me-1" /> Export
                 </Dropdown.Toggle>
                 <Dropdown.Menu>
-                  <Dropdown.Item onClick={() => handleExport('csv')} >
+                  <Dropdown.Item onClick={() => handleExport("csv")}>
                     <FaFileCsv className="me-2" /> Export as CSV
                   </Dropdown.Item>
-                  <Dropdown.Item onClick={() => handleExport('excel')}>
+                  <Dropdown.Item onClick={() => handleExport("excel")}>
                     <FaFileExcel className="me-2" /> Export as Excel
                   </Dropdown.Item>
-                  <Dropdown.Item onClick={() => handleExport('pdf')}>
+                  <Dropdown.Item onClick={() => handleExport("pdf")}>
                     <FaFilePdf className="me-2" /> Export as PDF
                   </Dropdown.Item>
                 </Dropdown.Menu>
               </Dropdown>
-              
+
               <Button variant="outline-secondary" size="sm">
                 <FaPrint className="me-1" /> Print List
               </Button>
@@ -1570,20 +1635,20 @@ const Invoice_list = () => {
       /> */}
 
       <Invoice_appleholidays_modal
-  show={showPreviewModalAppleholidays}
-  onHide={() => {
-    setShowPreviewModalAppleholidays(false);
-    setShowExchangedVersion(false); // Reset when modal closes
-  }}
-  formData={formatInvoiceData(
-    showExchangedVersion ? currentInvoiceExchange : currentInvoice
-  )}
-  countryOptions={countryOptions}
-  currencySymbols={currencySymbols}
-  printInvoice={handlePrintInvoiceAppleHolidays}
-  formatDate={formatDate}
-  xeRate={xeRate}
-/>
+        show={showPreviewModalAppleholidays}
+        onHide={() => {
+          setShowPreviewModalAppleholidays(false);
+          setShowExchangedVersion(false); // Reset when modal closes
+        }}
+        formData={formatInvoiceData(
+          showExchangedVersion ? currentInvoiceExchange : currentInvoice
+        )}
+        countryOptions={countryOptions}
+        currencySymbols={currencySymbols}
+        printInvoice={handlePrintInvoiceAppleHolidays}
+        formatDate={formatDate}
+        xeRate={xeRate}
+      />
 
       <Invoice_sharmila_modal
         show={showPreviewModalShirmila}
@@ -2567,6 +2632,247 @@ const Invoice_list = () => {
               Confirm Cancel
             </Button>
           )}
+        </Modal.Footer>
+      </Modal>
+      {/* Cost Details Modal */}
+      <Modal
+        show={showCostModal}
+        onHide={() => setShowCostModal(false)}
+        size="lg"
+        centered
+      >
+        <Modal.Header closeButton className="bg-success text-white">
+          <Modal.Title className="d-flex align-items-center">
+            <FaMoneyBillWave className="me-2" />
+            Cost Summary - {currentInvoice?.invoice_number}
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {currentInvoiceCosts.length > 0 ? (
+            <div className="table-responsive">
+              <Table hover className="align-middle">
+                <thead className="table-light">
+                  <tr>
+                    <th>#</th>
+                    <th>Total Mega Cost</th>
+                    <th>Tour Cost (Without Markup)</th>
+                    <th>Profit/Loss</th>
+                    <th>Cost per Person (Triple)</th>
+                    <th>Total Tour Cost</th>
+                    <th>Currency</th>
+                    <th>Created Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {currentInvoiceCosts.map((cost, index) => (
+                    <tr key={cost.id}>
+                      <td>{index + 1}</td>
+                      <td>
+                        {currencySymbols[cost.currency] || cost.currency}{" "}
+                        {parseFloat(cost.total_mega_cost).toFixed(2)}
+                      </td>
+                      <td>
+                        {currencySymbols[cost.currency] || cost.currency}{" "}
+                        {parseFloat(
+                          cost.total_tour_cost_without_markup
+                        ).toFixed(2)}
+                      </td>
+                      <td>
+                        <Badge
+                          bg={
+                            parseFloat(cost.profit_loss) >= 0
+                              ? "success"
+                              : "danger"
+                          }
+                        >
+                          {currencySymbols[cost.currency] || cost.currency}{" "}
+                          {parseFloat(cost.profit_loss).toFixed(2)}
+                        </Badge>
+                      </td>
+                      <td>
+                        {currencySymbols[cost.currency] || cost.currency}{" "}
+                        {parseFloat(
+                          cost.details?.cost_per_person_triple || 0
+                        ).toFixed(2)}
+                      </td>
+                      <td>
+                        <strong>
+                          {currencySymbols[cost.currency] || cost.currency}{" "}
+                          {parseFloat(cost.total_tour_cost).toFixed(2)}
+                        </strong>
+                      </td>
+                      <td>{cost.currency}</td>
+                      <td>{formatDate(cost.created_at)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+
+              {/* Detailed Breakdown for the latest cost summary */}
+              {currentInvoiceCosts.length > 0 && (
+                <Accordion className="mt-4">
+                  <Accordion.Item eventKey="0">
+                    <Accordion.Header>
+                      <strong>Detailed Cost Breakdown (Latest)</strong>
+                    </Accordion.Header>
+                    <Accordion.Body>
+                      <Row>
+                        <Col md={6}>
+                          <Card className="mb-3">
+                            <Card.Header className="bg-light">
+                              <strong>Financial Summary</strong>
+                            </Card.Header>
+                            <Card.Body>
+                              <table className="table table-sm">
+                                <tbody>
+                                  <tr>
+                                    <td>
+                                      <strong>Total Mega Cost:</strong>
+                                    </td>
+                                    <td>
+                                      {currencySymbols[
+                                        currentInvoiceCosts[0].currency
+                                      ] || currentInvoiceCosts[0].currency}{" "}
+                                      {parseFloat(
+                                        currentInvoiceCosts[0].total_mega_cost
+                                      ).toFixed(2)}
+                                    </td>
+                                  </tr>
+                                  <tr>
+                                    <td>
+                                      <strong>
+                                        Tour Cost (Without Markup):
+                                      </strong>
+                                    </td>
+                                    <td>
+                                      {currencySymbols[
+                                        currentInvoiceCosts[0].currency
+                                      ] || currentInvoiceCosts[0].currency}{" "}
+                                      {parseFloat(
+                                        currentInvoiceCosts[0]
+                                          .total_tour_cost_without_markup
+                                      ).toFixed(2)}
+                                    </td>
+                                  </tr>
+                                  <tr>
+                                    <td>
+                                      <strong>Profit/Loss:</strong>
+                                    </td>
+                                    <td>
+                                      <Badge
+                                        bg={
+                                          parseFloat(
+                                            currentInvoiceCosts[0].profit_loss
+                                          ) >= 0
+                                            ? "success"
+                                            : "danger"
+                                        }
+                                      >
+                                        {currencySymbols[
+                                          currentInvoiceCosts[0].currency
+                                        ] ||
+                                          currentInvoiceCosts[0].currency}{" "}
+                                        {parseFloat(
+                                          currentInvoiceCosts[0].profit_loss
+                                        ).toFixed(2)}
+                                      </Badge>
+                                    </td>
+                                  </tr>
+                                  <tr>
+                                    <td>
+                                      <strong>Total Tour Cost:</strong>
+                                    </td>
+                                    <td>
+                                      <strong>
+                                        {currencySymbols[
+                                          currentInvoiceCosts[0].currency
+                                        ] ||
+                                          currentInvoiceCosts[0].currency}{" "}
+                                        {parseFloat(
+                                          currentInvoiceCosts[0].total_tour_cost
+                                        ).toFixed(2)}
+                                      </strong>
+                                    </td>
+                                  </tr>
+                                </tbody>
+                              </table>
+                            </Card.Body>
+                          </Card>
+                        </Col>
+                        <Col md={6}>
+                          <Card>
+                            <Card.Header className="bg-light">
+                              <strong>Per Person Costs</strong>
+                            </Card.Header>
+                            <Card.Body>
+                              <table className="table table-sm">
+                                <tbody>
+                                  <tr>
+                                    <td>Single:</td>
+                                    <td>
+                                      {currencySymbols[
+                                        currentInvoiceCosts[0].currency
+                                      ] || currentInvoiceCosts[0].currency}{" "}
+                                      {parseFloat(
+                                        currentInvoiceCosts[0].details
+                                          ?.cost_per_person_single || 0
+                                      ).toFixed(2)}
+                                    </td>
+                                  </tr>
+                                  <tr>
+                                    <td>Double:</td>
+                                    <td>
+                                      {currencySymbols[
+                                        currentInvoiceCosts[0].currency
+                                      ] || currentInvoiceCosts[0].currency}{" "}
+                                      {parseFloat(
+                                        currentInvoiceCosts[0].details
+                                          ?.cost_per_person_double || 0
+                                      ).toFixed(2)}
+                                    </td>
+                                  </tr>
+                                  <tr>
+                                    <td>
+                                      <strong>Triple:</strong>
+                                    </td>
+                                    <td>
+                                      <strong>
+                                        {currencySymbols[
+                                          currentInvoiceCosts[0].currency
+                                        ] ||
+                                          currentInvoiceCosts[0].currency}{" "}
+                                        {parseFloat(
+                                          currentInvoiceCosts[0].details
+                                            ?.cost_per_person_triple || 0
+                                        ).toFixed(2)}
+                                      </strong>
+                                    </td>
+                                  </tr>
+                                </tbody>
+                              </table>
+                            </Card.Body>
+                          </Card>
+                        </Col>
+                      </Row>
+                    </Accordion.Body>
+                  </Accordion.Item>
+                </Accordion>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-4">
+              <FaMoneyBillWave size={48} className="text-muted mb-3" />
+              <h5>No cost details available</h5>
+              <p className="text-muted">
+                This invoice has no recorded cost information.
+              </p>
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowCostModal(false)}>
+            Close
+          </Button>
         </Modal.Footer>
       </Modal>
     </div>

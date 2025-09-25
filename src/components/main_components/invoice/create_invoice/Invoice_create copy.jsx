@@ -10,6 +10,7 @@ import {
   Row,
   Col,
   Badge,
+  Spinner,
 } from "react-bootstrap";
 import "bootstrap/dist/css/bootstrap.min.css";
 import {
@@ -55,11 +56,14 @@ const Invoice_create = () => {
   const [toCurrency, setToCurrency] = useState("LKR");
   const [exchangeRates, setExchangeRates] = useState({});
   const [isLoadingRates, setIsLoadingRates] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const [convertFromCurrency, setConvertFromCurrency] = useState("USD");
   const [convertToCurrency, setConvertToCurrency] = useState("USD");
   const [originalAmount, setOriginalAmount] = useState(0);
   const [convertedAmount, setConvertedAmount] = useState(0);
+  const [descriptionValue, setDescriptionValue] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Fetch customers and tax rates on component mount
   useEffect(() => {
@@ -89,6 +93,10 @@ const Invoice_create = () => {
         mobile: "",
         code: "",
         gstNo: "",
+        customer: "",
+        customer_email: "",
+        customer_number: "",
+        payment_method: "",
       },
       invoice: {
         country: "IN",
@@ -101,6 +109,7 @@ const Invoice_create = () => {
         printedBy: "",
         yourRef: "",
         bookingId: "",
+        paymentMethod: "",
       },
       currencyDetails: {
         currency: "USD",
@@ -275,14 +284,16 @@ const Invoice_create = () => {
 
   const handleSubmit = async () => {
     console.log(formData);
-
+    setIsSubmitting(true);
     const paymentMethodArray = Object.entries(formData.payment.methods)
       .filter(([_, value]) => value)
       .map(([key]) => key);
 
     const dataToSend = {
+      invoice_number: formData.invoice.number,
       customer_id: formData.customer.id,
       country_code: formData.invoice.country,
+      payment_method: formData.invoice.paymentMethod,
       currency: formData.currencyDetails.currency,
       exchange_rate: formData.currencyDetails.exchangeRate,
       tax_treatment: formData.currencyDetails.taxTreatment,
@@ -307,6 +318,8 @@ const Invoice_create = () => {
       bank_charges: formData.totals.additionalTax.toFixed(2),
       amount_received: formData.totals.amountReceived.toFixed(2),
       balance: formData.totals.balance.toFixed(2),
+      from_currency: fromCurrency,
+      to_currency: toCurrency,
       // bank_charges:formData.additionalCharges
       //                   .reduce(
       //                     (sum, charge) => sum + parseFloat(charge.amount || 0),
@@ -360,110 +373,141 @@ const Invoice_create = () => {
         "Error creating invoice: " +
           (error.response?.data?.message || error.message)
       );
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const handleSubmit1 = async () => {
-  console.log(formData);
+    console.log(formData);
 
-  const paymentMethodArray = Object.entries(formData.payment.methods)
-    .filter(([_, value]) => value)
-    .map(([key]) => key);
+    const paymentMethodArray = Object.entries(formData.payment.methods)
+      .filter(([_, value]) => value)
+      .map(([key]) => key);
 
-  // Create FormData object for file uploads
-  const formDataToSend = new FormData();
+    // Create FormData object for file uploads
+    const formDataToSend = new FormData();
 
-  // Add all the data fields
-  formDataToSend.append('customer_id', formData.customer.id);
-  formDataToSend.append('country_code', formData.invoice.country);
-  formDataToSend.append('currency', formData.currencyDetails.currency);
-  formDataToSend.append('exchange_rate', formData.currencyDetails.exchangeRate);
-  formDataToSend.append('tax_treatment', formData.currencyDetails.taxTreatment);
-  formDataToSend.append('payment_type', formData.payment.type);
-  formDataToSend.append('collection_date', formData.payment.collectionDate);
-  formDataToSend.append('payment_instructions', formData.payment.instructions);
-  formDataToSend.append('staff', formData.payment.staff);
-  formDataToSend.append('remarks', formData.payment.remarks);
-  formDataToSend.append('payment_methods', JSON.stringify(paymentMethodArray));
-  formDataToSend.append('company_id', companyNo);
-  formDataToSend.append('account_id', formData.selectedAccountId || 1);
-  formDataToSend.append('booking_no', formData.invoice.bookingId || '');
-  formDataToSend.append('start_date', formData.invoice.startDate || '');
-  formDataToSend.append('sales_id', formData.invoice.salesId || '');
-  formDataToSend.append('end_date', formData.invoice.endDate || '');
-
-  formDataToSend.append('end_date', formData.invoice.endDate || '');
-  formDataToSend.append('end_date', formData.invoice.endDate || '');
-  formDataToSend.append('end_date', formData.invoice.endDate || '');
-  formDataToSend.append('travel_period', calculateTravelDays(
-    formData.invoice.startDate,
-    formData.invoice.endDate
-  ) || '');
-  formDataToSend.append('status', 'draft'); // Add status field
-
-  // Add items
-  formDataToSend.append('items', JSON.stringify(
-    formData.serviceItems.map((item) => ({
-      code: item.code,
-      type: item.type,
-      description: item.description,
-      quantity: item.qty,
-      price: item.price,
-      discount: item.discount,
-      checkin_time: item.checkin_time || null,
-      checkout_time: item.checkout_time || null,
-    }))
-  ));
-
-  // Add additional charges
-  formDataToSend.append('additional_charges', JSON.stringify(
-    formData.additionalCharges.map((charge) => ({
-      description: charge.description,
-      amount: charge.amount,
-      taxable: charge.taxable ? 1 : 0, // Convert to 1/0 for boolean
-    }))
-  ));
-
-  // Add empty refund object (as required by your backend)
-  formDataToSend.append('refund', JSON.stringify([{
-    refund_amount: null,
-    total_amount: null,
-    refund_reason: null,
-    attachments: [],
-    payment_methods: [],
-    remark: null,
-    status: 'non-refund',
-    refund_status: null
-  }]));
-
-  // Add attachments
-  if (formData.attachments && formData.attachments.length > 0) {
-    formData.attachments.forEach((file) => {
-      formDataToSend.append('attachments[]', file);
-    });
-  }
-
-  console.log("Formatted Data to Send =>", Object.fromEntries(formDataToSend));
-
-  try {
-    const response = await axios.post("/api/invoices", formDataToSend, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    console.log(response.data);
-    alert("Invoice created successfully!");
-    resetForm();
-    setAttachments([]);
-  } catch (error) {
-    console.error("Error creating invoice:", error);
-    alert(
-      "Error creating invoice: " +
-        (error.response?.data?.message || error.message)
+    // Add all the data fields
+    formDataToSend.append("customer_id", formData.customer.id);
+    formDataToSend.append("country_code", formData.invoice.country);
+    formDataToSend.append("currency", formData.currencyDetails.currency);
+    formDataToSend.append(
+      "exchange_rate",
+      formData.currencyDetails.exchangeRate
     );
-  }
-};
+    formDataToSend.append(
+      "tax_treatment",
+      formData.currencyDetails.taxTreatment
+    );
+    formDataToSend.append("payment_type", formData.payment.type);
+    formDataToSend.append("collection_date", formData.payment.collectionDate);
+    formDataToSend.append(
+      "payment_instructions",
+      formData.payment.instructions
+    );
+    formDataToSend.append("staff", formData.payment.staff);
+    formDataToSend.append("remarks", formData.payment.remarks);
+    formDataToSend.append(
+      "payment_methods",
+      JSON.stringify(paymentMethodArray)
+    );
+    formDataToSend.append("company_id", companyNo);
+    formDataToSend.append("account_id", formData.selectedAccountId || 1);
+    formDataToSend.append("booking_no", formData.invoice.bookingId || "");
+    formDataToSend.append("start_date", formData.invoice.startDate || "");
+    formDataToSend.append("sales_id", formData.invoice.salesId || "");
+    formDataToSend.append("end_date", formData.invoice.endDate || "");
+
+    formDataToSend.append("end_date", formData.invoice.endDate || "");
+    formDataToSend.append("end_date", formData.invoice.endDate || "");
+    formDataToSend.append("end_date", formData.invoice.endDate || "");
+    formDataToSend.append(
+      "travel_period",
+      calculateTravelDays(
+        formData.invoice.startDate,
+        formData.invoice.endDate
+      ) || ""
+    );
+    formDataToSend.append("status", "draft"); // Add status field
+
+    // Add items
+    formDataToSend.append(
+      "items",
+      JSON.stringify(
+        formData.serviceItems.map((item) => ({
+          code: item.code,
+          type: item.type,
+          description: item.description,
+          quantity: item.qty,
+          price: item.price,
+          discount: item.discount,
+          checkin_time: item.checkin_time || null,
+          checkout_time: item.checkout_time || null,
+        }))
+      )
+    );
+
+    // Add additional charges
+    formDataToSend.append(
+      "additional_charges",
+      JSON.stringify(
+        formData.additionalCharges.map((charge) => ({
+          description: charge.description,
+          amount: charge.amount,
+          taxable: charge.taxable ? 1 : 0, // Convert to 1/0 for boolean
+        }))
+      )
+    );
+
+    // Add empty refund object (as required by your backend)
+    formDataToSend.append(
+      "refund",
+      JSON.stringify([
+        {
+          refund_amount: null,
+          total_amount: null,
+          refund_reason: null,
+          attachments: [],
+          payment_methods: [],
+          remark: null,
+          status: "non-refund",
+          refund_status: null,
+        },
+      ])
+    );
+
+    // Add attachments
+    if (formData.attachments && formData.attachments.length > 0) {
+      formData.attachments.forEach((file) => {
+        formDataToSend.append("attachments[]", file);
+      });
+    }
+
+    console.log(
+      "Formatted Data to Send =>",
+      Object.fromEntries(formDataToSend)
+    );
+
+    try {
+      const response = await axios.post("/api/invoices", formDataToSend, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      console.log(response.data);
+      alert("Invoice created successfully!");
+      resetForm();
+      setAttachments([]);
+    } catch (error) {
+      console.error("Error creating invoice:", error);
+      alert(
+        "Error creating invoice: " +
+          (error.response?.data?.message || error.message)
+      );
+    }
+  };
 
   // const handleSubmit = async () => {
   //   console.log(selectedCompany);
@@ -522,6 +566,9 @@ const Invoice_create = () => {
       code: "",
       gstNo: "",
       customer: "",
+      customer_email: "",
+      customer_number: "",
+      payment_method: "",
     },
     invoice: {
       country: "IS",
@@ -536,6 +583,7 @@ const Invoice_create = () => {
       bookingId: "",
       startDate: "",
       endDate: "",
+      paymentMethod: "",
     },
     currencyDetails: {
       currency: "USD",
@@ -593,7 +641,7 @@ const Invoice_create = () => {
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [newItem, setNewItem] = useState({
-    code: "",
+    code: "123",
     type: "hotel",
     description: "",
     checkin_time: "",
@@ -623,6 +671,10 @@ const Invoice_create = () => {
     address: "",
     mobile: "",
     gstNo: "",
+    customer: "",
+    customer_email: "",
+    customer_number: "",
+    payment_method: "",
   });
   const [customerSearch, setCustomerSearch] = useState("");
   const [filteredCustomers, setFilteredCustomers] = useState([]);
@@ -707,6 +759,9 @@ const Invoice_create = () => {
         code: customer.code,
         gstNo: customer.gstNo || "",
         customer: customer.customer || "",
+        customer_email: customer.customer_email || "",
+        customer_number: customer.customer_number || "",
+        payment_method: customer.paymentMethod || "",
       },
     });
     setCustomerSearch("");
@@ -732,6 +787,9 @@ const Invoice_create = () => {
         mobile: "",
         gstNo: "",
         customer: "",
+        customer_email: "",
+        customer_number: "",
+        payment_method: "",
       });
     } catch (error) {
       console.error("Error creating customer:", error);
@@ -739,6 +797,59 @@ const Invoice_create = () => {
         "Error creating customer: " +
           (error.response?.data?.message || error.message)
       );
+    }
+  };
+
+  const isItemFormEmpty =
+    !newItem.code &&
+    !newItem.type &&
+    !newItem.description &&
+    !newItem.checkin_time &&
+    !newItem.checkout_time &&
+    (!newItem.qty || newItem.qty === 0) &&
+    (!newItem.price || newItem.price === 0) &&
+    (!newItem.discount || newItem.discount === 0);
+
+  const createNewCustomerAahaas = async () => {
+    setIsLoading(true);
+    try {
+      const response = await axios.post("/api/customers", newCustomer, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const createdCustomer = response.data;
+
+      // Add to customer list
+      setCustomers([...customers, createdCustomer]);
+
+      // Assign it to formData.customer (Agent Details)
+      handleCustomerSelect(createdCustomer);
+
+      // Close modal
+      setShowCustomerModal(false);
+
+      // Reset newCustomer form
+      // setNewCustomer({
+      //   code: "",
+      //   name: "",
+      //   address: "",
+      //   mobile: "",
+      //   gstNo: "",
+      //   customer: "",
+      //   customer_email: "",
+      //   customer_number: "",
+      //   payment_method: "",
+      // });
+    } catch (error) {
+      console.error("Error creating customer:", error);
+      alert(
+        "Error creating customer: " +
+          (error.response?.data?.message || error.message)
+      );
+    } finally {
+      setIsLoading(false); // stop spinner no matter success or error
     }
   };
 
@@ -1795,6 +1906,13 @@ const Invoice_create = () => {
     document.body.innerHTML = originalContent;
   };
 
+  const isFormEmpty =
+    !newCustomer.customer &&
+    !newCustomer.customer_email &&
+    !newCustomer.customer_number &&
+    !newCustomer.gstNo &&
+    !newCustomer.payment_method;
+
   // Reset form
   const resetForm = () => {
     if (
@@ -1810,6 +1928,10 @@ const Invoice_create = () => {
           mobile: "",
           code: "",
           gstNo: "",
+          customer: "",
+          customer_email: "",
+          customer_number: "",
+          payment_method: "",
         },
         invoice: {
           country: "IN",
@@ -1822,6 +1944,7 @@ const Invoice_create = () => {
           printedBy: "",
           yourRef: "",
           bookingId: "",
+          paymentMethod: "",
         },
         currencyDetails: {
           currency: "USD",
@@ -1919,14 +2042,22 @@ const Invoice_create = () => {
 
   const handleClick = () => {
     console.log("Form Data Submitted:", formData);
+    setIsLoading(true);
 
     axios
-      .put(`/api/customers/${formData.customer.id}`, formData.customer)
+      .put(`/api/customers/${formData.customer.id}`, formData.customer, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      })
       .then((response) => {
         console.log("Customer updated:", response.data);
       })
       .catch((error) => {
         console.error("Error updating customer:", error);
+      })
+      .finally(() => {
+        setIsLoading(false); // stop spinner no matter success or error
       });
   };
 
@@ -1941,646 +2072,640 @@ const Invoice_create = () => {
           Create Invoice –{" "}
           <span className="text-warning">{renderCompanyName()}</span>
         </div>
-        {/* <div className="fst-italic mt-2" style={{ fontSize: "1rem",color:'black' }}>
-          Where your journey begins with seamless billing...
-        </div> */}
       </div>
-      {/* Important Notice */}
-      {/* <div className="notice-box bg-warning bg-opacity-10 border-start border-warning border-4 p-3 mb-4">
-        <strong>STRICTLY TO BE NOTED:</strong> Finance Bill 2017 proposes to insert Section 269ST in the Income-tax Act that restricts receiving an amount of Rs 2,00,000/- or more. Sharmila Travels will not accept any cash deposit. If the total value of such cash deposit, then the amount will be ignored and penalties will be charged as per law. Please use other payment modes such as Cheque deposit, RTGS & NEFT for all your future bookings with Sharmila Travels.
-      </div> */}
-      {/* Customer and Invoice Information */}
+
+      {/* Exchange Rate Configuration */}
       <Card className="mb-4">
         <Card.Body>
           <h5 className="section-title fw-semibold mb-3 pb-2 border-bottom">
-            Invoice Information
+            Exchange Rate Configuration
           </h5>
-          {/* <Row className="mb-3">
-            <Col md={6}>
+
+          <Row className="mb-3">
+            <Col md={3}>
               <Form.Group>
-                <Form.Label>XE Rate</Form.Label>
-                <Form.Control
-                  type="number"
-                  value={xeRate}
-                  onChange={(e) => setXeRate(e.target.value)}
-                />
+                <Form.Label>Currency:</Form.Label>
+                <Form.Select
+                  value={formData.currencyDetails.currency}
+                  onChange={(e) => handleCurrencyChange(e.target.value)}
+                >
+                  {currencyOptions.map((currency) => (
+                    <option key={currency} value={currency}>
+                      {currency}
+                    </option>
+                  ))}
+                </Form.Select>
               </Form.Group>
             </Col>
 
-            <Col md={6}>
+            <Col md={3}>
+              <Form.Group>
+                <Form.Label>From Currency</Form.Label>
+                <Form.Select
+                  value={fromCurrency}
+                  onChange={(e) => setFromCurrency(e.target.value)}
+                  disabled={isLoadingRates}
+                >
+                  {currencyOptions.map((currency) => (
+                    <option key={currency} value={currency}>
+                      {currency}
+                    </option>
+                  ))}
+                </Form.Select>
+              </Form.Group>
+            </Col>
+
+            <Col md={3}>
+              <Form.Group>
+                <Form.Label>To Currency</Form.Label>
+                <Form.Select
+                  value={toCurrency}
+                  onChange={(e) => setToCurrency(e.target.value)}
+                  disabled={isLoadingRates}
+                >
+                  {currencyOptions.map((currency) => (
+                    <option key={currency} value={currency}>
+                      {currency}
+                    </option>
+                  ))}
+                </Form.Select>
+              </Form.Group>
+            </Col>
+
+            <Col md={3}>
+              <Form.Group>
+                <Form.Label>Current Rate</Form.Label>
+                <Form.Control
+                  type="text"
+                  readOnly
+                  value={
+                    isLoadingRates
+                      ? "Loading..."
+                      : `1 ${fromCurrency} = ${xeRate} ${toCurrency}`
+                  }
+                  className="fw-bold text-center bg-light"
+                />
+              </Form.Group>
+            </Col>
+          </Row>
+
+          <Row className="mb-3">
+            <Col md={4}>
+              <Form.Group>
+                <Form.Label>Base Exchange Rate</Form.Label>
+                <Form.Control
+                  type="number"
+                  step="0.0001"
+                  readOnly
+                  value={
+                    exchangeRates[toCurrency]
+                      ? exchangeRates[toCurrency].toFixed(4)
+                      : "0.0000"
+                  }
+                  className="bg-light"
+                />
+                <Form.Text className="text-muted">
+                  1 {fromCurrency} ={" "}
+                  {exchangeRates[toCurrency]
+                    ? exchangeRates[toCurrency].toFixed(4)
+                    : "0.0000"}{" "}
+                  {toCurrency}
+                </Form.Text>
+              </Form.Group>
+            </Col>
+
+            <Col md={4}>
               <Form.Group>
                 <Form.Label>Increase Amount</Form.Label>
                 <Form.Control
                   type="number"
-                  value={increaseAmount}
-                  onChange={(e) => setIncreaseAmount(e.target.value)}
-                />
-              </Form.Group>
-            </Col>
-          </Row> */}
-          {/* <Row className="mb-3">
-            <Col md={6}>
-              <Form.Group>
-                <Form.Label>XE Rate</Form.Label>
-                <Form.Control
-                  type="number"
-                  step="0.01"
-                  value={xeRate}
-                  onChange={(e) => setXeRate(parseFloat(e.target.value) || 0)}
-                />
-              </Form.Group>
-            </Col>
-
-            <Col md={6}>
-              <Form.Group>
-                <Form.Label>Increase Amount</Form.Label>
-                <Form.Control
-                  type="number"
-                  step="0.01"
+                  step="1"
                   value={increaseAmount}
                   onChange={(e) =>
                     setIncreaseAmount(parseFloat(e.target.value) || 0)
                   }
                 />
+                <Form.Text className="text-muted">
+                  Amount to add to base rate
+                </Form.Text>
               </Form.Group>
             </Col>
-          </Row> */}
 
-          <Card className="mb-4">
-            <Card.Body>
-              <h5 className="section-title fw-semibold mb-3 pb-2 border-bottom">
-                Exchange Rate Configuration
-              </h5>
-
-              <Row className="mb-3">
-                <Col md={3} className="mb-3">
-                  <Form.Group>
-                    <Form.Label>Currency:</Form.Label>
-                    <Form.Select
-                      value={formData.currencyDetails.currency}
-                      onChange={(e) => handleCurrencyChange(e.target.value)}
-                    >
-                      {currencyOptions.map((currency) => (
-                        <option key={currency} value={currency}>
-                          {currency}
-                        </option>
-                      ))}
-                    </Form.Select>
-                  </Form.Group>
-                </Col>
-                <Col md={4}>
-                  <Form.Group>
-                    <Form.Label>From Currency</Form.Label>
-                    <Form.Select
-                      value={fromCurrency}
-                      onChange={(e) => setFromCurrency(e.target.value)}
-                      disabled={isLoadingRates}
-                    >
-                      {currencyOptions.map((currency) => (
-                        <option key={currency} value={currency}>
-                          {currency}
-                        </option>
-                      ))}
-                    </Form.Select>
-                  </Form.Group>
-                </Col>
-
-                <Col md={4}>
-                  <Form.Group>
-                    <Form.Label>To Currency</Form.Label>
-                    <Form.Select
-                      value={toCurrency}
-                      onChange={(e) => setToCurrency(e.target.value)}
-                      disabled={isLoadingRates}
-                    >
-                      {currencyOptions.map((currency) => (
-                        <option key={currency} value={currency}>
-                          {currency}
-                        </option>
-                      ))}
-                    </Form.Select>
-                  </Form.Group>
-                </Col>
-
-                <Col md={4}>
-                  <Form.Group>
-                    <Form.Label>Current Rate</Form.Label>
-                    <Form.Control
-                      type="text"
-                      readOnly
-                      value={
-                        isLoadingRates
-                          ? "Loading..."
-                          : `1 ${fromCurrency} = ${xeRate} ${toCurrency}`
-                      }
-                      className="fw-bold text-center bg-light"
-                    />
-                  </Form.Group>
-                </Col>
-              </Row>
-
-              <Row className="mb-3">
-                <Col md={6}>
-                  <Form.Group>
-                    <Form.Label>Base Exchange Rate</Form.Label>
-                    <Form.Control
-                      type="number"
-                      step="0.0001"
-                      readOnly
-                      value={
-                        exchangeRates[toCurrency]
-                          ? exchangeRates[toCurrency].toFixed(4)
-                          : "0.0000"
-                      }
-                      className="bg-light"
-                    />
-                    <Form.Text className="text-muted">
-                      1 {fromCurrency} ={" "}
-                      {exchangeRates[toCurrency]
-                        ? exchangeRates[toCurrency].toFixed(4)
-                        : "0.0000"}{" "}
-                      {toCurrency}
-                    </Form.Text>
-                  </Form.Group>
-                </Col>
-
-                <Col md={6}>
-                  <Form.Group>
-                    <Form.Label>Increase Amount</Form.Label>
-                    <Form.Control
-                      type="number"
-                      step="1"
-                      value={increaseAmount}
-                      onChange={(e) =>
-                        setIncreaseAmount(parseFloat(e.target.value) || 0)
-                      }
-                    />
-                    <Form.Text className="text-muted">
-                      Amount to add to base rate
-                    </Form.Text>
-                  </Form.Group>
-                </Col>
-              </Row>
-
-              <Row className="mb-3">
-                <Col md={6}>
-                  <Form.Group>
-                    <Form.Label>Final XE Rate</Form.Label>
-                    <Form.Control
-                      type="number"
-                      step="0.0001"
-                      value={xeRate}
-                      onChange={(e) =>
-                        setXeRate(parseFloat(e.target.value) || 0)
-                      }
-                    />
-                    <Form.Text className="text-muted">
-                      Base Rate + Increase Amount
-                    </Form.Text>
-                  </Form.Group>
-                </Col>
-
-                <Col md={6}>
-                  <Form.Group>
-                    <Form.Label>Calculation</Form.Label>
-                    <div className="p-2 bg-light rounded">
-                      <small>
-                        1 {fromCurrency} ={" "}
-                        {exchangeRates[toCurrency]
-                          ? exchangeRates[toCurrency].toFixed(4)
-                          : "0.0000"}{" "}
-                        {toCurrency}
-                        <br />+ {increaseAmount} (Increase)
-                        <br />={" "}
-                        <strong>
-                          {xeRate} {toCurrency}
-                        </strong>
-                      </small>
-                    </div>
-                  </Form.Group>
-                </Col>
-              </Row>
-
-              {isLoadingRates && (
-                <div className="text-center">
-                  <div
-                    className="spinner-border spinner-border-sm"
-                    role="status"
-                  >
-                    <span className="visually-hidden">
-                      Loading exchange rates...
-                    </span>
-                  </div>
-                  <span className="ms-2">Loading exchange rates...</span>
-                </div>
-              )}
-
-              <Button
-                variant="outline-secondary"
-                size="sm"
-                onClick={async () => {
-                  setIsLoadingRates(true);
-                  try {
-                    const rates = await fetchExchangeRates(fromCurrency);
-                    setExchangeRates(rates);
-                    if (rates[toCurrency]) {
-                      const baseRate = rates[toCurrency];
-                      const finalRate = baseRate + increaseAmount;
-                      setXeRate(parseFloat(finalRate.toFixed(4)));
-                    }
-                  } catch (error) {
-                    console.error("Error refreshing rates:", error);
-                  } finally {
-                    setIsLoadingRates(false);
-                  }
-                }}
-                disabled={isLoadingRates}
-              >
-                <FaSyncAlt className="me-1" />
-                Refresh Rates
-              </Button>
-            </Card.Body>
-          </Card>
-
-          {/* Add this new section to show the handling fee calculation */}
-          {/* {formData.currencyDetails.currency === "INR" && (
-            <Card className="mb-3">
-              <Card.Body>
-                <h6 className="card-title">Handling Fee Calculation</h6>
-                <div className="d-flex justify-content-between align-items-center">
-                  <span>Calculation Formula:</span>
-                  <strong>
-                    5 × ({xeRate} + {increaseAmount}) ×{" "}
-                    {formData.serviceItems.reduce((total, item) => {
-                      if (item.type === "hotel" || item.type === "restaurant") {
-                        return total + item.qty;
-                      }
-                      return total;
-                    }, 0)}{" "}
-                    pax
-                  </strong>
-                </div>
-                <div className="d-flex justify-content-between align-items-center mt-2">
-                  <span>Current Handling Fee:</span>
-                  <strong className="text-primary">
-                    {formData.currencyDetails.currency}{" "}
-                    {formData.totals.handlingFee.toFixed(2)}
-                  </strong>
-                </div>
-                <div className="text-muted small mt-2">
-                  Handling Fee = 5 × (XE Rate + Increase Amount) × Total Pax
-                </div>
-              </Card.Body>
-            </Card>
-          )} */}
-
-          <Row className="mb-3">
-            <Col md={6}>
-              <Card>
-                <Card.Body>
-                  <h6 className="card-title">Agent Details</h6>
-                  <Form.Group className="mb-3">
-                    <Form.Label>Search Agent:</Form.Label>
-                    <div className="input-group">
-                      <Form.Control
-                        type="text"
-                        placeholder="Search by name, code or phone"
-                        value={customerSearch}
-                        onChange={(e) => setCustomerSearch(e.target.value)}
-                      />
-                      <Button variant="primary">
-                        <FaSearch className="me-2" /> Search
-                      </Button>
-                      <Button
-                        variant="success"
-                        onClick={() => setShowCustomerModal(true)}
-                      >
-                        <FaPlus className="me-2" /> New
-                      </Button>
-                    </div>
-                    {filteredCustomers.length > 0 && (
-                      <div
-                        className="mt-2 border rounded p-2"
-                        style={{ maxHeight: "200px", overflowY: "auto" }}
-                      >
-                        {filteredCustomers.map((customer) => (
-                          <div
-                            key={customer.id}
-                            className="p-2 border-bottom hover-bg"
-                            style={{ cursor: "pointer" }}
-                            onClick={() => handleCustomerSelect(customer)}
-                          >
-                            <strong>{customer.name}</strong> ({customer.code})
-                            <br />
-                            {customer.mobile} | {customer.address}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </Form.Group>
-
-                  <Form.Group className="mb-3">
-                    <Form.Label>To:</Form.Label>
-                    <Form.Control
-                      type="text"
-                      placeholder="Agent Name"
-                      value={formData.customer.name}
-                      onChange={(e) =>
-                        handleInputChange("customer", "name", e.target.value)
-                      }
-                    />
-                  </Form.Group>
-
-                  <Form.Group className="mb-3">
-                    <Form.Label>Address:</Form.Label>
-                    <Form.Control
-                      as="textarea"
-                      rows={3}
-                      placeholder="Agent Address"
-                      value={formData.customer.address}
-                      onChange={(e) =>
-                        handleInputChange("customer", "address", e.target.value)
-                      }
-                    />
-                  </Form.Group>
-
-                  <Form.Group className="mb-3">
-                    <Form.Label>Mobile:</Form.Label>
-                    <Form.Control
-                      type="text"
-                      placeholder="Agent Mobile"
-                      value={formData.customer.mobile}
-                      onChange={(e) =>
-                        handleInputChange("customer", "mobile", e.target.value)
-                      }
-                    />
-                  </Form.Group>
-
-                  {/* <Form.Group className="mb-3">
-                    <Form.Label>Customer Name:</Form.Label>
-                    <Form.Control
-                      type="text"
-                      placeholder="Customer Name"
-                      value={formData.customer.customer}
-                      onChange={(e) =>
-                        handleInputChange("customer", "customer", e.target.value)
-                      }
-                    />
-                  </Form.Group> */}
-                  <Row className="align-items-end mb-3">
-                    <Col>
-                      <Form.Group>
-                        <Form.Label>Customer Name:</Form.Label>
-                        <Form.Control
-                          type="text"
-                          placeholder="Customer Name"
-                          value={formData.customer.customer}
-                          onChange={(e) =>
-                            handleInputChange(
-                              "customer",
-                              "customer",
-                              e.target.value
-                            )
-                          }
-                        />
-                      </Form.Group>
-                    </Col>
-                    <Col xs="auto">
-                      <Button
-                        variant="primary"
-                        className="mt-2"
-                        onClick={handleClick}
-                      >
-                        Submit
-                      </Button>
-                    </Col>
-                  </Row>
-                </Card.Body>
-              </Card>
-            </Col>
-
-            <Col md={6}>
-              <Card>
-                <Card.Body>
-                  <h6 className="card-title">Invoice Details</h6>
-                  <Row>
-                    <Col md={6} className="mb-3">
-                      <Form.Group>
-                        <Form.Label>Country:</Form.Label>
-                        <Form.Select
-                          value={formData.invoice.country}
-                          onChange={(e) =>
-                            handleInputChange(
-                              "invoice",
-                              "country",
-                              e.target.value
-                            )
-                          }
-                        >
-                          {countryOptions.map((country) => (
-                            <option key={country.code} value={country.code}>
-                              {country.name} ({country.prefix})
-                            </option>
-                          ))}
-                        </Form.Select>
-                      </Form.Group>
-                    </Col>
-
-                    <Col md={6} className="mb-3">
-                      <Form.Group>
-                        <Form.Label>Invoice No.:</Form.Label>
-                        <div className="input-group">
-                          <span className="input-group-text">
-                            {countryOptions.find(
-                              (c) => c.code === formData.invoice.country
-                            )?.prefix || "IN"}
-                          </span>
-                          <Form.Control
-                            type="text"
-                            value={formData.invoice.number}
-                            onChange={(e) =>
-                              handleInputChange(
-                                "invoice",
-                                "number",
-                                e.target.value
-                              )
-                            }
-                          />
-                        </div>
-                      </Form.Group>
-                    </Col>
-
-                    <Col md={6} className="mb-3">
-                      <Form.Group>
-                        <Form.Label>Issue Date:</Form.Label>
-                        <Form.Control
-                          type="date"
-                          value={formData.invoice.issueDate}
-                          onChange={(e) =>
-                            handleInputChange(
-                              "invoice",
-                              "issueDate",
-                              e.target.value
-                            )
-                          }
-                        />
-                      </Form.Group>
-                    </Col>
-
-                    {/* <Col md={6} className="mb-3">
-                      <Form.Group>
-                        <Form.Label>Due Date:</Form.Label>
-                        <Form.Control
-                          type="date"
-                          value={formData.invoice.dueDate}
-                          onChange={(e) =>
-                            handleInputChange(
-                              "invoice",
-                              "dueDate",
-                              e.target.value
-                            )
-                          }
-                        />
-                      </Form.Group>
-                    </Col> */}
-
-                    <Col md={6} className="mb-3">
-                      <Form.Group>
-                        <Form.Label>Your Ref.:</Form.Label>
-                        <Form.Control
-                          type="text"
-                          value={formData.invoice.yourRef}
-                          onChange={(e) =>
-                            handleInputChange(
-                              "invoice",
-                              "yourRef",
-                              e.target.value
-                            )
-                          }
-                        />
-                      </Form.Group>
-                    </Col>
-
-                    <Col md={6} className="mb-3">
-                      <Form.Group>
-                        <Form.Label>Sales ID:</Form.Label>
-                        <Form.Control
-                          type="text"
-                          value={formData.invoice.salesId}
-                          onChange={(e) =>
-                            handleInputChange(
-                              "invoice",
-                              "salesId",
-                              e.target.value
-                            )
-                          }
-                        />
-                      </Form.Group>
-                    </Col>
-
-                    <Col md={6} className="mb-3">
-                      <Form.Group>
-                        <Form.Label>Printed By:</Form.Label>
-                        <Form.Control
-                          type="text"
-                          value={formData.invoice.printedBy}
-                          onChange={(e) =>
-                            handleInputChange(
-                              "invoice",
-                              "printedBy",
-                              e.target.value
-                            )
-                          }
-                        />
-                      </Form.Group>
-                    </Col>
-                    <Col md={6} className="mb-3">
-                      <Form.Group>
-                        <Form.Label>Booking ID:</Form.Label>
-                        <Form.Control
-                          type="text"
-                          value={formData.invoice.bookingId}
-                          onChange={(e) =>
-                            handleInputChange(
-                              "invoice",
-                              "bookingId",
-                              e.target.value
-                            )
-                          }
-                        />
-                      </Form.Group>
-                    </Col>
-                  </Row>
-                </Card.Body>
-              </Card>
+            <Col md={4}>
+              <Form.Group>
+                <Form.Label>Final XE Rate</Form.Label>
+                <Form.Control
+                  type="number"
+                  step="0.0001"
+                  value={xeRate}
+                  onChange={(e) => setXeRate(parseFloat(e.target.value) || 0)}
+                />
+                <Form.Text className="text-muted">
+                  Base Rate + Increase Amount
+                </Form.Text>
+              </Form.Group>
             </Col>
           </Row>
+
+          <Button
+            variant="outline-secondary"
+            size="sm"
+            onClick={async () => {
+              setIsLoadingRates(true);
+              try {
+                const rates = await fetchExchangeRates(fromCurrency);
+                setExchangeRates(rates);
+                if (rates[toCurrency]) {
+                  const baseRate = rates[toCurrency];
+                  const finalRate = baseRate + increaseAmount;
+                  setXeRate(parseFloat(finalRate.toFixed(4)));
+                }
+              } catch (error) {
+                console.error("Error refreshing rates:", error);
+              } finally {
+                setIsLoadingRates(false);
+              }
+            }}
+            disabled={isLoadingRates}
+          >
+            <FaSyncAlt className="me-1" /> Refresh Rates
+          </Button>
         </Card.Body>
       </Card>
-      {/* <Card className="mb-4">
-        <Card.Body>
-          <h5 className="section-title fw-semibold mb-3 pb-2 border-bottom">
-            Travel Period
-          </h5>
 
-          <Row className="mb-3">
-            <Col>
-              <Card>
-                <Card.Body>
-                  <Form.Group className="mb-3">
-                    <Form.Label>Start Date:</Form.Label>
+      {/* Customer and Invoice Information */}
+      <Row className="mb-4">
+        {(companyNo === 2 || companyNo === 1) && (
+          <Col md={6}>
+            <Card className="h-100">
+              <Card.Body>
+                <h5 className="section-title fw-semibold mb-3">
+                  Agent Details
+                </h5>
+
+                <Form.Group className="mb-3">
+                  <Form.Label>Search Agent:</Form.Label>
+                  <div className="input-group">
+                    <Form.Control
+                      type="text"
+                      placeholder="Search by name, code or phone"
+                      value={customerSearch}
+                      onChange={(e) => setCustomerSearch(e.target.value)}
+                    />
+                    <Button variant="primary">
+                      <FaSearch />
+                    </Button>
+                    <Button
+                      variant="success"
+                      onClick={() => setShowCustomerModal(true)}
+                    >
+                      <FaPlus />
+                    </Button>
+                  </div>
+
+                  {filteredCustomers.length > 0 && (
+                    <div
+                      className="mt-2 border rounded p-2"
+                      style={{ maxHeight: "200px", overflowY: "auto" }}
+                    >
+                      {filteredCustomers.map((customer) => (
+                        <div
+                          key={customer.id}
+                          className="p-2 border-bottom hover-bg"
+                          style={{ cursor: "pointer" }}
+                          onClick={() => handleCustomerSelect(customer)}
+                        >
+                          <strong>{customer.name}</strong> ({customer.code})
+                          <br />
+                          {customer.mobile} | {customer.address}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label>Agent Name:</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={formData.customer.name}
+                    onChange={(e) =>
+                      handleInputChange("customer", "name", e.target.value)
+                    }
+                  />
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label>Address:</Form.Label>
+                  <Form.Control
+                    as="textarea"
+                    rows={2}
+                    value={formData.customer.address}
+                    onChange={(e) =>
+                      handleInputChange("customer", "address", e.target.value)
+                    }
+                  />
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label>Mobile:</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={formData.customer.mobile}
+                    onChange={(e) =>
+                      handleInputChange("customer", "mobile", e.target.value)
+                    }
+                  />
+                </Form.Group>
+
+                <Row className="align-items-end mb-3">
+                  <Col md={9}>
+                    <Form.Group>
+                      <Form.Label>Customer Name:</Form.Label>
+                      <Form.Control
+                        type="text"
+                        value={formData.customer.customer}
+                        onChange={(e) =>
+                          handleInputChange(
+                            "customer",
+                            "customer",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={3}>
+                    {/* <Button
+                      variant="primary"
+                      className="w-100"
+                      onClick={handleClick}
+                    >
+                      Submit
+                    </Button> */}
+                    <Button
+                      variant="primary"
+                      className="w-100"
+                      onClick={handleClick}
+                      disabled={isLoading}
+                    >
+                      {isLoading ? (
+                        <>
+                          <Spinner
+                            animation="border"
+                            size="sm"
+                            className="me-2"
+                          />
+                          Updating...
+                        </>
+                      ) : (
+                        "Submit"
+                      )}
+                    </Button>
+                  </Col>
+                </Row>
+              </Card.Body>
+            </Card>
+          </Col>
+        )}
+        {companyNo === 3 && (
+          <Col md={6}>
+            <Card className="h-100">
+              <Card.Body>
+                <h5 className="section-title fw-semibold mb-3">
+                  Customer Details
+                </h5>
+
+                <Row className="align-items-end mb-3">
+                  <Col md={9}>
+                    <Form.Group>
+                      <Form.Label>Customer Name:</Form.Label>
+                      <Form.Control
+                        type="text"
+                        value={newCustomer.customer}
+                        onChange={(e) =>
+                          setNewCustomer({
+                            ...newCustomer,
+                            customer: e.target.value,
+                          })
+                        }
+                      />
+                      <Form.Label>Customer Email:</Form.Label>
+                      <Form.Control
+                        type="text"
+                        value={newCustomer.customer_email}
+                        onChange={(e) =>
+                          setNewCustomer({
+                            ...newCustomer,
+                            customer_email: e.target.value,
+                          })
+                        }
+                      />
+                      <Form.Label>Customer Mobile:</Form.Label>
+                      <Form.Control
+                        type="text"
+                        value={newCustomer.customer_number}
+                        onChange={(e) =>
+                          setNewCustomer({
+                            ...newCustomer,
+                            customer_number: e.target.value,
+                          })
+                        }
+                      />
+                      <Form.Label>Customer GST:</Form.Label>
+                      <Form.Control
+                        type="text"
+                        value={newCustomer.gstNo}
+                        onChange={(e) =>
+                          setNewCustomer({
+                            ...newCustomer,
+                            gstNo: e.target.value,
+                          })
+                        }
+                      />
+                      <Form.Label>Payment Method:</Form.Label>
+                      <Form.Select
+                        value={newCustomer.payment_method}
+                        onChange={(e) =>
+                          setNewCustomer({
+                            ...newCustomer,
+                            payment_method: e.target.value,
+                          })
+                        }
+                      >
+                        <option value="">-- Select Payment Method --</option>
+                        <option value="Aahaas Pay">Aahaas Pay</option>
+                        <option value="Credit Card">Credit Card</option>
+                        <option value="Bank Transfer">Bank Transfer</option>
+                        <option value="Cash">Cash</option>
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+
+                  <Col md={3}>
+                    <Button
+                      variant="primary"
+                      className="w-100"
+                      onClick={createNewCustomerAahaas}
+                      disabled={isLoading || isFormEmpty} // disable if empty
+                    >
+                      {isLoading ? (
+                        <>
+                          <Spinner
+                            animation="border"
+                            size="sm"
+                            className="me-2"
+                          />
+                          Submitting...
+                        </>
+                      ) : (
+                        "Submit"
+                      )}
+                    </Button>
+                  </Col>
+                </Row>
+
+                {/* <Row className="align-items-end mb-3">
+                  <Col md={9}>
+                    <Form.Group>
+                      <Form.Label>Customer Name:</Form.Label>
+                      <Form.Control
+                        type="text"
+                        value={newCustomer.customer}
+                        onChange={(e) =>
+                          setNewCustomer({
+                            ...newCustomer,
+                            customer: e.target.value,
+                          })
+                        }
+                      />
+                      <Form.Label>Customer Email:</Form.Label>
+                      <Form.Control
+                        type="text"
+                        value={newCustomer.customer_email}
+                        onChange={(e) =>
+                          setNewCustomer({
+                            ...newCustomer,
+                            customer_email: e.target.value,
+                          })
+                        }
+                      />
+                      <Form.Label>Customer Mobile:</Form.Label>
+                      <Form.Control
+                        type="text"
+                        value={newCustomer.customer_number}
+                        onChange={(e) =>
+                          setNewCustomer({
+                            ...newCustomer,
+                            customer_number: e.target.value,
+                          })
+                        }
+                      />
+                      <Form.Label>Customer GST:</Form.Label>
+                      
+                      <Form.Control
+                        type="text"
+                        value={newCustomer.gstNo}
+                        onChange={(e) =>
+                          setNewCustomer({
+                            ...newCustomer,
+                            gstNo: e.target.value,
+                          })
+                        }
+                      />
+                      <Form.Label>Payment Method:</Form.Label>
+                      <Form.Select
+                        value={newCustomer.payment_method}
+                        onChange={(e) =>
+                          setNewCustomer({
+                            ...newCustomer,
+                            payment_method: e.target.value,
+                          })
+                        }
+                      >
+                        <option value="">-- Select Payment Method --</option>
+                        <option value="Aahaas Pay">Aahaas Pay</option>
+                        <option value="Credit Card">Credit Card</option>
+                        <option value="Bank Transfer">Bank Transfer</option>
+                        <option value="Cash">Cash</option>
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                  <Col md={3}>
+                    
+                    <Button
+                      variant="primary"
+                      className="w-100"
+                      onClick={createNewCustomerAahaas}
+                      disabled={isLoading}
+                    >
+                      {isLoading ? (
+                        <>
+                          <Spinner
+                            animation="border"
+                            size="sm"
+                            className="me-2"
+                          />
+                          Submitting...
+                        </>
+                      ) : (
+                        "Submit"
+                      )}
+                    </Button>
+                  </Col>
+                </Row> */}
+              </Card.Body>
+            </Card>
+          </Col>
+        )}
+
+        <Col md={6}>
+          <Card className="h-100">
+            <Card.Body>
+              <h5 className="section-title fw-semibold mb-3">
+                Invoice Details
+              </h5>
+
+              <Row>
+                <Col md={6} className="mb-3">
+                  <Form.Group>
+                    <Form.Label>Country:</Form.Label>
+                    <Form.Select
+                      value={formData.invoice.country}
+                      onChange={(e) =>
+                        handleInputChange("invoice", "country", e.target.value)
+                      }
+                    >
+                      {countryOptions.map((country) => (
+                        <option key={country.code} value={country.code}>
+                          {country.name} ({country.prefix})
+                        </option>
+                      ))}
+                    </Form.Select>
+                  </Form.Group>
+                </Col>
+
+                <Col md={6} className="mb-3">
+                  <Form.Group>
+                    <Form.Label>Invoice No.:</Form.Label>
+                    <div className="input-group">
+                      <span className="input-group-text">
+                        {countryOptions.find(
+                          (c) => c.code === formData.invoice.country
+                        )?.prefix || "IN"}
+                      </span>
+                      <Form.Control
+                        type="text"
+                        value={formData.invoice.number}
+                        onChange={(e) =>
+                          handleInputChange("invoice", "number", e.target.value)
+                        }
+                      />
+                    </div>
+                  </Form.Group>
+                </Col>
+
+                <Col md={6} className="mb-3">
+                  <Form.Group>
+                    <Form.Label>Issue Date:</Form.Label>
                     <Form.Control
                       type="date"
-                      value={formData.invoice.startDate}
+                      value={formData.invoice.issueDate}
                       onChange={(e) =>
                         handleInputChange(
                           "invoice",
-                          "startDate",
+                          "issueDate",
                           e.target.value
                         )
                       }
                     />
                   </Form.Group>
-                  <Form.Group className="mb-3">
-                    <Form.Label>End Date:</Form.Label>
-                    <Form.Control
-                      type="date"
-                      value={formData.invoice.endDate}
-                      min={formData.invoice.startDate || ""} // ensures end date cannot be before start date
-                      onChange={(e) =>
-                        handleInputChange("invoice", "endDate", e.target.value)
-                      }
-                    />
-                  </Form.Group>
+                </Col>
 
-                  <Form.Group className="mb-3">
-                    <Form.Label>Travel Period (Days):</Form.Label>
+                <Col md={6} className="mb-3">
+                  <Form.Group>
+                    <Form.Label>Your Ref.:</Form.Label>
                     <Form.Control
                       type="text"
-                      value={
-                        formData.invoice.startDate && formData.invoice.endDate
-                          ? `${calculateTravelDays(
-                              formData.invoice.startDate,
-                              formData.invoice.endDate
-                            )} day(s)`
-                          : ""
+                      value={formData.invoice.yourRef}
+                      onChange={(e) =>
+                        handleInputChange("invoice", "yourRef", e.target.value)
                       }
-                      readOnly
                     />
                   </Form.Group>
-                </Card.Body>
-              </Card>
-            </Col>
-          </Row>
-        </Card.Body>
-      </Card> */}
+                </Col>
+
+                <Col md={6} className="mb-3">
+                  <Form.Group>
+                    <Form.Label>Sales ID:</Form.Label>
+                    <Form.Control
+                      type="text"
+                      value={formData.invoice.salesId}
+                      onChange={(e) =>
+                        handleInputChange("invoice", "salesId", e.target.value)
+                      }
+                    />
+                  </Form.Group>
+                </Col>
+
+                <Col md={6} className="mb-3">
+                  <Form.Group>
+                    <Form.Label>Printed By:</Form.Label>
+                    <Form.Control
+                      type="text"
+                      value={formData.invoice.printedBy}
+                      onChange={(e) =>
+                        handleInputChange(
+                          "invoice",
+                          "printedBy",
+                          e.target.value
+                        )
+                      }
+                    />
+                  </Form.Group>
+                </Col>
+
+                <Col md={6} className="mb-3">
+                  <Form.Group>
+                    <Form.Label>Booking ID:</Form.Label>
+                    <Form.Control
+                      type="text"
+                      value={formData.invoice.bookingId}
+                      onChange={(e) =>
+                        handleInputChange(
+                          "invoice",
+                          "bookingId",
+                          e.target.value
+                        )
+                      }
+                    />
+                  </Form.Group>
+                </Col>
+                <Col md={6} className="mb-3">
+                  <Form.Label>Agent Type:</Form.Label>
+                  <Form.Select
+                    value={formData.payment.type}
+                    onChange={(e) =>
+                      handleInputChange("payment", "type", e.target.value)
+                    }
+                  >
+                    <option value="">-- Select Agent Type --</option>
+                    <option value="credit">Credit</option>
+                    <option value="non-credit">Non-Credit</option>
+                  </Form.Select>
+                </Col>
+              </Row>
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
+
+      {/* Travel Period */}
       <Card className="mb-4">
         <Card.Body>
-          <h5 className="section-title fw-semibold mb-3 pb-2 border-bottom">
-            Travel Period
-          </h5>
+          <h5 className="section-title fw-semibold mb-3">Travel Period</h5>
 
-          <Row className="mb-3">
+          <Row>
             <Col md={4}>
               <Form.Group className="mb-3">
                 <Form.Label>Start Date:</Form.Label>
@@ -2613,6 +2738,7 @@ const Invoice_create = () => {
                 <Form.Label>Travel Days:</Form.Label>
                 <Form.Control
                   type="text"
+                  readOnly
                   value={
                     formData.invoice.startDate && formData.invoice.endDate
                       ? `${calculateTravelDays(
@@ -2621,7 +2747,6 @@ const Invoice_create = () => {
                         )} day(s)`
                       : "0 day(s)"
                   }
-                  readOnly
                   className="bg-light"
                 />
               </Form.Group>
@@ -2630,139 +2755,7 @@ const Invoice_create = () => {
         </Card.Body>
       </Card>
 
-      {/* Currency Details */}
-      {/* <Card className="mb-4">
-        <Card.Body>
-          <h5 className="section-title fw-semibold mb-3 pb-2 border-bottom">
-            Currency Details
-          </h5>
-
-          <Row>
-            <Col md={3} className="mb-3">
-              <Form.Group>
-                <Form.Label>Currency:</Form.Label>
-                <Form.Select
-                  value={formData.currencyDetails.currency}
-                  onChange={(e) => handleCurrencyChange(e.target.value)}
-                >
-                  {currencyOptions.map((currency) => (
-                    <option key={currency} value={currency}>
-                      {currency}
-                    </option>
-                  ))}
-                </Form.Select>
-              </Form.Group>
-            </Col>
-
-            <Col md={3} className="mb-3">
-              <Form.Group>
-                <Form.Label>Exchange Rate (1 USD):</Form.Label>
-                <div className="input-group">
-                  <Form.Control
-                    type="number"
-                    step="0.01"
-                    value={formData.currencyDetails.exchangeRate}
-                    onChange={(e) =>
-                      handleNestedInputChange(
-                        "currencyDetails",
-                        "exchangeRate",
-                        parseFloat(e.target.value)
-                      )
-                    }
-                  />
-                  <Button
-                    variant="outline-secondary"
-                    onClick={() => setShowExchangeModal(true)}
-                  >
-                    <FaCog />
-                  </Button>
-                </div>
-              </Form.Group>
-            </Col>
-
-            <Col md={3} className="mb-3">
-              <Form.Group>
-                <Form.Label>Tax Treatment:</Form.Label>
-                <Form.Select
-                  value={formData.currencyDetails.taxTreatment}
-                  onChange={(e) =>
-                    handleNestedInputChange(
-                      "currencyDetails",
-                      "taxTreatment",
-                      e.target.value
-                    )
-                  }
-                >
-                  <option value="inclusive">Tax Inclusive</option>
-                  <option value="exclusive">Tax Exclusive</option>
-                  <option value="none">No Tax</option>
-                </Form.Select>
-              </Form.Group>
-            </Col>
-          </Row>
-        </Card.Body>
-      </Card> */}
-      {/* Service Details */}
-      {/* <Card className="mb-4">
-        <Card.Body>
-          <div className="d-flex justify-content-between align-items-center mb-3">
-            <h5 className="section-title fw-semibold mb-0">Service Details</h5>
-            <Button variant="primary" onClick={() => setShowItemModal(true)}>
-              <FaPlus /> Add Item
-            </Button>
-          </div>
-
-          <div className="table-responsive">
-            <Table bordered>
-              <thead className="table-light">
-                <tr>
-                  <th>Code</th>
-                  <th>Type</th>
-                  <th>Description</th>
-                  <th>Check-in</th>
-                  <th>Check-out</th>
-                  <th>Qty</th>
-                  <th>Price</th>
-                  <th>Discount</th>
-                  <th>Total</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {formData.serviceItems.map((item) => (
-                  <tr key={item.id}>
-                    <td>{item.code}</td>
-                    <td>{item.type}</td>
-                    <td>{item.description}</td>
-                    <td>{item.checkin_time || "-"}</td>
-                    <td>{item.checkout_time || "-"}</td>
-                    <td>{item.qty}</td>
-                    <td>{item.price.toFixed(2)}</td>
-                    <td>{item.discount}%</td>
-                    <td>{(item.qty * item.price).toFixed(2)}</td>
-                    <td>
-                      <Button
-                        variant="danger"
-                        size="sm"
-                        onClick={() => deleteItem(item.id, "service")}
-                      >
-                        <FaTrash />
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-          </div>
-
-          {formData.currencyDetails.currency === "INR" && (
-            <div className="mt-3">
-              <strong>Handling Fee:</strong>{" "}
-              {formData.totals.handlingFee.toFixed(2)}
-            </div>
-          )}
-        </Card.Body>
-      </Card> */}
+      {/* Service Items */}
       <Card className="mb-4">
         <Card.Body>
           <div className="d-flex justify-content-between align-items-center mb-3">
@@ -2777,7 +2770,7 @@ const Invoice_create = () => {
               <thead className="table-light">
                 <tr>
                   <th>Code</th>
-                  <th>Type</th>
+                  {/* <th>Type</th> */}
                   <th>Description</th>
                   <th>Check-in</th>
                   <th>Check-out</th>
@@ -2792,12 +2785,11 @@ const Invoice_create = () => {
                 {formData.serviceItems.map((item) => (
                   <tr key={item.id}>
                     <td>{item.code}</td>
-                    <td>{item.type}</td>
+                    {/* <td>{item.type}</td> */}
                     <td>{item.description}</td>
                     <td>{item.checkin_time || "-"}</td>
                     <td>{item.checkout_time || "-"}</td>
                     <td>{item.qty}</td>
-                    {/* <td>{item.price.toFixed(2)}</td> */}
                     <td>{item.price}</td>
                     <td>{item.discount}%</td>
                     <td>
@@ -2841,6 +2833,7 @@ const Invoice_create = () => {
           )}
         </Card.Body>
       </Card>
+
       {/* Additional Charges */}
       <Card className="mb-4">
         <Card.Body>
@@ -2891,46 +2884,8 @@ const Invoice_create = () => {
           </div>
         </Card.Body>
       </Card>
-      {/* Tax Rates */}
-      {/* <Card className="mb-4">
-        <Card.Body>
-          <div className="d-flex justify-content-between align-items-center mb-3">
-            <h5 className="section-title fw-semibold mb-0">Tax Rates</h5>
-            <Button variant="primary" onClick={() => setShowTaxModal(true)}>
-              <FaPlus /> Add Tax Rate
-            </Button>
-          </div>
 
-          <div className="table-responsive">
-            <Table bordered>
-              <thead className="table-light">
-                <tr>
-                  <th>Component</th>
-                  <th>Rate (%)</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {taxRates.map((tax, index) => (
-                  <tr key={index}>
-                    <td>{tax.component}</td>
-                    <td>{tax.rate}</td>
-                    <td>
-                      <Button
-                        variant="danger"
-                        size="sm"
-                        onClick={() => deleteItem(tax.id, "tax")}
-                      >
-                        <FaTrash />
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-          </div>
-        </Card.Body>
-      </Card> */}
+      {/* Tax Rates */}
       <Card className="mb-4">
         <Card.Body>
           <div className="d-flex justify-content-between align-items-center mb-3">
@@ -2940,7 +2895,6 @@ const Invoice_create = () => {
             </Button>
           </div>
 
-          {/* VAT Toggle */}
           <Form.Group className="mb-3">
             <Form.Check
               type="switch"
@@ -2966,7 +2920,7 @@ const Invoice_create = () => {
                     ...vatComponent,
                     taxBased: e.target.value,
                   });
-                  calculateTotals(); // Recalculate when selection changes
+                  calculateTotals();
                 }}
               >
                 <option value="">Select VAT Component</option>
@@ -3028,67 +2982,19 @@ const Invoice_create = () => {
               </tbody>
             </Table>
           </div>
-
-          {/* VAT Summary */}
-          {vatInclude && vatComponent.taxBased && (
-            <Card className="mt-3 bg-light">
-              <Card.Body>
-                <h6 className="card-title">VAT Calculation Summary</h6>
-                <div className="d-flex justify-content-between">
-                  <span>VAT Rate:</span>
-                  <strong>18%</strong>
-                </div>
-                <div className="d-flex justify-content-between">
-                  <span>Applied On:</span>
-                  <strong>{vatComponent.taxBased}</strong>
-                </div>
-                <div className="d-flex justify-content-between">
-                  <span>VAT Amount:</span>
-                  <strong>
-                    {(() => {
-                      const baseAmount =
-                        vatComponent.taxBased === "subtotal"
-                          ? formData.totals.subTotal
-                          : vatComponent.taxBased === "total"
-                          ? formData.totals.total
-                          : formData.totals.handlingFee;
-                      return (baseAmount * 0.18).toFixed(2);
-                    })()}
-                  </strong>
-                </div>
-              </Card.Body>
-            </Card>
-          )}
         </Card.Body>
       </Card>
+
       {/* Account Details */}
       <Card className="mb-4">
         <Card.Body>
-          {/* <h5 className="section-title fw-semibold mb-3 pb-2 border-bottom">
-            Account Details
-          </h5> */}
           <div className="d-flex justify-content-between align-items-center mb-3">
             <h5 className="section-title fw-semibold mb-0">Account Details</h5>
             <Button variant="primary" onClick={() => handleAccount()}>
               <FaPlus /> Add Account
             </Button>
           </div>
-          {/* <Form.Group className="mb-3">
-            <Form.Label>Select Account</Form.Label>
-            <Form.Select
-              onChange={(e) => handleAccountSelect(e.target.value, currency)}
-              defaultValue=""
-            >
-              <option value="" disabled>
-                Select an account
-              </option>
-              {accounts.map((account) => (
-                <option key={account.id} value={account.id}>
-                  {account.account_name} - {account.account_no}
-                </option>
-              ))}
-            </Form.Select>
-          </Form.Group> */}
+
           <Form.Group className="mb-3">
             <Form.Label>Select Account</Form.Label>
             <Form.Select
@@ -3211,111 +3117,54 @@ const Invoice_create = () => {
           </Row>
         </Card.Body>
       </Card>
-      {/* Tax Calculation & Totals */}
-      <Card className="mb-4">
-        <Card.Body>
-          <h5 className="section-title fw-semibold mb-3 pb-2 border-bottom">
-            Tax Calculation & Totals
-          </h5>
 
-          <Row>
-            <Col md={8}>
-              <Card className="mb-4">
-                <Card.Body>
-                  <h6 className="card-title">Payment Information</h6>
+      {/* Totals and Payment Information */}
+      <Row className="mb-4">
+        {/* <Col md={8}>
+          <Card className="h-100">
+            <Card.Body>
+              <h5 className="section-title fw-semibold mb-3">
+                Payment Information
+              </h5>
 
-                  <Form.Group className="mb-3">
-                    <div className="d-flex gap-3">
-                      <Form.Check
-                        type="radio"
-                        label="Credit (One-time Payment)"
-                        name="paymentType"
-                        id="creditType"
-                        checked={formData.payment.type === "credit"}
-                        onChange={() =>
-                          handleInputChange("payment", "type", "credit")
-                        }
-                      />
-                      <Form.Check
-                        type="radio"
-                        label="Non-Credit (Collection Payment)"
-                        name="paymentType"
-                        id="nonCreditType"
-                        checked={formData.payment.type === "non-credit"}
-                        onChange={() =>
-                          handleInputChange("payment", "type", "non-credit")
-                        }
-                      />
-                    </div>
-                  </Form.Group>
+              <Form.Group className="mb-3">
+                <div className="d-flex gap-3">
+                  <Form.Check
+                    type="radio"
+                    label="Credit (One-time Payment)"
+                    name="paymentType"
+                    id="creditType"
+                    checked={formData.payment.type === "credit"}
+                    onChange={() =>
+                      handleInputChange("payment", "type", "credit")
+                    }
+                  />
+                  <Form.Check
+                    type="radio"
+                    label="Non-Credit (Collection Payment)"
+                    name="paymentType"
+                    id="nonCreditType"
+                    checked={formData.payment.type === "non-credit"}
+                    onChange={() =>
+                      handleInputChange("payment", "type", "non-credit")
+                    }
+                  />
+                </div>
+              </Form.Group>
 
-                  {formData.payment.type === "non-credit" && (
-                    <div id="collectionDetails">
-                      <Row>
-                        <Col md={6} className="mb-3">
-                          <Form.Group>
-                            <Form.Label>Collection Date:</Form.Label>
-                            <Form.Control
-                              type="date"
-                              value={formData.payment.collectionDate}
-                              onChange={(e) =>
-                                handleNestedInputChange(
-                                  "payment",
-                                  "collectionDate",
-                                  e.target.value
-                                )
-                              }
-                            />
-                          </Form.Group>
-                        </Col>
-                      </Row>
-
-                      <Form.Group className="mb-3">
-                        <Form.Label>Payment Instructions:</Form.Label>
-                        <Form.Control
-                          as="textarea"
-                          rows={3}
-                          value={formData.payment.instructions}
-                          onChange={(e) =>
-                            handleNestedInputChange(
-                              "payment",
-                              "instructions",
-                              e.target.value
-                            )
-                          }
-                        />
-                      </Form.Group>
-                    </div>
-                  )}
-
+              {formData.payment.type === "non-credit" && (
+                <div id="collectionDetails">
                   <Row>
-                    <Col md={6} className="mb-3 d-none">
-                      <Form.Group>
-                        <Form.Label>Staff:</Form.Label>
-                        <Form.Control
-                          type="text"
-                          value={formData.payment.staff}
-                          onChange={(e) =>
-                            handleNestedInputChange(
-                              "payment",
-                              "staff",
-                              e.target.value
-                            )
-                          }
-                        />
-                      </Form.Group>
-                    </Col>
-
                     <Col md={6} className="mb-3">
                       <Form.Group>
-                        <Form.Label>Remarks:</Form.Label>
+                        <Form.Label>Collection Date:</Form.Label>
                         <Form.Control
-                          type="text"
-                          value={formData.payment.remarks}
+                          type="date"
+                          value={formData.payment.collectionDate}
                           onChange={(e) =>
                             handleNestedInputChange(
                               "payment",
-                              "remarks",
+                              "collectionDate",
                               e.target.value
                             )
                           }
@@ -3325,299 +3174,235 @@ const Invoice_create = () => {
                   </Row>
 
                   <Form.Group className="mb-3">
-                    <Form.Label>Payment Methods:</Form.Label>
-                    <Row>
-                      <Col md={3}>
-                        <Form.Check
-                          type="checkbox"
-                          label="Bank Transfer"
-                          checked={formData.payment.methods.bankTransfer}
-                          onChange={(e) =>
-                            handlePaymentMethodChange(
-                              "bankTransfer",
-                              e.target.checked
-                            )
-                          }
-                        />
-                      </Col>
-                      <Col md={3}>
-                        <Form.Check
-                          type="checkbox"
-                          label="AMEX"
-                          checked={formData.payment.methods.amex}
-                          onChange={(e) =>
-                            handlePaymentMethodChange("amex", e.target.checked)
-                          }
-                        />
-                      </Col>
-                      <Col md={3}>
-                        <Form.Check
-                          type="checkbox"
-                          label="Google Pay"
-                          checked={formData.payment.methods.googlePay}
-                          onChange={(e) =>
-                            handlePaymentMethodChange(
-                              "googlePay",
-                              e.target.checked
-                            )
-                          }
-                        />
-                      </Col>
-                      <Col md={3}>
-                        <Form.Check
-                          type="checkbox"
-                          label="USD Portal Link"
-                          checked={formData.payment.methods.usdPortal}
-                          onChange={(e) =>
-                            handlePaymentMethodChange(
-                              "usdPortal",
-                              e.target.checked
-                            )
-                          }
-                        />
-                      </Col>
-                    </Row>
-                  </Form.Group>
-                  <Form.Group className="mb-3">
-                    <Form.Label>Attachments:</Form.Label>
-                    {/* <Form.Control
-                      type="file"
-                      multiple
-                      value={formData.attachments}
+                    <Form.Label>Payment Instructions:</Form.Label>
+                    <Form.Control
+                      as="textarea"
+                      rows={2}
+                      value={formData.payment.instructions}
                       onChange={(e) =>
-                        handleInputChange(
-                          "attachments",
-                          Array.from(e.target.files)
+                        handleNestedInputChange(
+                          "payment",
+                          "instructions",
+                          e.target.value
                         )
                       }
-                    /> */}
+                    />
+                  </Form.Group>
+                </div>
+              )}
+
+              <Row>
+                <Col md={6} className="mb-3">
+                  <Form.Group>
+                    <Form.Label>Remarks:</Form.Label>
                     <Form.Control
-                      type="file"
-                      multiple
+                      type="text"
+                      value={formData.payment.remarks}
                       onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          attachments: Array.from(e.target.files),
-                        }))
+                        handleNestedInputChange(
+                          "payment",
+                          "remarks",
+                          e.target.value
+                        )
                       }
                     />
-
-                    {/* {formData.attachments?.length > 0 && (
-                      <div className="mt-2">
-                        <strong>Selected files:</strong>
-                        <ul>
-                          {formData.attachments.map((file, index) => (
-                            <li key={index}>{file.name}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    )} */}
-                    {Array.isArray(formData.attachments) &&
-                    formData.attachments.length > 0 ? (
-                      <div className="mt-2">
-                        <strong>Selected files:</strong>
-                        <ul>
-                          {formData.attachments.map((file, index) => (
-                            <li key={index}>{file?.name || "Unnamed file"}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    ) : (
-                      <div className="text-muted mt-2">No files selected.</div>
-                    )}
                   </Form.Group>
-                </Card.Body>
-              </Card>
-            </Col>
+                </Col>
+              </Row>
 
-            <Col md={4}>
-              <Card>
-                <Card.Body>
-                  <h6 className="card-title">Invoice Totals</h6>
+              <Form.Group className="mb-3">
+                <Form.Label>Payment Methods:</Form.Label>
+                <Row>
+                  <Col md={3}>
+                    <Form.Check
+                      type="checkbox"
+                      label="Bank Transfer"
+                      checked={formData.payment.methods.bankTransfer}
+                      onChange={(e) =>
+                        handlePaymentMethodChange(
+                          "bankTransfer",
+                          e.target.checked
+                        )
+                      }
+                    />
+                  </Col>
+                  <Col md={3}>
+                    <Form.Check
+                      type="checkbox"
+                      label="AMEX"
+                      checked={formData.payment.methods.amex}
+                      onChange={(e) =>
+                        handlePaymentMethodChange("amex", e.target.checked)
+                      }
+                    />
+                  </Col>
+                  <Col md={3}>
+                    <Form.Check
+                      type="checkbox"
+                      label="Google Pay"
+                      checked={formData.payment.methods.googlePay}
+                      onChange={(e) =>
+                        handlePaymentMethodChange("googlePay", e.target.checked)
+                      }
+                    />
+                  </Col>
+                  <Col md={3}>
+                    <Form.Check
+                      type="checkbox"
+                      label="USD Portal Link"
+                      checked={formData.payment.methods.usdPortal}
+                      onChange={(e) =>
+                        handlePaymentMethodChange("usdPortal", e.target.checked)
+                      }
+                    />
+                  </Col>
+                </Row>
+              </Form.Group>
 
-                  <div className="d-flex justify-content-between mb-2 pb-2 border-bottom">
-                    <span>Sub Total:</span>
-                    <span>{formData.totals.subTotal.toFixed(2)}</span>
+              <Form.Group className="mb-3">
+                <Form.Label>Attachments:</Form.Label>
+                <Form.Control
+                  type="file"
+                  multiple
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      attachments: Array.from(e.target.files),
+                    }))
+                  }
+                />
+
+                {Array.isArray(formData.attachments) &&
+                formData.attachments.length > 0 ? (
+                  <div className="mt-2">
+                    <strong>Selected files:</strong>
+                    <ul>
+                      {formData.attachments.map((file, index) => (
+                        <li key={index}>{file?.name || "Unnamed file"}</li>
+                      ))}
+                    </ul>
                   </div>
+                ) : (
+                  <div className="text-muted mt-2">No files selected.</div>
+                )}
+              </Form.Group>
+            </Card.Body>
+          </Card>
+        </Col> */}
 
-                  {formData.currencyDetails.currency === "INR" && (
-                    <>
-                      <div className="d-flex justify-content-between mb-2 pb-2 border-bottom">
-                        <span>Handling Fee:</span>
-                        <span>{formData.totals.handlingFee.toFixed(2)}</span>
-                      </div>
+        <Col md={6}>
+          <Card className="h-100">
+            <Card.Body>
+              <h5 className="section-title fw-semibold mb-3">Invoice Totals</h5>
 
-                      <div className="d-flex justify-content-between mb-2 pb-2 border-bottom bg-light">
-                        <span>
-                          GST{" "}
-                          {/* {formData.taxRates.find((tax) => tax.name === "GST")
-                            ?.rate || 0} */}
-                          18%:
-                        </span>
-                        {/* <span>{formData.totals.gst.toFixed(2)}</span> */}
-                        <span>
-                          {(formData.totals.handlingFee * 0.18).toFixed(2)}
-                        </span>
-                      </div>
-                    </>
-                  )}
+              <div className="d-flex justify-content-between mb-2 pb-2 border-bottom">
+                <span>Sub Total:</span>
+                <span>{formData.totals.subTotal.toFixed(2)}</span>
+              </div>
+
+              {formData.currencyDetails.currency === "INR" && (
+                <>
+                  <div className="d-flex justify-content-between mb-2 pb-2 border-bottom">
+                    <span>Handling Fee:</span>
+                    <span>{formData.totals.handlingFee.toFixed(2)}</span>
+                  </div>
 
                   <div className="d-flex justify-content-between mb-2 pb-2 border-bottom bg-light">
-                    <span>Additional Tax:</span>
-                    <Form.Control
-                      type="number"
-                      size="sm"
-                      className="w-50 text-end"
-                      value={formData.totals.additionalTax}
-                      onChange={(e) =>
-                        handleInputChange(
-                          "totals",
-                          "additionalTax",
-                          parseFloat(e.target.value) || 0
-                        )
-                      }
-                    />
-                  </div>
-
-                  {/* <div className="d-flex justify-content-between mb-2 pb-2 border-bottom">
-                    <span>Bank Charges:</span>
-                    <Form.Control
-                      type="number"
-                      size="sm"
-                      className="w-50 text-end"
-                      value={formData.totals.bankCharges}
-                      onChange={(e) =>
-                        handleInputChange(
-                          "totals",
-                          "bankCharges",
-                          parseFloat(e.target.value) || 0
-                        )
-                      }
-                    />
-                  </div> */}
-                  <div className="d-flex justify-content-between mb-2 pb-2 border-bottom">
-                    <span>Additional Charges:</span>
+                    <span>GST 18%:</span>
                     <span>
-                      {formData.additionalCharges
-                        .reduce(
-                          (sum, charge) => sum + parseFloat(charge.amount || 0),
-                          0
-                        )
-                        .toFixed(2)}
+                      {(formData.totals.handlingFee * 0.18).toFixed(2)}
                     </span>
                   </div>
+                </>
+              )}
 
-                  <div className="d-flex justify-content-between mb-2 pb-2 border-bottom fw-bold">
-                    <span>Total Amount:</span>
-                    <span>{formData.totals.total.toFixed(2)}</span>
-                  </div>
+              <div className="d-flex justify-content-between mb-2 pb-2 border-bottom bg-light">
+                <span>Additional Tax:</span>
+                <span>{(formData.totals.additionalTax * 0.18).toFixed(2)}</span>
+                {/* <Form.Control
+                  type="number"
+                  size="sm"
+                  className="w-50 text-end"
+                  value={formData.totals.additionalTax}
+                  onChange={(e) =>
+                    handleInputChange(
+                      "totals",
+                      "additionalTax",
+                      parseFloat(e.target.value) || 0
+                    )
+                  }
+                /> */}
+              </div>
 
-                  <div className="d-flex justify-content-between mb-2 pb-2 border-bottom">
-                    <span>Amount Received:</span>
-                    <Form.Control
-                      type="number"
-                      size="sm"
-                      className="w-50 text-end"
-                      value={formData.totals.amountReceived}
-                      onChange={(e) =>
-                        handleInputChange(
-                          "totals",
-                          "amountReceived",
-                          parseFloat(e.target.value) || 0
-                        )
-                      }
-                    />
-                  </div>
-
-                  <div className="d-flex justify-content-between mb-2 fw-bold">
-                    <span>Balance:</span>
-                    <span>{formData.totals.balance.toFixed(2)}</span>
-                  </div>
-                </Card.Body>
-              </Card>
-            </Col>
-            <Col md={4}>
-              {/* <Card>
-                <Card.Body>
-                  <h5 className="mb-3 border-bottom pb-2">Profit Calculator</h5>
-                  {(() => {
-                    const totalRevenue =
-                      parseFloat(formData.totals.total || 0) +
-                      parseFloat(formData.totals.gst || 0);
-
-                    const transportCost = formData.serviceItems.reduce(
-                      (acc, item) => {
-                        const qty = item.qty || 0;
-                        const price = item.price || 0;
-                        const discount = item.discount || 0;
-                        return acc + qty * price * (1 - discount / 100);
-                      },
+              <div className="d-flex justify-content-between mb-2 pb-2 border-bottom">
+                <span>Additional Charges:</span>
+                <span>
+                  {formData.additionalCharges
+                    .reduce(
+                      (sum, charge) => sum + parseFloat(charge.amount || 0),
                       0
-                    );
+                    )
+                    .toFixed(2)}
+                </span>
+              </div>
 
-                    const additionalChargeCost =
-                      formData.additionalCharges.reduce(
-                        (acc, item) => acc + parseFloat(item.amount || 0),
-                        0
-                      );
+              <div className="d-flex justify-content-between mb-2 pb-2 border-bottom fw-bold">
+                <span>Total Amount:</span>
+                <span>{formData.totals.total.toFixed(2)}</span>
+              </div>
 
-                    const gstCost = parseFloat(formData.totals.gst || 0);
-                    const totalCost =
-                      transportCost + additionalChargeCost + gstCost;
+              <div className="d-flex justify-content-between mb-2 pb-2 border-bottom">
+                <span>Amount Received:</span>
+                <Form.Control
+                  type="number"
+                  size="sm"
+                  className="w-50 text-end"
+                  value={formData.totals.amountReceived}
+                  onChange={(e) =>
+                    handleInputChange(
+                      "totals",
+                      "amountReceived",
+                      parseFloat(e.target.value) || 0
+                    )
+                  }
+                />
+              </div>
 
-                    const profit = totalRevenue - totalCost;
-                    const profitMargin =
-                      totalRevenue > 0
-                        ? ((profit / totalRevenue) * 100).toFixed(2)
-                        : 0;
-                    const profitMarkup =
-                      totalCost > 0
-                        ? ((profit / totalCost) * 100).toFixed(2)
-                        : 0;
+              <div className="d-flex justify-content-between mb-2 fw-bold">
+                <span>Balance:</span>
+                <span>{formData.totals.balance.toFixed(2)}</span>
+              </div>
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
 
-                    return (
-                      <>
-                        <div className="d-flex justify-content-between mb-2">
-                          <span>Total Revenue:</span>
-                          <strong>{totalRevenue.toFixed(2)}</strong>
-                        </div>
-                        <div className="d-flex justify-content-between mb-2">
-                          <span>Total Cost:</span>
-                          <strong>{totalCost.toFixed(2)}</strong>
-                        </div>
-                        <div className="d-flex justify-content-between mb-2">
-                          <span>Profit:</span>
-                          <strong>{profit.toFixed(2)}</strong>
-                        </div>
-                        <div className="d-flex justify-content-between mb-2">
-                          <span>Profit Margin:</span>
-                          <strong>{profitMargin}%</strong>
-                        </div>
-                        <div className="d-flex justify-content-between">
-                          <span>Profit Markup:</span>
-                          <strong>{profitMarkup}%</strong>
-                        </div>
-                      </>
-                    );
-                  })()}
-                </Card.Body>
-              </Card> */}
-            </Col>
-          </Row>
-
-          <div className="text-muted text-center mt-2">
-            * Tax amounts and totals are calculated automatically
-          </div>
-        </Card.Body>
-      </Card>
       {/* Action Buttons */}
       <div className="d-flex justify-content-center gap-3 mb-4">
         <Button variant="primary" size="lg" onClick={generatePreview}>
           <FaEye className="me-2" /> Preview Invoice
         </Button>
-        <Button variant="success" size="lg" onClick={handleSubmit}>
+        {/* <Button variant="success" size="lg" onClick={handleSubmit}>
           <FaCog className="me-2" /> Create Invoice
+        </Button> */}
+        <Button
+          variant="success"
+          size="lg"
+          onClick={handleSubmit}
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? (
+            <>
+              <Spinner animation="border" size="sm" className="me-2" />
+              Creating...
+            </>
+          ) : (
+            <>
+              <FaCog className="me-2" /> Create Invoice
+            </>
+          )}
         </Button>
+
         <Button variant="secondary" size="lg" onClick={resetForm}>
           <FaSyncAlt className="me-2" /> Reset Form
         </Button>
@@ -3784,6 +3569,9 @@ const Invoice_create = () => {
                         <>
                           <option value="Cost per Adult">Cost per Adult</option>
                           <option value="Cost per Child">Cost per Child</option>
+                          <option value="Cost per Person">
+                            Cost per Person
+                          </option>
                         </>
                       ) : (
                         <option value="Cost per Product">
@@ -4211,39 +3999,43 @@ const Invoice_create = () => {
           <Tab.Content>
             <Tab.Pane eventKey="sell" active={activeTab === "sell"}>
               <Row>
-                <Col md={6} className="mb-3">
-                  <Form.Group>
-                    <Form.Label>Item Code:</Form.Label>
-                    <Form.Control
-                      type="text"
-                      value={newItem.code}
-                      onChange={(e) =>
-                        setNewItem({ ...newItem, code: e.target.value })
-                      }
-                    />
-                  </Form.Group>
-                </Col>
+                {companyNo === 3 && (
+                  <Col md={6} className="mb-3">
+                    <Form.Group>
+                      <Form.Label>Item Code:</Form.Label>
+                      <Form.Control
+                        type="text"
+                        value={newItem.code}
+                        onChange={(e) =>
+                          setNewItem({ ...newItem, code: e.target.value })
+                        }
+                      />
+                    </Form.Group>
+                  </Col>
+                )}
 
-                <Col md={6} className="mb-3">
-                  <Form.Group>
-                    <Form.Label>Item Type:</Form.Label>
-                    <Form.Select
-                      value={newItem.type}
-                      onChange={(e) =>
-                        setNewItem({ ...newItem, type: e.target.value })
-                      }
-                    >
-                      {itemTypes.map((type) => (
-                        <option key={type} value={type}>
-                          {type}
-                        </option>
-                      ))}
-                    </Form.Select>
-                  </Form.Group>
-                </Col>
+                {companyNo === 3 && (
+                  <Col md={6} className="mb-3">
+                    <Form.Group>
+                      <Form.Label>Item Type:</Form.Label>
+                      <Form.Select
+                        value={newItem.type}
+                        onChange={(e) =>
+                          setNewItem({ ...newItem, type: e.target.value })
+                        }
+                      >
+                        {itemTypes.map((type) => (
+                          <option key={type} value={type}>
+                            {type}
+                          </option>
+                        ))}
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                )}
 
                 <Col md={12} className="mb-3">
-                  <Form.Group>
+                  {/* <Form.Group>
                     <Form.Label>Description:</Form.Label>
                     <Form.Select
                       value={newItem.description}
@@ -4265,10 +4057,10 @@ const Invoice_create = () => {
                           Cost per Product
                         </option>
                       )}
-                      <option value="custom">Other (Type Manually)</option>
+                      <option onClick={() => setDescriptionValue(true)}>Other (Type Manually)</option>
                     </Form.Select>
 
-                    {newItem.description === "custom" && (
+                    {descriptionValue && (
                       <Form.Control
                         className="mt-2"
                         type="text"
@@ -4278,7 +4070,59 @@ const Invoice_create = () => {
                           setNewItem({
                             ...newItem,
                             description: e.target.value,
-                            customDescription: e.target.value,
+                          })
+                        }
+                      />
+                    )}
+                  </Form.Group> */}
+                  <Form.Group>
+                    <Form.Label>Description:</Form.Label>
+                    <Form.Select
+                      value={newItem.description}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        if (value === "custom") {
+                          setDescriptionValue(true); // ✅ show input
+                        } else {
+                          setDescriptionValue(false); // ✅ hide input when normal option selected
+                        }
+                        setNewItem({
+                          ...newItem,
+                          description: value,
+                        });
+                      }}
+                    >
+                      <option value="">Select Description</option>
+                      {companyNo === 1 || companyNo === 2 ? (
+                        <>
+                          <option value="Cost per Adult">Cost per Adult</option>
+                          <option value="Cost per Child">Cost per Child</option>
+                          <option value="Cost per Person">
+                            Cost per Person
+                          </option>
+                        </>
+                      ) : (
+                        <option value="Cost per Product">
+                          Cost per Product
+                        </option>
+                      )}
+                      <option value="custom">Other (Type Manually)</option>
+                    </Form.Select>
+
+                    {descriptionValue && (
+                      <Form.Control
+                        className="mt-2"
+                        type="text"
+                        placeholder="Enter custom description"
+                        value={
+                          newItem.description !== "custom"
+                            ? newItem.description
+                            : ""
+                        }
+                        onChange={(e) =>
+                          setNewItem({
+                            ...newItem,
+                            description: e.target.value, // ✅ keep typed custom value
                           })
                         }
                       />
@@ -4286,34 +4130,41 @@ const Invoice_create = () => {
                   </Form.Group>
                 </Col>
 
-                <Col md={6} className="mb-3">
-                  <Form.Group>
-                    <Form.Label>Check-in Date:</Form.Label>
-                    <Form.Control
-                      type="date"
-                      value={newItem.checkin_time}
-                      onChange={(e) =>
-                        setNewItem({ ...newItem, checkin_time: e.target.value })
-                      }
-                    />
-                  </Form.Group>
-                </Col>
+                {companyNo === 3 && (
+                  <Col md={6} className="mb-3">
+                    <Form.Group>
+                      <Form.Label>Check-in Date:</Form.Label>
+                      <Form.Control
+                        type="date"
+                        value={newItem.checkin_time}
+                        onChange={(e) =>
+                          setNewItem({
+                            ...newItem,
+                            checkin_time: e.target.value,
+                          })
+                        }
+                      />
+                    </Form.Group>
+                  </Col>
+                )}
 
-                <Col md={6} className="mb-3">
-                  <Form.Group>
-                    <Form.Label>Check-out Date:</Form.Label>
-                    <Form.Control
-                      type="date"
-                      value={newItem.checkout_time}
-                      onChange={(e) =>
-                        setNewItem({
-                          ...newItem,
-                          checkout_time: e.target.value,
-                        })
-                      }
-                    />
-                  </Form.Group>
-                </Col>
+                {companyNo === 3 && (
+                  <Col md={6} className="mb-3">
+                    <Form.Group>
+                      <Form.Label>Check-out Date:</Form.Label>
+                      <Form.Control
+                        type="date"
+                        value={newItem.checkout_time}
+                        onChange={(e) =>
+                          setNewItem({
+                            ...newItem,
+                            checkout_time: e.target.value,
+                          })
+                        }
+                      />
+                    </Form.Group>
+                  </Col>
+                )}
 
                 <Col md={4} className="mb-3">
                   <Form.Group>
@@ -4576,77 +4427,80 @@ const Invoice_create = () => {
           </Button>
           <Button
             variant="primary"
+            // disabled={!isItemFormEmpty}
             onClick={isEditing ? updateItem : addNewItem}
+            disabled={isItemFormEmpty} // 🔒 disable until 1+ field is filled
           >
             {isEditing ? "Update Item" : "Add to Invoice"}
           </Button>
         </Modal.Footer>
       </Modal>
       {/* Customer Modal */}
-      <Modal
-        show={showCustomerModal}
-        onHide={() => setShowCustomerModal(false)}
-      >
-        <Modal.Header closeButton>
-          <Modal.Title>Create New Agent</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Form.Group className="mb-3">
-            <Form.Label>Agent Code:</Form.Label>
-            <Form.Control
-              type="text"
-              value={newCustomer.code}
-              onChange={(e) =>
-                setNewCustomer({ ...newCustomer, code: e.target.value })
-              }
-            />
-          </Form.Group>
+      {(companyNo === 1 || companyNo === 2) && (
+        <Modal
+          show={showCustomerModal}
+          onHide={() => setShowCustomerModal(false)}
+        >
+          <Modal.Header closeButton>
+            <Modal.Title>Create New Agent</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <Form.Group className="mb-3">
+              <Form.Label>Agent Code:</Form.Label>
+              <Form.Control
+                type="text"
+                value={newCustomer.code}
+                onChange={(e) =>
+                  setNewCustomer({ ...newCustomer, code: e.target.value })
+                }
+              />
+            </Form.Group>
 
-          <Form.Group className="mb-3">
-            <Form.Label>Agent Name:</Form.Label>
-            <Form.Control
-              type="text"
-              value={newCustomer.name}
-              onChange={(e) =>
-                setNewCustomer({ ...newCustomer, name: e.target.value })
-              }
-            />
-          </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Agent Name:</Form.Label>
+              <Form.Control
+                type="text"
+                value={newCustomer.name}
+                onChange={(e) =>
+                  setNewCustomer({ ...newCustomer, name: e.target.value })
+                }
+              />
+            </Form.Group>
 
-          <Form.Group className="mb-3">
-            <Form.Label>Address:</Form.Label>
-            <Form.Control
-              as="textarea"
-              rows={3}
-              value={newCustomer.address}
-              onChange={(e) =>
-                setNewCustomer({ ...newCustomer, address: e.target.value })
-              }
-            />
-          </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Address:</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={3}
+                value={newCustomer.address}
+                onChange={(e) =>
+                  setNewCustomer({ ...newCustomer, address: e.target.value })
+                }
+              />
+            </Form.Group>
 
-          <Form.Group className="mb-3">
-            <Form.Label>Mobile:</Form.Label>
-            <Form.Control
-              type="text"
-              value={newCustomer.mobile}
-              onChange={(e) =>
-                setNewCustomer({ ...newCustomer, mobile: e.target.value })
-              }
-            />
-          </Form.Group>
-          <Form.Group className="mb-3">
-            <Form.Label>GST NO:</Form.Label>
-            <Form.Control
-              type="text"
-              value={newCustomer.gstNo}
-              onChange={(e) =>
-                setNewCustomer({ ...newCustomer, gstNo: e.target.value })
-              }
-            />
-          </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Mobile:</Form.Label>
+              <Form.Control
+                type="text"
+                value={newCustomer.mobile}
+                onChange={(e) =>
+                  setNewCustomer({ ...newCustomer, mobile: e.target.value })
+                }
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>GST NO:</Form.Label>
+              <Form.Control
+                type="text"
+                value={newCustomer.gstNo}
+                onChange={(e) =>
+                  setNewCustomer({ ...newCustomer, gstNo: e.target.value })
+                }
+              />
+            </Form.Group>
 
-          {/* <Form.Group className="mb-3">
+            {/* <Form.Group className="mb-3">
             <Form.Label>GST No:</Form.Label>
             <Form.Control
               type="text"
@@ -4656,19 +4510,21 @@ const Invoice_create = () => {
               }
             />
           </Form.Group> */}
-        </Modal.Body>
-        <Modal.Footer>
-          <Button
-            variant="secondary"
-            onClick={() => setShowCustomerModal(false)}
-          >
-            Cancel
-          </Button>
-          <Button variant="primary" onClick={createNewCustomer}>
-            Create Agent
-          </Button>
-        </Modal.Footer>
-      </Modal>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button
+              variant="secondary"
+              onClick={() => setShowCustomerModal(false)}
+            >
+              Cancel
+            </Button>
+            <Button variant="primary" onClick={createNewCustomer}>
+              Create Agent
+            </Button>
+          </Modal.Footer>
+        </Modal>
+      )}
+
       {/* Preview Invoice Modal */}
       {companyNo === 1 && (
         <Invoice_sharmila_modal

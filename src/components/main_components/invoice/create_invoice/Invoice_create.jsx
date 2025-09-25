@@ -800,15 +800,15 @@ const Invoice_create = () => {
     }
   };
 
-  const isItemFormEmpty = 
-  !newItem.code &&
-  !newItem.type &&
-  !newItem.description &&
-  !newItem.checkin_time &&
-  !newItem.checkout_time &&
-  (!newItem.qty || newItem.qty === 0) &&
-  (!newItem.price || newItem.price === 0) &&
-  (!newItem.discount || newItem.discount === 0);
+  const isItemFormEmpty =
+    !newItem.code &&
+    !newItem.type &&
+    !newItem.description &&
+    !newItem.checkin_time &&
+    !newItem.checkout_time &&
+    (!newItem.qty || newItem.qty === 0) &&
+    (!newItem.price || newItem.price === 0) &&
+    (!newItem.discount || newItem.discount === 0);
 
   const createNewCustomerAahaas = async () => {
     setIsLoading(true);
@@ -1906,11 +1906,12 @@ const Invoice_create = () => {
     document.body.innerHTML = originalContent;
   };
 
-  const isFormEmpty = !newCustomer.customer &&
-                    !newCustomer.customer_email &&
-                    !newCustomer.customer_number &&
-                    !newCustomer.gstNo &&
-                    !newCustomer.payment_method;
+  const isFormEmpty =
+    !newCustomer.customer &&
+    !newCustomer.customer_email &&
+    !newCustomer.customer_number &&
+    !newCustomer.gstNo &&
+    !newCustomer.payment_method;
 
   // Reset form
   const resetForm = () => {
@@ -2376,89 +2377,93 @@ const Invoice_create = () => {
                 </h5>
 
                 <Row className="align-items-end mb-3">
-  <Col md={9}>
-    <Form.Group>
-      <Form.Label>Customer Name:</Form.Label>
-      <Form.Control
-        type="text"
-        value={newCustomer.customer}
-        onChange={(e) =>
-          setNewCustomer({
-            ...newCustomer,
-            customer: e.target.value,
-          })
-        }
-      />
-      <Form.Label>Customer Email:</Form.Label>
-      <Form.Control
-        type="text"
-        value={newCustomer.customer_email}
-        onChange={(e) =>
-          setNewCustomer({
-            ...newCustomer,
-            customer_email: e.target.value,
-          })
-        }
-      />
-      <Form.Label>Customer Mobile:</Form.Label>
-      <Form.Control
-        type="text"
-        value={newCustomer.customer_number}
-        onChange={(e) =>
-          setNewCustomer({
-            ...newCustomer,
-            customer_number: e.target.value,
-          })
-        }
-      />
-      <Form.Label>Customer GST:</Form.Label>
-      <Form.Control
-        type="text"
-        value={newCustomer.gstNo}
-        onChange={(e) =>
-          setNewCustomer({
-            ...newCustomer,
-            gstNo: e.target.value,
-          })
-        }
-      />
-      <Form.Label>Payment Method:</Form.Label>
-      <Form.Select
-        value={newCustomer.payment_method}
-        onChange={(e) =>
-          setNewCustomer({
-            ...newCustomer,
-            payment_method: e.target.value,
-          })
-        }
-      >
-        <option value="">-- Select Payment Method --</option>
-        <option value="Aahaas Pay">Aahaas Pay</option>
-        <option value="Credit Card">Credit Card</option>
-        <option value="Bank Transfer">Bank Transfer</option>
-        <option value="Cash">Cash</option>
-      </Form.Select>
-    </Form.Group>
-  </Col>
+                  <Col md={9}>
+                    <Form.Group>
+                      <Form.Label>Customer Name:</Form.Label>
+                      <Form.Control
+                        type="text"
+                        value={newCustomer.customer}
+                        onChange={(e) =>
+                          setNewCustomer({
+                            ...newCustomer,
+                            customer: e.target.value,
+                          })
+                        }
+                      />
+                      <Form.Label>Customer Email:</Form.Label>
+                      <Form.Control
+                        type="text"
+                        value={newCustomer.customer_email}
+                        onChange={(e) =>
+                          setNewCustomer({
+                            ...newCustomer,
+                            customer_email: e.target.value,
+                          })
+                        }
+                      />
+                      <Form.Label>Customer Mobile:</Form.Label>
+                      <Form.Control
+                        type="text"
+                        value={newCustomer.customer_number}
+                        onChange={(e) =>
+                          setNewCustomer({
+                            ...newCustomer,
+                            customer_number: e.target.value,
+                          })
+                        }
+                      />
+                      <Form.Label>Customer GST:</Form.Label>
+                      <Form.Control
+                        type="text"
+                        value={newCustomer.gstNo}
+                        onChange={(e) =>
+                          setNewCustomer({
+                            ...newCustomer,
+                            gstNo: e.target.value,
+                          })
+                        }
+                      />
+                      <Form.Label>Payment Method:</Form.Label>
+                      <Form.Select
+                        value={newCustomer.payment_method}
+                        onChange={(e) =>
+                          setNewCustomer({
+                            ...newCustomer,
+                            payment_method: e.target.value,
+                          })
+                        }
+                      >
+                        <option value="">-- Select Payment Method --</option>
+                        <option value="Aahaas Pay">Aahaas Pay</option>
+                        <option value="Credit Card">Credit Card</option>
+                        <option value="Bank Transfer">Bank Transfer</option>
+                        <option value="Cash">Cash</option>
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
 
-  <Col md={3}>
-    <Button
-      variant="primary"
-      className="w-100"
-      onClick={createNewCustomerAahaas}
-      disabled={isLoading || isFormEmpty} // disable if empty
-    >
-      {isLoading ? (
-        <>
-          <Spinner animation="border" size="sm" className="me-2" />
-          Submitting...
-        </>
-      ) : (
-        "Submit"
-      )}
-    </Button>
-  </Col>
-</Row>
+                  <Col md={3}>
+                    <Button
+                      variant="primary"
+                      className="w-100"
+                      onClick={createNewCustomerAahaas}
+                      disabled={isLoading || isFormEmpty} // disable if empty
+                    >
+                      {isLoading ? (
+                        <>
+                          <Spinner
+                            animation="border"
+                            size="sm"
+                            className="me-2"
+                          />
+                          Submitting...
+                        </>
+                      ) : (
+                        "Submit"
+                      )}
+                    </Button>
+                  </Col>
+                </Row>
 
                 {/* <Row className="align-items-end mb-3">
                   <Col md={9}>
@@ -3313,9 +3318,7 @@ const Invoice_create = () => {
 
               <div className="d-flex justify-content-between mb-2 pb-2 border-bottom bg-light">
                 <span>Additional Tax:</span>
-                 <span>
-                      {(formData.totals.additionalTax * 0.18).toFixed(2)}
-                    </span>
+                <span>{(formData.totals.additionalTax * 0.18).toFixed(2)}</span>
                 {/* <Form.Control
                   type="number"
                   size="sm"
@@ -4252,7 +4255,7 @@ const Invoice_create = () => {
                     <Row className="mb-2">
                       {/* Amount Input */}
                       <Col xs={12} className="mb-2">
-                        <Form.Control
+                        {/* <Form.Control
                           type="number"
                           step="0.01"
                           placeholder="Amount"
@@ -4260,7 +4263,22 @@ const Invoice_create = () => {
                           onChange={(e) =>
                             setOriginalAmount(parseFloat(e.target.value) || 0)
                           }
-                        />
+                        /> */}
+                        <Form.Control
+  type="number"
+  step="0.01"
+  placeholder="Amount"
+  value={originalAmount}
+  onChange={(e) => {
+    const value = e.target.value;
+    if (value === "" || parseFloat(value) <= 0) {
+      setOriginalAmount("");
+    } else {
+      setOriginalAmount(value);
+    }
+  }}
+/>
+
                       </Col>
 
                       {/* From Currency */}
@@ -4426,8 +4444,7 @@ const Invoice_create = () => {
             variant="primary"
             // disabled={!isItemFormEmpty}
             onClick={isEditing ? updateItem : addNewItem}
-            // disabled={isItemFormEmpty} // 🔒 disable until 1+ field is filled
-
+            disabled={!(originalAmount > 0.00)} // 🔒 disable until 1+ field is filled
           >
             {isEditing ? "Update Item" : "Add to Invoice"}
           </Button>

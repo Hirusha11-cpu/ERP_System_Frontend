@@ -4445,7 +4445,7 @@ const Invoice_create = () => {
             variant="primary"
             // disabled={!isItemFormEmpty}
             onClick={isEditing ? updateItem : addNewItem}
-            disabled={!(originalAmount > 0.00)} // 🔒 disable until 1+ field is filled
+            // disabled={!(originalAmount > 0.00)} // 🔒 disable until 1+ field is filled
           >
             {isEditing ? "Update Item" : "Add to Invoice"}
           </Button>

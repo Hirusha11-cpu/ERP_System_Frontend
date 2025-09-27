@@ -637,6 +637,7 @@ const Home = () => {
                               .replace(" ", "-")}`
                           )
                         }
+                         style={{ color: "black", borderColor: "black" }}
                       >
                         <FiGlobe className="me-2" />
                         {country}
@@ -646,11 +647,11 @@ const Home = () => {
                   ))}
                 </Row>
                 <div className="mt-3">
-                  <Button variant="link" className="text-decoration-none">
+                  <Button variant="link" className="text-decoration-none" style={{ color: "black"}}>
                     <FiBarChart2 className="me-2" />
                     API Reports
                   </Button>
-                  <Button variant="link" className="text-decoration-none ms-3">
+                  <Button variant="link" className="text-decoration-none ms-3" style={{ color: "black"}}>
                     <FiPieChart className="me-2" />
                     Summary Reports
                   </Button>
@@ -668,6 +669,7 @@ const Home = () => {
                   <Button
                     variant="outline-success"
                     className="d-flex align-items-center"
+                     style={{ color: "black", borderColor: "black" }}
                   >
                     <FiDatabase className="me-2" />
                     API
@@ -675,6 +677,7 @@ const Home = () => {
                   <Button
                     variant="outline-success"
                     className="d-flex align-items-center"
+                     style={{ color: "black", borderColor: "black" }}
                   >
                     <FiPieChart className="me-2" />
                     Summary Reports

@@ -306,6 +306,7 @@ const Summary_report = () => {
                 variant={showFilters ? "primary" : "outline-primary"}
                 onClick={() => setShowFilters(!showFilters)}
                 className="me-2"
+                style={{ color: "black"}}
               >
                 <FaFilter /> {showFilters ? "Hide Filters" : "Show Filters"}
               </Button>

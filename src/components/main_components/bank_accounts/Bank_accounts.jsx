@@ -145,6 +145,7 @@ const Bank_accounts = () => {
               variant="outline-secondary" 
               onClick={fetchAccounts}
               disabled={loading}
+              style={{ color: "black", borderColor: "black" }}
             >
               <FaSyncAlt />
             </Button>
@@ -205,6 +206,7 @@ const Bank_accounts = () => {
                           onClick={() => handleShowModal(acc)}
                           className="me-2"
                           disabled={loading}
+                          style={{ color: "black"}}
                         >
                           <FaEye />
                         </Button>

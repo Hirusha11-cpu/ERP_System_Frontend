@@ -628,10 +628,11 @@ const Invoice_summary = () => {
               size="sm"
               className="me-2"
               onClick={() => setShowFilters(!showFilters)}
+               style={{ color: "black"}}
             >
               {showFilters ? "Hide Filters" : "Show Filters"} <FaChevronDown />
             </Button>
-            <Button variant="outline-danger" size="sm" onClick={clearAllFilters}>
+            <Button variant="outline-danger" size="sm" onClick={clearAllFilters}  style={{ color: "black"}}>
               Clear All <FaTimes />
             </Button>
           </div>

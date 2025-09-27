@@ -120,21 +120,36 @@ const Invoice_appleholidays_modal = ({
                 <strong>To:</strong>{" "}
                <strong>{formData.customer?.name || ""}</strong> 
               </div>
-              <div>
+              {/* <div>
                 <strong>Address:</strong>{" "}
                 {formData.customer?.address || "Madurai"}
-              </div>
+              </div> */}
+              {formData.customer?.address && (
+                <div>
+                  <strong>Address:</strong> {formData.customer.address}
+                </div>
+              )}
                 <div>
                 <strong>Date:</strong> {formatDate(formData.invoice?.issueDate)}
               </div>
+               {formData.customer?.gst_no && (
+                <div>
+                  <strong>GST:</strong> {formData.customer.gst_no}
+                </div>
+              )}
               {/* <div> */}
                 {/* <strong>Customer Info</strong>{" "} */}
                 {/* {formData.customer.name || "PICK YOUR TRAIL"} */}
               {/* </div> */}
-              <div>
+              {/* <div>
                 <strong>Customer:</strong>{" "}
                 {formData.customer?.customer || "PICK YOUR TRAIL"}
-              </div>
+              </div> */}
+               {formData.customer?.customer && (
+                <div>
+                  <strong>Customer:</strong> {formData.customer.customer}
+                </div>
+              )}
             
               <div>
                 {/* <strong>GST:</strong> {"7895"} */}

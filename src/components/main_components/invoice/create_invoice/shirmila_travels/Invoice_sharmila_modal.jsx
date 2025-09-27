@@ -111,11 +111,11 @@ const Invoice_sharmila_modal = ({
                 </div>
               )}
               {/* <div>
-                <strong>GST:</strong> {formData.customer?.gstNo}
+                <strong>GST:</strong> {formData.customer?.gst_no}
               </div> */}
-              {formData.customer?.gstNo && (
+              {formData.customer?.gst_no && (
                 <div>
-                  <strong>GST:</strong> {formData.customer.gstNo}
+                  <strong>GST:</strong> {formData.customer.gst_no}
                 </div>
               )}
               <div>
@@ -432,7 +432,7 @@ const Invoice_sharmila_modal = ({
               <div className="remark">
                 <strong>Remark:</strong> Invoice amount is{" "}
                 {/* {formData.currencyDetails.currency !== "USD" ?? "USD"} {formData.totals.total}. */}
-                {"USD"} {formData.totals?.total}. Payments made more than two
+                {formData.currencyDetails?.currency} {formData.totals?.total}. Payments made more than two
                 (2) days after the invoice date will be subject to the
                 applicable Xe.com{" "}
                 {formData.currencyDetails?.currency !== "USD"

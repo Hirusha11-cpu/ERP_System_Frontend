@@ -1342,6 +1342,7 @@ const Invoice_list = () => {
                             icon={<FaMoneyBillWave />}
                             label="View Payments"
                             variant="info"
+                            disabled = {invoice.status === "cancelled"}
                             onClick={() => handleViewPayments(invoice)}
                           />
                         </td>
@@ -1350,6 +1351,7 @@ const Invoice_list = () => {
                             icon={<FaMoneyBillWave />}
                             label="View Exchange Rates"
                             variant="warning"
+                            disabled = {invoice.status === "cancelled"}
                             onClick={() => handleExchangeRates(invoice)}
                           />
                         </td>
@@ -1404,10 +1406,11 @@ const Invoice_list = () => {
                                       ? "secondary"
                                       : "warning"
                                   }
+                                  
                                   onClick={() =>
                                     handleUpdateExchangeRate(invoice)
                                   }
-                                  disabled={loadingInvoiceId === invoice.id}
+                                  disabled={loadingInvoiceId === invoice.id || invoice.status === "cancelled"}
                                 >
                                   {loadingInvoiceId === invoice.id
                                     ? "Updating..."
@@ -1444,6 +1447,7 @@ const Invoice_list = () => {
                               label=""
                               variant="info"
                               tooltip="View Invoice"
+                              disabled = {invoice.status === "cancelled"}
                               onClick={() => handleViewInvoice(invoice)}
                             />
                             <ActionButton
@@ -1451,6 +1455,7 @@ const Invoice_list = () => {
                               label=""
                               variant="primary"
                               tooltip="Edit Invoice"
+                              disabled = {invoice.status === "cancelled"}
                               onClick={() => handleEditInvoice(invoice)}
                             />
                             {/* <ActionButton
@@ -1661,7 +1666,7 @@ const Invoice_list = () => {
         xeRate={xeRate}
       />
 
-      <Modal
+          <Modal
         show={showEditModal}
         onHide={() => setShowEditModal(false)}
         size="xl"
@@ -1918,7 +1923,7 @@ const Invoice_list = () => {
                       </Col>
                     </Row>
                     <Row className="mb-3">
-                      <Col md={6}>
+                      {/* <Col md={6}>
                         <FloatingLabel label="Staff" className="mb-3">
                           <Form.Control
                             type="text"
@@ -1927,7 +1932,7 @@ const Invoice_list = () => {
                             required
                           />
                         </FloatingLabel>
-                      </Col>
+                      </Col> */}
                       <Col md={6}>
                         <FloatingLabel label="Amount Received" className="mb-3">
                           <Form.Control

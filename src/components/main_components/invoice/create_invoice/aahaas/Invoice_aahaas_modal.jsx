@@ -146,7 +146,7 @@ const Invoice_aahaas_modal = ({
                   <td>{formData.customer?.address || "-"}</td>
                   <td>{formData.customer?.customer_email || "-"}</td>
                   <td>{formData.customer?.customer_number || "-"}</td>
-                  <td>{formData.customer?.gstNo || "-"}</td>
+                  <td>{formData.customer?.gst_no || "-"}</td>
                 </tr>
               </tbody>
             </table>

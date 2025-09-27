@@ -92,7 +92,7 @@ const Invoice_create = () => {
         address: "",
         mobile: "",
         code: "",
-        gstNo: "",
+        gst_no: "",
         customer: "",
         customer_email: "",
         customer_number: "",
@@ -564,7 +564,7 @@ const Invoice_create = () => {
       address: "",
       mobile: "",
       code: "",
-      gstNo: "",
+      gst_no: "",
       customer: "",
       customer_email: "",
       customer_number: "",
@@ -670,7 +670,7 @@ const Invoice_create = () => {
     name: "",
     address: "",
     mobile: "",
-    gstNo: "",
+    gst_no: "",
     customer: "",
     customer_email: "",
     customer_number: "",
@@ -757,7 +757,7 @@ const Invoice_create = () => {
         address: customer.address,
         mobile: customer.mobile,
         code: customer.code,
-        gstNo: customer.gstNo || "",
+        gst_no: customer.gst_no || "",
         customer: customer.customer || "",
         customer_email: customer.customer_email || "",
         customer_number: customer.customer_number || "",
@@ -785,7 +785,7 @@ const Invoice_create = () => {
         name: "",
         address: "",
         mobile: "",
-        gstNo: "",
+        gst_no: "",
         customer: "",
         customer_email: "",
         customer_number: "",
@@ -836,7 +836,7 @@ const Invoice_create = () => {
       //   name: "",
       //   address: "",
       //   mobile: "",
-      //   gstNo: "",
+      //   gst_no: "",
       //   customer: "",
       //   customer_email: "",
       //   customer_number: "",
@@ -1910,7 +1910,7 @@ const Invoice_create = () => {
     !newCustomer.customer &&
     !newCustomer.customer_email &&
     !newCustomer.customer_number &&
-    !newCustomer.gstNo &&
+    !newCustomer.gst_no &&
     !newCustomer.payment_method;
 
   // Reset form
@@ -1927,7 +1927,7 @@ const Invoice_create = () => {
           address: "",
           mobile: "",
           code: "",
-          gstNo: "",
+          gst_no: "",
           customer: "",
           customer_email: "",
           customer_number: "",
@@ -2415,11 +2415,11 @@ const Invoice_create = () => {
                       <Form.Label>Customer GST:</Form.Label>
                       <Form.Control
                         type="text"
-                        value={newCustomer.gstNo}
+                        value={newCustomer.gst_no}
                         onChange={(e) =>
                           setNewCustomer({
                             ...newCustomer,
-                            gstNo: e.target.value,
+                            gst_no: e.target.value,
                           })
                         }
                       />
@@ -2505,11 +2505,11 @@ const Invoice_create = () => {
                       
                       <Form.Control
                         type="text"
-                        value={newCustomer.gstNo}
+                        value={newCustomer.gst_no}
                         onChange={(e) =>
                           setNewCustomer({
                             ...newCustomer,
-                            gstNo: e.target.value,
+                            gst_no: e.target.value,
                           })
                         }
                       />
@@ -2852,7 +2852,7 @@ const Invoice_create = () => {
                 <tr>
                   <th>Description</th>
                   <th>Amount</th>
-                  <th>Taxable</th>
+                  {/* <th>Taxable</th> */}
                   <th>Action</th>
                 </tr>
               </thead>
@@ -2861,13 +2861,13 @@ const Invoice_create = () => {
                   <tr key={charge.id}>
                     <td>{charge.description}</td>
                     <td>{charge.amount.toFixed(2)}</td>
-                    <td>
+                    {/* <td>
                       <Form.Check
                         type="switch"
                         checked={charge.taxable}
                         readOnly
                       />
-                    </td>
+                    </td> */}
                     <td>
                       <Button
                         variant="danger"
@@ -4509,9 +4509,9 @@ const Invoice_create = () => {
               <Form.Label>GST NO:</Form.Label>
               <Form.Control
                 type="text"
-                value={newCustomer.gstNo}
+                value={newCustomer.gst_no}
                 onChange={(e) =>
-                  setNewCustomer({ ...newCustomer, gstNo: e.target.value })
+                  setNewCustomer({ ...newCustomer, gst_no: e.target.value })
                 }
               />
             </Form.Group>
@@ -4520,9 +4520,9 @@ const Invoice_create = () => {
             <Form.Label>GST No:</Form.Label>
             <Form.Control
               type="text"
-              value={newCustomer.gstNo}
+              value={newCustomer.gst_no}
               onChange={(e) =>
-                setNewCustomer({ ...newCustomer, gstNo: e.target.value })
+                setNewCustomer({ ...newCustomer, gst_no: e.target.value })
               }
             />
           </Form.Group> */}

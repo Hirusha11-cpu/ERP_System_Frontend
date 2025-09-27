@@ -125,6 +125,15 @@ const Home = () => {
   const [ratesLoading, setRatesLoading] = useState(false);
   const [ratesError, setRatesError] = useState(null);
 
+  // Search state
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Modal states
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] = useState(null);
+  const [showAllInvoicesModal, setShowAllInvoicesModal] = useState(false);
+  const [activeTab, setActiveTab] = useState("nonCredit");
+
   // Function to fetch and update exchange rates
   const fetchAllRates = async () => {
     if (!token) return; // Skip if no auth
@@ -358,60 +367,6 @@ const Home = () => {
     return data;
   };
 
-  // const calculateStats = (invoiceData) => {
-  //   const stats = {
-  //     total: 0,
-  //     paid: 0,
-  //     overdue: 0,
-  //     pending: 0,
-  //   };
-
-  //   const pnl = {
-  //     totalRevenue: 0,
-  //     totalCost: 0,
-  //     totalProfit: 0,
-  //     totalInvoicesWithPnl: 0,
-  //   };
-
-  //   let nonCreditInvoices = 0;
-  //   let creditInvoices = 0;
-
-  //   invoiceData.forEach((invoice) => {
-  //     const amount = parseFloat(invoice.total_amount) || 0;
-  //     stats.total += amount;
-
-  //     if (invoice.payment_type === "non-credit") {
-  //       nonCreditInvoices++;
-  //     }
-  //     if (
-  //       invoice?.customer?.name === "MMT" ||
-  //       invoice.payment_type === "credit"
-  //     ) {
-  //       creditInvoices++;
-  //     }
-
-  //     if (
-  //       invoice.amount_received &&
-  //       parseFloat(invoice.amount_received) >= amount
-  //     ) {
-  //       stats.paid += amount;
-  //     } else if (new Date(invoice.due_date) < new Date()) {
-  //       stats.overdue += amount;
-  //     } else {
-  //       stats.pending += amount;
-  //     }
-
-  //     if (invoice.profit) {
-  //       pnl.totalRevenue += parseFloat(invoice.profit.total_revenue) || 0;
-  //       pnl.totalCost += parseFloat(invoice.profit.total_cost) || 0;
-  //       pnl.totalProfit += parseFloat(invoice.profit.profit) || 0;
-  //       pnl.totalInvoicesWithPnl++;
-  //     }
-  //   });
-
-  //   return { stats, pnl, nonCreditInvoices, creditInvoices };
-  // };
-
   const calculateStats = (invoiceData, gracePeriodDays = 15) => {
     const stats = {
       total: 0,
@@ -603,6 +558,22 @@ const Home = () => {
       invoice?.customer?.name === "MMT" || invoice.payment_type === "credit"
   );
 
+  const filteredNonCreditInvoices = nonCreditInvoices.filter((inv) => {
+    const lowerSearch = searchQuery.toLowerCase();
+    return (
+      inv.invoice_number.toLowerCase().includes(lowerSearch) ||
+      (inv.customer?.name || "").toLowerCase().includes(lowerSearch)
+    );
+  });
+
+  const filteredCreditInvoices = creditInvoices.filter((inv) => {
+    const lowerSearch = searchQuery.toLowerCase();
+    return (
+      inv.invoice_number.toLowerCase().includes(lowerSearch) ||
+      (inv.customer?.name || "").toLowerCase().includes(lowerSearch)
+    );
+  });
+
   const renderCompanySpecificNav = () => {
     switch (selectedCompany) {
       case "appleholidays":
@@ -637,7 +608,7 @@ const Home = () => {
                               .replace(" ", "-")}`
                           )
                         }
-                         style={{ color: "black", borderColor: "black" }}
+                        style={{ color: "black", borderColor: "black" }}
                       >
                         <FiGlobe className="me-2" />
                         {country}
@@ -669,7 +640,7 @@ const Home = () => {
                   <Button
                     variant="outline-success"
                     className="d-flex align-items-center"
-                     style={{ color: "black", borderColor: "black" }}
+                    style={{ color: "black", borderColor: "black" }}
                   >
                     <FiDatabase className="me-2" />
                     API
@@ -677,7 +648,7 @@ const Home = () => {
                   <Button
                     variant="outline-success"
                     className="d-flex align-items-center"
-                     style={{ color: "black", borderColor: "black" }}
+                    style={{ color: "black", borderColor: "black" }}
                   >
                     <FiPieChart className="me-2" />
                     Summary Reports
@@ -814,6 +785,176 @@ const Home = () => {
             Apply Filter
           </Button>
         </Modal.Footer>
+      </Modal>
+
+      {/* Single Invoice Details Modal */}
+      <Modal show={showInvoiceModal} onHide={() => setShowInvoiceModal(false)} size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>Invoice Details: {selectedInvoice?.invoice_number}</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {selectedInvoice && (
+            <>
+              <h5>General Information</h5>
+              <p><strong>Customer:</strong> {selectedInvoice.customer.name}</p>
+              <p><strong>Issue Date:</strong> {new Date(selectedInvoice.issue_date).toLocaleDateString()}</p>
+              <p><strong>Due Date:</strong> {new Date(selectedInvoice.due_date).toLocaleDateString()}</p>
+              <p><strong>Total Amount:</strong> {getCurrencySymbol()} {convertCurrency(selectedInvoice.total_amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+              <p><strong>Status:</strong> {getStatusBadge(selectedInvoice)}</p>
+              <p><strong>Payment Type:</strong> {selectedInvoice.payment_type}</p>
+              <p><strong>Currency:</strong> {selectedInvoice.currency}</p>
+              <p><strong>Remarks:</strong> {selectedInvoice.remarks}</p>
+
+              <h5>Items</h5>
+              <Table striped bordered hover>
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Description</th>
+                    <th>Quantity</th>
+                    <th>Price</th>
+                    <th>Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {selectedInvoice.items.map((item, index) => (
+                    <tr key={index}>
+                      <td>{item.type}</td>
+                      <td>{item.description}</td>
+                      <td>{item.quantity}</td>
+                      <td>{getCurrencySymbol()} {convertCurrency(item.price).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                      <td>{getCurrencySymbol()} {convertCurrency(item.total_amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+
+              <h5>Profit & Loss</h5>
+              <p><strong>Total Revenue:</strong> {getCurrencySymbol()} {convertCurrency(selectedInvoice.profit.total_revenue).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+              <p><strong>Total Cost:</strong> {getCurrencySymbol()} {convertCurrency(selectedInvoice.profit.total_cost).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+              <p><strong>Profit:</strong> {getCurrencySymbol()} {convertCurrency(selectedInvoice.profit.profit).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+              <p><strong>Profit Margin:</strong> {selectedInvoice.profit.profit_margin}%</p>
+
+              {/* Add more sections if needed, e.g., Payments, Exchange History */}
+            </>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowInvoiceModal(false)}>
+            Close
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* All Invoices Modal */}
+      <Modal show={showAllInvoicesModal} onHide={() => setShowAllInvoicesModal(false)} fullscreen>
+        <Modal.Header closeButton>
+          <Modal.Title>All {activeTab === "nonCredit" ? "Non-Credit" : "Credit"} Invoices</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Tab.Container activeKey={activeTab} onSelect={setActiveTab}>
+            <Nav variant="tabs" className="mb-3">
+              <Nav.Item>
+                <Nav.Link eventKey="nonCredit">Non-Credit ({filteredNonCreditInvoices.length})</Nav.Link>
+              </Nav.Item>
+              <Nav.Item>
+                <Nav.Link eventKey="credit">Credit ({filteredCreditInvoices.length})</Nav.Link>
+              </Nav.Item>
+            </Nav>
+            <Tab.Content>
+              <Tab.Pane eventKey="nonCredit">
+                <Table hover responsive>
+                  <thead>
+                    <tr>
+                      <th>Invoice #</th>
+                      <th>Client</th>
+                      <th>Date</th>
+                      <th>Amount</th>
+                      <th>Status</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredNonCreditInvoices.map((invoice) => (
+                      <tr key={`noncredit-${invoice.id}`}>
+                        <td>{invoice.invoice_number}</td>
+                        <td>{invoice.customer?.name || "N/A"}</td>
+                        <td>{new Date(invoice.issue_date).toLocaleDateString()}</td>
+                        <td>
+                          {getCurrencySymbol()}
+                          {convertCurrency(invoice.total_amount).toLocaleString(undefined, {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </td>
+                        <td>{getStatusBadge(invoice)}</td>
+                        <td>
+                          <Button
+                            variant="link"
+                            size="sm"
+                            className="p-0"
+                            style={{ color: "black" }}
+                            onClick={() => {
+                              setSelectedInvoice(invoice);
+                              setShowInvoiceModal(true);
+                            }}
+                          >
+                            View
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
+              </Tab.Pane>
+              <Tab.Pane eventKey="credit">
+                <Table hover responsive>
+                  <thead>
+                    <tr>
+                      <th>Invoice #</th>
+                      <th>Client</th>
+                      <th>Date</th>
+                      <th>Amount</th>
+                      <th>Status</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredCreditInvoices.map((invoice) => (
+                      <tr key={`credit-${invoice.id}`}>
+                        <td>{invoice.invoice_number}</td>
+                        <td>{invoice.customer?.name || "N/A"}</td>
+                        <td>{new Date(invoice.issue_date).toLocaleDateString()}</td>
+                        <td>
+                          {getCurrencySymbol()}
+                          {convertCurrency(invoice.total_amount).toLocaleString(undefined, {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </td>
+                        <td>{getStatusBadge(invoice)}</td>
+                        <td>
+                          <Button
+                            variant="link"
+                            size="sm"
+                            className="p-0"
+                            style={{ color: "black" }}
+                            onClick={() => {
+                              setSelectedInvoice(invoice);
+                              setShowInvoiceModal(true);
+                            }}
+                          >
+                            View
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
+              </Tab.Pane>
+            </Tab.Content>
+          </Tab.Container>
+        </Modal.Body>
       </Modal>
 
       <Row className="mb-4">
@@ -1359,19 +1500,19 @@ const Home = () => {
           {/* Recent Invoices Table */}
           <Card className="mb-4 shadow-sm">
             <Card.Body>
-              <Tab.Container defaultActiveKey="nonCredit">
+              <Tab.Container activeKey={activeTab} onSelect={setActiveTab}>
                 <div className="d-flex justify-content-between align-items-center mb-3">
                   <Nav variant="tabs">
                     <Nav.Item>
                       <Nav.Link eventKey="nonCredit">
                         <FaReceipt className="me-2 text-primary" />
-                        Non-Credit ({filteredNonCreditCount})
+                        Non-Credit ({filteredNonCreditInvoices.length})
                       </Nav.Link>
                     </Nav.Item>
                     <Nav.Item>
                       <Nav.Link eventKey="credit">
                         <FaCreditCard className="me-2 text-success" />
-                        Credit ({filteredCreditCount})
+                        Credit ({filteredCreditInvoices.length})
                       </Nav.Link>
                     </Nav.Item>
                   </Nav>
@@ -1380,6 +1521,8 @@ const Home = () => {
                     placeholder="Search invoices..."
                     style={{ width: "200px" }}
                     className="d-flex align-items-center"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
                   />
                 </div>
 
@@ -1405,7 +1548,7 @@ const Home = () => {
                           </tr>
                         </thead>
                         <tbody>
-                          {nonCreditInvoices.slice(0, 10).map((invoice) => (
+                          {filteredNonCreditInvoices.slice(0, 10).map((invoice) => (
                             <tr key={`noncredit-${invoice.id}`}>
                               <td>{invoice.invoice_number}</td>
                               <td>{invoice.customer?.name || "N/A"}</td>
@@ -1430,7 +1573,10 @@ const Home = () => {
                                   size="sm"
                                   className="p-0"
                                   style={{ color: "black"}}
-                                  // onClick={() => handleViewInvoice(invoice.id)}
+                                  onClick={() => {
+                                    setSelectedInvoice(invoice);
+                                    setShowInvoiceModal(true);
+                                  }}
                                 >
                                   View
                                 </Button>
@@ -1455,7 +1601,7 @@ const Home = () => {
                           </tr>
                         </thead>
                         <tbody>
-                          {creditInvoices.slice(0, 10).map((invoice) => (
+                          {filteredCreditInvoices.slice(0, 10).map((invoice) => (
                             <tr key={`credit-${invoice.id}`}>
                               <td>{invoice.invoice_number}</td>
                               <td>{invoice.customer?.name || "N/A"}</td>
@@ -1480,6 +1626,10 @@ const Home = () => {
                                   size="sm"
                                   className="p-0"
                                   style={{ color: "black"}}
+                                  onClick={() => {
+                                    setSelectedInvoice(invoice);
+                                    setShowInvoiceModal(true);
+                                  }}
                                 >
                                   View
                                 </Button>
@@ -1493,8 +1643,8 @@ const Home = () => {
                 )}
 
                 <div className="d-flex justify-content-end mt-3">
-                  <Button variant="link" className="text-decoration-none"  style={{ color: "black"}}>
-                    View All Invoices <FiChevronRight />
+                  <Button variant="link" className="text-decoration-none" style={{ color: "black"}} onClick={() => setShowAllInvoicesModal(true)}>
+                  {filteredCreditInvoices.length === 0 ? "No Invoices" : "View All Invoices"} <FiChevronRight />
                   </Button>
                 </div>
               </Tab.Container>

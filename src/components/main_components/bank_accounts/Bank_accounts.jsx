@@ -136,6 +136,7 @@ const Bank_accounts = () => {
               variant="outline-primary" 
               onClick={() => handleShowModal()}
               disabled={loading}
+               style={{ color: "black", borderColor: "black" }}
             >
               <FaPlus className="me-2" />
               Add Account

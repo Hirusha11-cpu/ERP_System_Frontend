@@ -4339,7 +4339,7 @@ const Invoice_create = () => {
                         <Form.Control
                           type="text"
                           readOnly
-                          value={convertedAmount.toFixed(2)}
+                          value={convertedAmount}
                           className="text-center fw-bold bg-light"
                         />
                       </Col>
@@ -4375,7 +4375,7 @@ const Invoice_create = () => {
                         }}
                       >
                         Apply Converted Price ({convertToCurrency}{" "}
-                        {convertedAmount.toFixed(2)})
+                        {convertedAmount})
                       </Button>
                     )}
                   </Form.Group>

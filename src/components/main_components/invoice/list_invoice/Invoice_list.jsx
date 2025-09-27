@@ -58,6 +58,7 @@ import Invoice_appleholidays_modal from "../create_invoice/appleholidays/Invoice
 import Invoice_sharmila_modal from "../create_invoice/shirmila_travels/Invoice_sharmila_modal";
 
 const Invoice_list = () => {
+  const [fetchType, setFetchType] = useState("manual");
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -137,7 +138,7 @@ const Invoice_list = () => {
         setIsAdmin(user.role.name === "admin");
       }
       const response = await axios.get(
-        `/api/invoices?company_id=${companyNo}&days_from_today=${days}`,
+        `/api/invoices?company_id=${companyNo}&days_from_today=${days}&type=${fetchType}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -686,7 +687,7 @@ const Invoice_list = () => {
         address: invoice.customer?.address || "",
         mobile: invoice.customer?.mobile || "",
         code: invoice.customer?.code || "",
-        gstNo: invoice.customer?.gst_no || "",
+        gst_no: invoice.customer?.gst_no || "",
         customer: invoice.customer?.customer || "",
         customer_email: invoice.customer?.customer_email || "",
         customer_number: invoice.customer?.customer_number || "",
@@ -1113,7 +1114,132 @@ const Invoice_list = () => {
         </Card.Header>
 
         <Card.Body>
-          <div className="d-flex mb-4 flex-wrap align-items-center gap-3">
+          {/* <div className="d-flex mb-4 flex-wrap align-items-center gap-3">
+            <div className="input-group" style={{ width: "300px" }}>
+              <span className="input-group-text">
+                <FaSearch />
+              </span>
+              <Form.Control
+                type="text"
+                placeholder="Search invoices..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <div className="d-flex align-items-center gap-2">
+              <span className="me-2">
+                <FaCalendarAlt />
+              </span>
+              <Form.Control
+                type="date"
+                placeholder="From"
+                name="startDate"
+                value={dateFilter.startDate}
+                onChange={(e) =>
+                  setDateFilter({ ...dateFilter, startDate: e.target.value })
+                }
+                style={{ width: "150px" }}
+              />
+              <span className="me-2">to</span>
+              <Form.Control
+                type="date"
+                placeholder="To"
+                name="endDate"
+                value={dateFilter.endDate}
+                onChange={(e) =>
+                  setDateFilter({ ...dateFilter, endDate: e.target.value })
+                }
+                style={{ width: "150px" }}
+              />
+            </div>
+            <div className="d-flex align-items-center gap-2">
+              <span className="me-2">
+                <FaCreditCard />
+              </span>
+              <Form.Select
+                value={filterCreditType}
+                onChange={(e) => setFilterCreditType(e.target.value)}
+                style={{ width: "150px" }}
+              >
+                <option value="all">All Types</option>
+                <option value="credit">Credit</option>
+                <option value="non-credit">Non-Credit</option>
+              </Form.Select>
+            </div>
+            <OverlayTrigger
+              placement="top"
+              overlay={<Tooltip>Filter invoices by days from today</Tooltip>}
+            >
+              <div
+                className="d-flex align-items-center gap-2"
+                style={{ maxWidth: "280px" }}
+              >
+                <FloatingLabel label="" className="flex-grow-1">
+                  <Form.Control
+                    type="number"
+                    placeholder="Days"
+                    value={searchDaysCount}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === "" || /^[0-9]*$/.test(value)) {
+                        setSearchDaysCount(value);
+                      }
+                    }}
+                    min="0"
+                    className="flex-grow-1"
+                  />
+                </FloatingLabel>
+                <Button
+                  variant="primary"
+                  onClick={() => fetchInvoicesByDays(searchDaysCount || 0)}
+                  disabled={
+                    loading ||
+                    (searchDaysCount !== "" &&
+                      !/^[0-9]+$/.test(searchDaysCount))
+                  }
+                >
+                  {loading ? (
+                    <>
+                      <Spinner animation="border" size="sm" className="me-1" />
+                      Searching...
+                    </>
+                  ) : (
+                    <>
+                      <FaSearch className="me-1" />
+                      Search
+                    </>
+                  )}
+                </Button>
+                {searchDaysCount !== "" && (
+                  <Button
+                    variant="outline-secondary"
+                    size="sm"
+                    onClick={resetDaysFilter}
+                  >
+                    <FaSync className="me-1" /> Reset
+                  </Button>
+                )}
+              </div>
+            </OverlayTrigger>
+            <Button
+              variant="outline-secondary"
+              onClick={() => fetchInvoices(searchDaysCount || 0)}
+              className="d-flex align-items-center"
+              disabled={loading}
+            >
+              <FaSync className="me-1" /> Refresh
+            </Button>
+            {dateFilter.startDate || dateFilter.endDate ? (
+              <Button
+                variant="outline-secondary"
+                onClick={() => setDateFilter({ startDate: "", endDate: "" })}
+                size="sm"
+              >
+                Clear Dates
+              </Button>
+            ) : null}
+          </div> */}
+                    <div className="d-flex mb-4 flex-wrap align-items-center gap-3">
             <div className="input-group" style={{ width: "300px" }}>
               <span className="input-group-text">
                 <FaSearch />
@@ -1221,6 +1347,18 @@ const Invoice_list = () => {
                 )}
               </div>
             </OverlayTrigger>
+            <div className="d-flex align-items-center gap-2">
+              <Form.Select
+                value={fetchType}
+                onChange={(e) => {
+                  setFetchType(e.target.value);
+                  fetchInvoices(searchDaysCount || 0);
+                }}
+              >
+                <option value="automatic">Manual</option>
+                <option value="manual">Automatic</option>
+              </Form.Select>
+            </div>
             <Button
               variant="outline-secondary"
               onClick={() => fetchInvoices(searchDaysCount || 0)}
@@ -1260,6 +1398,7 @@ const Invoice_list = () => {
                     <th>Credit/Non-Credit</th>
                     <th>Balance</th>
                     <th>Total</th>
+                    <th>Type</th>
                     <th>Status</th>
                     <th>Payments</th>
                     <th>Exchange-Rates</th>
@@ -1332,6 +1471,7 @@ const Invoice_list = () => {
                             {invoice.total_amount}
                           </div>
                         </td>
+                          <td>{invoice?.type}</td>
                         <td>
                           {getStatusBadge(
                             invoice.status === "draft" ? "open" : invoice.status

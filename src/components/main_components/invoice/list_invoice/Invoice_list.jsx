@@ -58,7 +58,7 @@ import Invoice_appleholidays_modal from "../create_invoice/appleholidays/Invoice
 import Invoice_sharmila_modal from "../create_invoice/shirmila_travels/Invoice_sharmila_modal";
 
 const Invoice_list = () => {
-  const [fetchType, setFetchType] = useState("manual");
+  const [fetchType, setFetchType] = useState("automatic");
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);

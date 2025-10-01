@@ -58,7 +58,7 @@ import Invoice_appleholidays_modal from "../create_invoice/appleholidays/Invoice
 import Invoice_sharmila_modal from "../create_invoice/shirmila_travels/Invoice_sharmila_modal";
 
 const Invoice_list = () => {
-  const [fetchType, setFetchType] = useState("automatic");
+  const [fetchType, setFetchType] = useState("manual");
   const [invoices, setInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -137,6 +137,7 @@ const Invoice_list = () => {
       if (user) {
         setIsAdmin(user.role.name === "admin");
       }
+    
       const response = await axios.get(
         `/api/invoices?company_id=${companyNo}&days_from_today=${days}&type=${fetchType}`,
         {
@@ -144,7 +145,9 @@ const Invoice_list = () => {
         }
       );
       const invoicesData = response.data.data || [];
-      setInvoices(invoicesData);
+        
+        setInvoices(invoicesData);
+      
       setCurrentPage(1); // Reset to first page on new fetch
     } catch (error) {
       console.error("Error fetching invoices:", error);

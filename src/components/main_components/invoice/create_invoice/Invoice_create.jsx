@@ -11,6 +11,7 @@ import {
   Col,
   Badge,
   Spinner,
+  Container,
 } from "react-bootstrap";
 import "bootstrap/dist/css/bootstrap.min.css";
 import {
@@ -22,7 +23,14 @@ import {
   FaDownload,
   FaSyncAlt,
   FaCog,
-  FaEdit, // Add this import
+  FaEdit,
+  FaUser,
+  FaFileInvoice,
+  FaExchangeAlt,
+  FaCalendarAlt,
+  FaMoneyBillWave,
+  FaCreditCard,
+  FaPercent,
 } from "react-icons/fa";
 import { CompanyContext } from "../../../../contentApi/CompanyProvider";
 import axios from "axios";
@@ -30,7 +38,6 @@ import { useNavigate } from "react-router-dom";
 import Invoice_sharmila_modal from "./shirmila_travels/Invoice_sharmila_modal";
 import Invoice_appleholidays_modal from "./appleholidays/Invoice_appleholidays_modal";
 import Invoice_aahaas_modal from "./aahaas/Invoice_aahaas_modal";
-import { add } from "date-fns";
 
 const Invoice_create = () => {
   const { selectedCompany } = useContext(CompanyContext);
@@ -69,8 +76,6 @@ const Invoice_create = () => {
   // Fetch customers and tax rates on component mount
   useEffect(() => {
     fetchCustomers();
-    // fetchAccounts()
-    // fetchTaxRates();
   }, []);
 
   useEffect(() => {
@@ -85,7 +90,6 @@ const Invoice_create = () => {
     };
 
     setCompanyNo(companyMap[selectedCompany?.toLowerCase()] || 3);
-    // resetForm()
     setFormData({
       customer: {
         id: null,
@@ -178,25 +182,6 @@ const Invoice_create = () => {
     }
   };
 
-  // const fetchAccounts = async (currencyInfo = "USD") => {
-  //   try {
-  //     console.log(`Fetching accounts for currency: ${currencyInfo}`);
-
-  //     const response = await axios.get(
-  //       `/api/accounts/by-currency/${currencyInfo}/${companyNo}`,
-  //       {
-  //         headers: {
-  //           Authorization: `Bearer ${token}`,
-  //         },
-  //       }
-  //     );
-  //     console.log(response);
-  //     setAccounts(response.data);
-  //   } catch (error) {
-  //     console.error("Error fetching accounts:", error);
-  //   }
-  // };
-
   const fetchAccounts = async (currencyInfo = "USD") => {
     try {
       console.log(`Fetching accounts for currency: ${currencyInfo}`);
@@ -221,6 +206,7 @@ const Invoice_create = () => {
       console.error("Error fetching accounts:", error);
     }
   };
+
   const fetchCustomers = async () => {
     try {
       const response = await axios.get("/api/customers", {
@@ -271,18 +257,6 @@ const Invoice_create = () => {
     }
   };
 
-  const TAX_COMPONENTS = [
-    { name: "GST", rate: 18, type: "standard" },
-    { name: "CGST", rate: 9, type: "standard" },
-    { name: "SGST", rate: 9, type: "standard" },
-    { name: "Flight Tax", rate: 5, type: "flight" },
-    { name: "Hotel Tax", rate: 12, type: "hotel" },
-    { name: "Lifestyle Tax", rate: 18, type: "lifestyle" },
-    { name: "Essentials Tax", rate: 5, type: "essentials" },
-    { name: "Non-Essentials Tax", rate: 18, type: "non-essentials" },
-    { name: "Education Tax", rate: 0, type: "education" },
-  ];
-
   const handleSubmit = async () => {
     console.log(formData);
     setIsSubmitting(true);
@@ -305,7 +279,7 @@ const Invoice_create = () => {
       remarks: formData.payment.remarks,
       payment_methods: paymentMethodArray,
       company_id: companyNo,
-      account_id: formData.selectedAccountId || 1, // use your selected account logic
+      account_id: formData.selectedAccountId || 1,
       booking_no: formData.invoice.bookingId,
       start_date: formData.invoice.startDate,
       sales_id: formData.invoice.salesId,
@@ -314,19 +288,12 @@ const Invoice_create = () => {
       handling_fee: formData.totals.handlingFee.toFixed(2),
       gst_amount: formData.totals.handlingFee * 0.18,
       total_amount: formData.totals.total.toFixed(2),
-
       additional_tax: formData.totals.additionalTax.toFixed(2),
       bank_charges: formData.totals.additionalTax.toFixed(2),
       amount_received: formData.totals.amountReceived.toFixed(2),
       balance: formData.totals.balance.toFixed(2),
       from_currency: fromCurrency,
       to_currency: toCurrency,
-      // bank_charges:formData.additionalCharges
-      //                   .reduce(
-      //                     (sum, charge) => sum + parseFloat(charge.amount || 0),
-      //                     0
-      //                   )
-      //                   .toFixed(2),
 
       travel_period: calculateTravelDays(
         formData.invoice.startDate,
@@ -334,7 +301,7 @@ const Invoice_create = () => {
       ),
 
       items: formData.serviceItems.map((item) => ({
-        code: item.code,
+        code: item.code ?? 123,
         type: item.type,
         description: item.description,
         quantity: item.qty,
@@ -350,9 +317,6 @@ const Invoice_create = () => {
         taxable: 1,
       })),
       attachments: formData.attachments,
-      // attachments: formData.attachments.forEach((file) => {
-      //   formData.append("attachments[]", file);
-      // }),
     };
 
     console.log("Formatted Data to Send =>", dataToSend);
@@ -378,184 +342,6 @@ const Invoice_create = () => {
       setIsSubmitting(false);
     }
   };
-
-  const handleSubmit1 = async () => {
-    console.log(formData);
-
-    const paymentMethodArray = Object.entries(formData.payment.methods)
-      .filter(([_, value]) => value)
-      .map(([key]) => key);
-
-    // Create FormData object for file uploads
-    const formDataToSend = new FormData();
-
-    // Add all the data fields
-    formDataToSend.append("customer_id", formData.customer.id);
-    formDataToSend.append("country_code", formData.invoice.country);
-    formDataToSend.append("currency", formData.currencyDetails.currency);
-    formDataToSend.append(
-      "exchange_rate",
-      formData.currencyDetails.exchangeRate
-    );
-    formDataToSend.append(
-      "tax_treatment",
-      formData.currencyDetails.taxTreatment
-    );
-    formDataToSend.append("payment_type", formData.payment.type);
-    formDataToSend.append("collection_date", formData.payment.collectionDate);
-    formDataToSend.append(
-      "payment_instructions",
-      formData.payment.instructions
-    );
-    formDataToSend.append("staff", formData.payment.staff);
-    formDataToSend.append("remarks", formData.payment.remarks);
-    formDataToSend.append(
-      "payment_methods",
-      JSON.stringify(paymentMethodArray)
-    );
-    formDataToSend.append("company_id", companyNo);
-    formDataToSend.append("account_id", formData.selectedAccountId || 1);
-    formDataToSend.append("booking_no", formData.invoice.bookingId || "");
-    formDataToSend.append("start_date", formData.invoice.startDate || "");
-    formDataToSend.append("sales_id", formData.invoice.salesId || "");
-    formDataToSend.append("end_date", formData.invoice.endDate || "");
-
-    formDataToSend.append("end_date", formData.invoice.endDate || "");
-    formDataToSend.append("end_date", formData.invoice.endDate || "");
-    formDataToSend.append("end_date", formData.invoice.endDate || "");
-    formDataToSend.append(
-      "travel_period",
-      calculateTravelDays(
-        formData.invoice.startDate,
-        formData.invoice.endDate
-      ) || ""
-    );
-    formDataToSend.append("status", "draft"); // Add status field
-
-    // Add items
-    formDataToSend.append(
-      "items",
-      JSON.stringify(
-        formData.serviceItems.map((item) => ({
-          code: item.code,
-          type: item.type,
-          description: item.description,
-          quantity: item.qty,
-          price: item.price,
-          discount: item.discount,
-          checkin_time: item.checkin_time || null,
-          checkout_time: item.checkout_time || null,
-        }))
-      )
-    );
-
-    // Add additional charges
-    formDataToSend.append(
-      "additional_charges",
-      JSON.stringify(
-        formData.additionalCharges.map((charge) => ({
-          description: charge.description,
-          amount: charge.amount,
-          taxable: charge.taxable ? 1 : 0, // Convert to 1/0 for boolean
-        }))
-      )
-    );
-
-    // Add empty refund object (as required by your backend)
-    formDataToSend.append(
-      "refund",
-      JSON.stringify([
-        {
-          refund_amount: null,
-          total_amount: null,
-          refund_reason: null,
-          attachments: [],
-          payment_methods: [],
-          remark: null,
-          status: "non-refund",
-          refund_status: null,
-        },
-      ])
-    );
-
-    // Add attachments
-    if (formData.attachments && formData.attachments.length > 0) {
-      formData.attachments.forEach((file) => {
-        formDataToSend.append("attachments[]", file);
-      });
-    }
-
-    console.log(
-      "Formatted Data to Send =>",
-      Object.fromEntries(formDataToSend)
-    );
-
-    try {
-      const response = await axios.post("/api/invoices", formDataToSend, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      console.log(response.data);
-      alert("Invoice created successfully!");
-      resetForm();
-      setAttachments([]);
-    } catch (error) {
-      console.error("Error creating invoice:", error);
-      alert(
-        "Error creating invoice: " +
-          (error.response?.data?.message || error.message)
-      );
-    }
-  };
-
-  // const handleSubmit = async () => {
-  //   console.log(selectedCompany);
-  //   const prefix =
-  //     countryOptions.find((c) => c.code === formData.invoice.country)?.prefix ||
-  //     "IN";
-
-  //   const dataToSend = {
-  //     ...formData,
-  //     invoice: {
-  //       ...formData.invoice,
-  //       number: prefix + formData.invoice.number,
-  //     },
-  //     company_id: selectedCompany.id,
-  //     items: formData.serviceItems.map((item) => ({
-  //       code: item.code,
-  //       type: item.type,
-  //       description: item.description,
-  //       checkin_time: item.checkin,
-  //       checkout_time: item.checkout,
-  //       quantity: item.qty,
-  //       price: item.price,
-  //       discount: item.discount,
-  //     })),
-  //     additional_charges: formData.additionalCharges.map((charge) => ({
-  //       description: charge.description,
-  //       amount: charge.amount,
-  //       taxable: charge.taxable,
-  //     })),
-  //   };
-
-  //   try {
-  //     const response = await axios.post("/api/invoices", dataToSend);
-  //     console.log();
-
-  //     // Handle success
-  //     alert("Invoice created successfully!");
-  //     resetForm();
-  //   } catch (error) {
-  //     // Handle error
-  //     console.error("Error creating invoice:", error);
-  //     alert(
-  //       "Error creating invoice: " +
-  //         (error.response?.data?.message || error.message)
-  //     );
-  //   }
-  // };
 
   // State for form data
   const [formData, setFormData] = useState({
@@ -680,6 +466,7 @@ const Invoice_create = () => {
   const [customerSearch, setCustomerSearch] = useState("");
   const [filteredCustomers, setFilteredCustomers] = useState([]);
   const [activeTab, setActiveTab] = useState("sell");
+
   // Country options
   const countryOptions = [
     { code: "IN", name: "India", prefix: "IN" },
@@ -705,7 +492,6 @@ const Invoice_create = () => {
   const currencyOptions = ["INR", "USD", "SGD", "MYR", "LKR"];
 
   // Item types
-  // const itemTypes = ["hotel", "restaurant", "transport", "other"];
   const itemTypes = [
     "hotel",
     "transport",
@@ -753,8 +539,7 @@ const Invoice_create = () => {
     const startDate = new Date(start);
     const endDate = new Date(end);
     const diffTime = endDate - startDate;
-    // const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 to include both days
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); // +1 to include both days
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays > 0 ? diffDays : 0;
   };
 
@@ -791,7 +576,6 @@ const Invoice_create = () => {
       handleCustomerSelect(response.data);
       setShowCustomerModal(false);
       setNewCustomer({
-        // code: "",
         code: "",
         name: "",
         address: "",
@@ -840,19 +624,6 @@ const Invoice_create = () => {
 
       // Close modal
       setShowCustomerModal(false);
-
-      // Reset newCustomer form
-      // setNewCustomer({
-      //   code: "",
-      //   name: "",
-      //   address: "",
-      //   mobile: "",
-      //   gst_no: "",
-      //   customer: "",
-      //   customer_email: "",
-      //   customer_number: "",
-      //   payment_method: "",
-      // });
     } catch (error) {
       console.error("Error creating customer:", error);
       alert(
@@ -860,7 +631,7 @@ const Invoice_create = () => {
           (error.response?.data?.message || error.message)
       );
     } finally {
-      setIsLoading(false); // stop spinner no matter success or error
+      setIsLoading(false);
     }
   };
 
@@ -875,26 +646,12 @@ const Invoice_create = () => {
     });
   };
 
-  // Handle nested input changes
-  // const handleNestedInputChange = (section, subSection, field, value) => {
-  //   setFormData({
-  //     ...formData,
-  //     [section]: {
-  //       ...formData[section],
-  //       [subSection]: {
-  //         ...formData[section][subSection],
-  //         [field]: value,
-  //       },
-  //     },
-  //   });
-  // };
-
   const handleNestedInputChange = (section, key, value) => {
     setFormData((formData) => ({
       ...formData,
       [section]: {
         ...formData[section],
-        [key]: value, // value must be a string
+        [key]: value,
       },
     }));
   };
@@ -913,40 +670,6 @@ const Invoice_create = () => {
     });
   };
 
-  // Handle currency change
-  // const handleCurrencyChange = (currency) => {
-  //   console.log("Selected currency:", currency);
-
-  //   let rate = 87.52;
-  //   switch (currency) {
-  //     case "SGD":
-  //       rate = 65.32;
-  //       break;
-  //     case "MYR":
-  //       rate = 21.05;
-  //       break;
-  //     case "LKR":
-  //       rate = 0.29;
-  //       break;
-  //     case "INR":
-  //       rate = 1.0;
-  //       break;
-  //     default:
-  //       rate = 87.52;
-  //   }
-  //   setCurrency(currency);
-  //   setFormData({
-  //     ...formData,
-  //     currencyDetails: {
-  //       ...formData.currencyDetails,
-  //       currency,
-  //       exchangeRate: rate,
-  //       customRate: rate,
-  //     },
-  //   });
-
-  //   fetchAccounts(currency);
-  // };
   const handleCurrencyChange = async (currency) => {
     console.log("Selected currency:", currency);
 
@@ -994,324 +717,6 @@ const Invoice_create = () => {
     await fetchAccounts(currency);
   };
 
-  // Calculate totals
-  // const calculateTotals = () => {
-  //   const { currency, exchangeRate, taxTreatment } = formData.currencyDetails;
-  //   const { serviceItems, additionalCharges, taxRates } = formData;
-
-  //   // Calculate subtotal from service items
-  //   let subTotal = 0;
-  //   let totalPax = 0;
-  //   let totalAmount = 0;
-  //   console.log(serviceItems);
-
-  //   serviceItems.forEach((item) => {
-  //     if (item.type === "hotel" || item.type === "restaurant") {
-  //       console.log(item.total);
-
-  //       totalPax += item.qty;
-  //       totalAmount += item.total;
-  //     }
-  //     // subTotal += item.total;
-  //   });
-  //   console.log(totalAmount);
-
-  //   // Add additional charges
-  //   let taxableCharges = 0;
-  //   additionalCharges.forEach((charge) => {
-  //     subTotal += charge.amount;
-  //     if (charge.taxable) {
-  //       taxableCharges += charge.amount;
-  //     }
-  //   });
-  //   console.log(exchangeRate);
-  //   console.log(totalPax);
-
-  //   // Calculate handling fee (only for INR)
-  //   let handlingFee = 0;
-  //   if (currency === "INR" && totalPax > 0) {
-  //     const perPersonRate = subTotal / totalPax - 5;
-  //     handlingFee = 5 * 88.66 * totalPax;
-  //     console.log(handlingFee);
-  //     // totalAmount = totalAmount - handlingFee;
-  //     console.log(totalAmount);
-  //     // subTotal = totalAmount + handlingFee;
-  //     subTotal = totalAmount;
-  //   } else {
-  //     subTotal = totalAmount;
-  //   }
-
-  //   let additionalTax = 0;
-  //   console.log(taxRates);
-
-  //   if (subTotal > 0 && taxRates.length > 0) {
-  //     console.log(Number(taxRates[0].rate));
-  //     additionalTax = subTotal * (parseFloat(Number(taxRates[0].rate)) / 100);
-  //   }
-
-  //   // formData.serviceItems.forEach((item) => {
-  //   //   console.log(formData.taxRates);
-
-  //   //   const itemTaxRate = formData.taxRates.find(
-  //   //     (tax) => tax.component === item.type
-  //   //   );
-  //   //   console.log(itemTaxRate);
-
-  //   //   if (itemTaxRate) {
-  //   //     const itemTotal = item.price * (1 - item.discount / 100) * item.qty;
-  //   //     console.log(itemTotal);
-
-  //   //     additionalTax += itemTotal * (parseFloat(itemTaxRate.rate) / 100);
-  //   //   }
-  //   // });
-
-  //   // Calculate GST (only for INR)
-  //   if (vatInclude) {
-  //     if (vatComponent.taxBased != "") {
-  //       if (vatComponent.taxBased === "subtotal") {
-  //         subTotal = subTotal + (subTotal * 18) / 100;
-  //       } else if (vatComponent.taxBased === "total") {
-  //         total = total + (total * 18) / 100;
-  //       } else if (vatComponent.taxBased === "handling") {
-  //         handlingFee = handlingFee + (handlingFee * 18) / 100;
-  //       }
-  //     }
-  //   }
-  //   let gst = 0;
-  //   if (currency === "INR") {
-  //     // const gstRate = taxRates.find((tax) => tax.name === "GST")?.rate || 0;
-  //     gst = handlingFee * (18 / 100);
-  //   }
-  //   const additionalChargeCost = formData.additionalCharges.reduce(
-  //     (acc, item) => acc + parseFloat(item.amount || 0),
-  //     0
-  //   );
-  //   console.log(handlingFee);
-
-  //   console.log(vatComponent);
-  //   console.log(handlingFee);
-
-  //   // Calculate total
-  //   const total =
-  //     subTotal +
-  //     // handlingFee +
-  //     gst +
-  //     // formData.totals.additionalTax +
-  //     additionalTax +
-  //     additionalChargeCost +
-  //     formData.totals.bankCharges;
-  //   const balance = total - formData.totals.amountReceived;
-
-  //   setFormData({
-  //     ...formData,
-  //     totals: {
-  //       ...formData.totals,
-  //       subTotal,
-  //       handlingFee,
-  //       gst,
-  //       total,
-  //       balance,
-  //       additionalTax,
-  //     },
-  //   });
-  // };
-
-  // Replace the entire calculateTotals function with this:
-  // const calculateTotals = () => {
-  //   const { currency, exchangeRate, taxTreatment } = formData.currencyDetails;
-  //   const { serviceItems, additionalCharges, taxRates } = formData;
-
-  //   // Calculate subtotal from service items
-  //   let subTotal = 0;
-  //   let totalPax = 0;
-  //   let totalAmount = 0;
-
-  //   serviceItems.forEach((item) => {
-  //     if (item.type === "hotel" || item.type === "restaurant") {
-  //       totalPax += item.qty;
-  //       totalAmount += item.total;
-  //     }
-  //   });
-
-  //   // Add additional charges
-  //   let taxableCharges = 0;
-  //   additionalCharges.forEach((charge) => {
-  //     subTotal += charge.amount;
-  //     if (charge.taxable) {
-  //       taxableCharges += charge.amount;
-  //     }
-  //   });
-
-  //   // Calculate handling fee (only for INR)
-  //   let handlingFee = 0;
-  //   if (currency === "INR" && totalPax > 0) {
-  //     const perPersonRate = subTotal / totalPax - 5;
-  //     handlingFee = 5 * 88.66 * totalPax;
-  //     subTotal = totalAmount;
-  //   } else {
-  //     subTotal = totalAmount;
-  //   }
-
-  //   let additionalTax = 0;
-  //   if (subTotal > 0 && taxRates.length > 0) {
-  //     additionalTax = subTotal * (parseFloat(Number(taxRates[0].rate)) / 100);
-  //   }
-
-  //   // Calculate GST (only for INR)
-  //   let gst = 0;
-  //   if (currency === "INR") {
-  //     gst = handlingFee * (18 / 100);
-  //   }
-
-  //   const additionalChargeCost = formData.additionalCharges.reduce(
-  //     (acc, item) => acc + parseFloat(item.amount || 0),
-  //     0
-  //   );
-
-  //   // Create temporary variables for VAT calculation
-  //   let calculatedSubTotal = subTotal;
-  //   let calculatedHandlingFee = handlingFee;
-  //   let calculatedTotal = subTotal + handlingFee + gst + additionalTax + additionalChargeCost + formData.totals.bankCharges;
-
-  //   // Apply VAT if enabled
-  //   if (vatInclude && vatComponent.taxBased !== "") {
-  //     const vatRate = 0.18; // 18% VAT
-
-  //     if (vatComponent.taxBased === "subtotal") {
-  //       calculatedSubTotal = calculatedSubTotal + (calculatedSubTotal * vatRate);
-  //     } else if (vatComponent.taxBased === "total") {
-  //       calculatedTotal = calculatedTotal + (calculatedTotal * vatRate);
-  //     } else if (vatComponent.taxBased === "handling") {
-  //       calculatedHandlingFee = calculatedHandlingFee + (calculatedHandlingFee * vatRate);
-  //     }
-  //   }
-
-  //   // Recalculate total with VAT adjustments
-  //   calculatedTotal = calculatedSubTotal + calculatedHandlingFee + gst + additionalTax + additionalChargeCost + formData.totals.bankCharges;
-
-  //   const balance = calculatedTotal - formData.totals.amountReceived;
-
-  //   setFormData({
-  //     ...formData,
-  //     totals: {
-  //       ...formData.totals,
-  //       subTotal: calculatedSubTotal,
-  //       handlingFee: calculatedHandlingFee,
-  //       gst,
-  //       total: calculatedTotal,
-  //       balance,
-  //       additionalTax,
-  //     },
-  //   });
-  // };
-  // Replace the entire calculateTotals function with this:
-  const calculateTotals1 = () => {
-    const { currency, exchangeRate, taxTreatment } = formData.currencyDetails;
-    const { serviceItems, additionalCharges, taxRates } = formData;
-
-    // Calculate subtotal from service items
-    let subTotal = 0;
-    let totalPax = 0;
-    let totalAmount = 0;
-
-    serviceItems.forEach((item) => {
-      // if (item.type === "hotel" || item.type === "restaurant") {
-      totalPax += item.qty;
-      totalAmount += item.total;
-      // }
-    });
-
-    // Add additional charges
-    let taxableCharges = 0;
-    additionalCharges.forEach((charge) => {
-      subTotal += charge.amount;
-      if (charge.taxable) {
-        taxableCharges += charge.amount;
-      }
-    });
-
-    // Calculate handling fee (only for INR)
-    let handlingFee = 0;
-    if (currency === "INR" && totalPax > 0) {
-      const perPersonRate = subTotal / totalPax - 5;
-      // handlingFee = 5 * 88.66 * totalPax;
-      handlingFee = 5 * (xeRate + increaseAmount) * totalPax;
-      subTotal = totalAmount;
-    } else {
-      subTotal = totalAmount;
-    }
-
-    let additionalTax = 0;
-    if (subTotal > 0 && taxRates.length > 0) {
-      additionalTax = subTotal * (parseFloat(Number(taxRates[0].rate)) / 100);
-    }
-
-    // Calculate GST (only for INR)
-    let gst = 0;
-    if (currency === "INR") {
-      gst = handlingFee * (18 / 100);
-    }
-
-    const additionalChargeCost = formData.additionalCharges.reduce(
-      (acc, item) => acc + parseFloat(item.amount || 0),
-      0
-    );
-
-    // Create temporary variables for VAT calculation
-    let calculatedSubTotal = subTotal;
-    let calculatedHandlingFee = handlingFee;
-    let calculatedTotal =
-      subTotal +
-      handlingFee +
-      gst +
-      additionalTax +
-      additionalChargeCost +
-      formData.totals.bankCharges;
-
-    // Apply VAT if enabled
-    // if (vatInclude && vatComponent.taxBased !== "") {
-    console.log("Calculated SubTotal before VAT:", calculatedSubTotal);
-    console.log("VAT Include:", vatInclude);
-
-    if (vatInclude) {
-      const vatRate = 0.18; // 18% VAT
-      console.log("fff");
-
-      if (vatComponent.taxBased === "subtotal") {
-        calculatedSubTotal = calculatedSubTotal + calculatedSubTotal * vatRate;
-      } else if (vatComponent.taxBased === "total") {
-        calculatedTotal = calculatedTotal + calculatedTotal * vatRate;
-      } else if (vatComponent.taxBased === "handling") {
-        calculatedHandlingFee =
-          calculatedHandlingFee + calculatedHandlingFee * vatRate;
-      }
-    }
-    console.log("Calculated SubTotal after VAT:", calculatedSubTotal);
-    // Recalculate total with VAT adjustments
-    calculatedTotal =
-      calculatedSubTotal +
-      calculatedHandlingFee +
-      gst +
-      additionalTax +
-      additionalChargeCost +
-      formData.totals.bankCharges;
-
-    const balance = calculatedTotal - formData.totals.amountReceived;
-
-    setFormData({
-      ...formData,
-      totals: {
-        ...formData.totals,
-        subTotal: calculatedSubTotal,
-        handlingFee: calculatedHandlingFee,
-        gst,
-        total: calculatedTotal,
-        balance,
-        additionalTax,
-      },
-    });
-  };
-
   const calculateTotals = () => {
     const { currency } = formData.currencyDetails;
     const {
@@ -1343,18 +748,13 @@ const Invoice_create = () => {
     // Handling fee (only INR)
     let handlingFee = 0;
     console.log(isXeRateZero);
-    
+
     if (currency === "INR" && totalPax > 0 && !isXeRateZero) {
-      handlingFee = 5 * (xeRate === 1 ? 0 : xeRate) * totalPax; // ensure xeRate is defined
-      subTotal = totalAmount; // reset subtotal to items only
+      handlingFee = 5 * (xeRate === 1 ? 0 : xeRate) * totalPax;
+      subTotal = totalAmount;
     } else {
       subTotal = totalAmount;
     }
-    console.log("Handling Fee:", handlingFee);
-    console.log("Increase Amount:", increaseAmount);
-    console.log("Increase Amount:", increaseAmount + xeRate);
-    console.log("Total Pax:", totalPax);
-    console.log("xeRate:", xeRate);
 
     // Taxes
     let additionalTax = 0;
@@ -1374,15 +774,10 @@ const Invoice_create = () => {
     );
 
     // Initial totals before VAT
-    let calculatedSubTotal = subTotal;
+    let calculatedSubTotal = subTotal * xeRate;
     let calculatedHandlingFee = handlingFee;
     let calculatedTotal =
-      calculatedSubTotal +
-      // calculatedHandlingFee +
-      gst +
-      additionalTax +
-      // additionalChargeCost +
-      formData.totals.bankCharges;
+      calculatedSubTotal + gst + additionalTax + formData.totals.bankCharges;
 
     // Apply VAT
     if (vatInclude) {
@@ -1392,17 +787,13 @@ const Invoice_create = () => {
       } else if (vatComponent.taxBased === "handling") {
         calculatedHandlingFee += calculatedHandlingFee * vatRate;
       } else if (vatComponent.taxBased === "total") {
-        calculatedTotal += calculatedTotal * vatRate; // keep this final
+        calculatedTotal += calculatedTotal * vatRate;
       }
     }
 
-    // Recalculate total only if VAT wasn’t applied on total directly
-    // if (!(vatInclude && vatComponent.taxBased === "total")) {
     if (vatInclude) {
       calculatedTotal =
         calculatedSubTotal +
-        // calculatedHandlingFee +
-        // calculatedSubTotal * 0.18 + // GST recalculated on new subtotal
         gst +
         additionalTax +
         additionalChargeCost +
@@ -1466,7 +857,6 @@ const Invoice_create = () => {
         {
           ...newItem,
           id: Date.now(),
-          // total: currency === "INR" ? total : total * exchangeRate,
           total: currency === "INR" ? total : total,
         },
       ],
@@ -1554,37 +944,12 @@ const Invoice_create = () => {
     }
   };
 
-  // Add this function to handle currency conversion
-  // const handleCurrencyConversion = () => {
-  //   if (convertFromCurrency === convertToCurrency) {
-  //     setConvertedAmount(originalAmount);
-  //     return;
-  //   }
-
-  //   // Get exchange rates (you'll need to fetch these from your API)
-  //   const exchangeRates = {
-  //     USD: 1,
-  //     INR: 88.0852,
-  //     LKR: 301.7202,
-  //     SGD: 1.2835,
-  //     MYR: 4.2188,
-  //     EUR: 0.8511,
-  //     GBP: 0.7385,
-  //   };
-
-  //   // Convert currency
-  //   const amountInUSD =
-  //     originalAmount / (exchangeRates[convertFromCurrency] || 1);
-  //   const converted = amountInUSD * (exchangeRates[convertToCurrency] || 1);
-
-  //   setConvertedAmount(parseFloat(converted.toFixed(2)));
-  // };
   const handleCurrencyConversion = async () => {
     if (convertFromCurrency === convertToCurrency) {
       setConvertedAmount(originalAmount);
       return;
     }
-    setIsLoading(true); // Start loading
+    setIsLoading(true);
 
     try {
       // Fetch exchange rates from your API
@@ -1611,69 +976,12 @@ const Invoice_create = () => {
       }
     } catch (error) {
       console.error("Error fetching exchange rates:", error);
-      // Fallback logic here
     } finally {
-      setIsLoading(false); // Stop loading
+      setIsLoading(false);
     }
   };
 
-  // const fetchExchangeRates = async (baseCurrency = "USD") => {
-  //   try {
-  //     const response = await axios.get(
-  //       `/api/currency/rates?base=${baseCurrency}`,
-  //       {
-  //         headers: {
-  //           Authorization: `Bearer ${token}`,
-  //         },
-  //       }
-  //     );
-
-  //     if (response.data && response.data.rates) {
-  //       return response.data.rates;
-  //     }
-  //     // if (response.data && response.data.rates) {
-  //     //   const rate = response.data.rates; // e.g. "INR"
-  //     //   if (!rate) throw new Error("Target currency not found");
-
-  //     //   return rate + increaseAmount;
-  //     // }
-  //     throw new Error("Invalid response format");
-  //   } catch (error) {
-  //     console.error("Error fetching exchange rates:", error);
-
-  //     // Return comprehensive default rates for fallback
-  //     const defaultRates = {
-  //       USD: 1,
-  //       INR: 88.0852,
-  //       LKR: 301.7202,
-  //       SGD: 1.2835,
-  //       MYR: 4.2188,
-  //       EUR: 0.8511,
-  //       GBP: 0.7385,
-  //       AED: 3.6725,
-  //       CAD: 1.3808,
-  //       AUD: 1.5174,
-  //       JPY: 147.5733,
-  //       CNY: 7.1276,
-  //       CHF: 0.7942,
-  //     };
-
-  //     // If base currency is not USD, convert the rates
-  //     if (baseCurrency !== "USD") {
-  //       const baseRate = defaultRates[baseCurrency] || 1;
-  //       const convertedRates = {};
-  //       Object.keys(defaultRates).forEach((currency) => {
-  //         convertedRates[currency] = defaultRates[currency] / baseRate;
-  //       });
-  //       return convertedRates;
-  //     }
-
-  //     return defaultRates;
-  //   }
-  // };
-
   // Delete item from table
-
   const fetchExchangeRates = async (baseCurrency = "USD") => {
     try {
       const response = await axios.get(
@@ -1722,6 +1030,7 @@ const Invoice_create = () => {
       return defaultRates;
     }
   };
+
   const deleteItem = async (id, type) => {
     if (type === "service") {
       setFormData({
@@ -1800,28 +1109,6 @@ const Invoice_create = () => {
     console.log(formData);
   };
 
-  // const handleAccountSelect = (accountId, currency) => {
-  //   console.log("Selected account ID:", accountId);
-
-  //   const selected = accounts.find((acc) => acc.id === parseInt(accountId));
-  //   console.log("Selected account:", selected);
-
-  //   if (selected) {
-  //     setFormData((prev) => ({
-  //       ...prev,
-  //       accountDetails: {
-  //         name: selected.account_name,
-  //         number: selected.account_no,
-  //         bank: selected.bank,
-  //         branch: selected.branch,
-  //         ifsc: selected.ifsc_code,
-  //         address: selected.bank_address,
-  //       },
-  //       selectedAccountId: selected.id,
-  //     }));
-  //   }
-  // };
-
   const handleAccountSelect = (accountId, currency) => {
     console.log("Selected account ID:", accountId);
 
@@ -1843,6 +1130,7 @@ const Invoice_create = () => {
       }));
     }
   };
+
   const handleAccount = () => {
     navigate("/invoice/bank-accounts");
   };
@@ -2011,6 +1299,7 @@ const Invoice_create = () => {
       });
     }
   };
+
   // Auto-calculate total when item details change
   useEffect(() => {
     if (showItemModal) {
@@ -2074,62 +1363,50 @@ const Invoice_create = () => {
         console.error("Error updating customer:", error);
       })
       .finally(() => {
-        setIsLoading(false); // stop spinner no matter success or error
+        setIsLoading(false);
       });
   };
 
   useEffect(() => {
-  if (fromCurrency === toCurrency) {
-    setIsXeRateZero(true);
-  } else {
-    setIsXeRateZero(false);
-  }
-}, [xeRate, fromCurrency, toCurrency]);
-
+    if (fromCurrency === toCurrency) {
+      setIsXeRateZero(true);
+    } else {
+      setIsXeRateZero(false);
+    }
+  }, [xeRate, fromCurrency, toCurrency]);
 
   return (
     <div className="container py-4">
-      {/* Header */}
-      <div className="header text-center bg-gradient-to-r from-indigo-900 via-purple-900 to-indigo-900 text-white py-5 mb-4 rounded shadow-lg">
-        <div
-          className="fs-1 fw-bold tracking-wide"
-          style={{ letterSpacing: "2px", color: "black" }}
-        >
-          Create Invoice –{" "}
-          <span className="text-warning">{renderCompanyName()}</span>
-        </div>
+      {/* Header Section */}
+      <div className="text-center mb-4">
+        <h1 className="display-6 fw-bold text-primary mb-2">
+          Create New Invoice
+        </h1>
+        <p className="text-muted">Creating invoice for {renderCompanyName()}</p>
       </div>
 
-      {/* Exchange Rate Configuration */}
-      <Card className="mb-4">
-        <Card.Body>
-          <h5 className="section-title fw-semibold mb-3 pb-2 border-bottom">
-            Exchange Rate Configuration
-          </h5>
-
-          <Row className="mb-3">
+      {/* Exchange Rate Configuration - Compact */}
+      <Card className="mb-4 shadow-sm">
+        <Card.Header className="bg-light d-flex align-items-center">
+          <FaExchangeAlt className="me-2 text-primary" />
+          <h5 className="mb-0 fw-semibold">Exchange Rate Configuration</h5>
+        </Card.Header>
+        <Card.Body className="p-3">
+          <Row className="g-2">
             <Col md={3}>
               <Form.Group>
-                <Form.Label>Currency:</Form.Label>
+                <Form.Label className="small fw-semibold">
+                  Base Currency
+                </Form.Label>
                 <Form.Select
-                  value={formData.currencyDetails.currency}
-                  onChange={(e) => handleCurrencyChange(e.target.value)}
-                >
-                  {currencyOptions.map((currency) => (
-                    <option key={currency} value={currency}>
-                      {currency}
-                    </option>
-                  ))}
-                </Form.Select>
-              </Form.Group>
-            </Col>
-
-            <Col md={3}>
-              <Form.Group>
-                <Form.Label>From Currency</Form.Label>
-                <Form.Select
+                  size="sm"
                   value={fromCurrency}
-                  onChange={(e) => setFromCurrency(e.target.value)}
+                  onChange={(e) => {
+                    const selectedCurrency = e.target.value;
+                    setFromCurrency(selectedCurrency);
+                    // handleCurrencyChange(selectedCurrency);
+                   
+                  }}
                   disabled={isLoadingRates}
                 >
                   {currencyOptions.map((currency) => (
@@ -2143,10 +1420,22 @@ const Invoice_create = () => {
 
             <Col md={3}>
               <Form.Group>
-                <Form.Label>To Currency</Form.Label>
+                <Form.Label className="small fw-semibold">
+                  Invoice Currency
+                </Form.Label>
                 <Form.Select
+                  size="sm"
                   value={toCurrency}
-                  onChange={(e) => setToCurrency(e.target.value)}
+                  onChange={(e) => {
+                    const selectedCurrency = e.target.value;
+                    setToCurrency(e.target.value);
+                    handleCurrencyChange(selectedCurrency);
+                    //  setFormData((prev) => ({
+                    //   currencyDetails: {
+                    //     currency: selectedCurrency,
+                    //   },
+                    // }));
+                  }}
                   disabled={isLoadingRates}
                 >
                   {currencyOptions.map((currency) => (
@@ -2158,10 +1447,13 @@ const Invoice_create = () => {
               </Form.Group>
             </Col>
 
-            <Col md={3}>
+            <Col md={2}>
               <Form.Group>
-                <Form.Label>Current Rate</Form.Label>
+                <Form.Label className="small fw-semibold">
+                  Current Rate
+                </Form.Label>
                 <Form.Control
+                  size="sm"
                   type="text"
                   readOnly
                   value={
@@ -2173,37 +1465,14 @@ const Invoice_create = () => {
                 />
               </Form.Group>
             </Col>
-          </Row>
 
-          <Row className="mb-3">
-            <Col md={4}>
+            <Col md={2}>
               <Form.Group>
-                <Form.Label>Base Exchange Rate</Form.Label>
+                <Form.Label className="small fw-semibold">
+                  Increase Amount
+                </Form.Label>
                 <Form.Control
-                  type="number"
-                  step="0.0001"
-                  readOnly
-                  value={
-                    exchangeRates[toCurrency]
-                      ? exchangeRates[toCurrency].toFixed(4)
-                      : "0.0000"
-                  }
-                  className="bg-light"
-                />
-                <Form.Text className="text-muted">
-                  1 {fromCurrency} ={" "}
-                  {exchangeRates[toCurrency]
-                    ? exchangeRates[toCurrency].toFixed(4)
-                    : "0.0000"}{" "}
-                  {toCurrency}
-                </Form.Text>
-              </Form.Group>
-            </Col>
-
-            <Col md={4}>
-              <Form.Group>
-                <Form.Label>Increase Amount</Form.Label>
-                <Form.Control
+                  size="sm"
                   type="number"
                   step="1"
                   value={increaseAmount}
@@ -2211,78 +1480,82 @@ const Invoice_create = () => {
                     setIncreaseAmount(parseFloat(e.target.value) || 0)
                   }
                 />
-                <Form.Text className="text-muted">
-                  Amount to add to base rate
-                </Form.Text>
               </Form.Group>
             </Col>
 
-            <Col md={4}>
+            <Col md={2}>
               <Form.Group>
-                <Form.Label>Final XE Rate</Form.Label>
+                <Form.Label className="small fw-semibold">
+                  Final XE Rate
+                </Form.Label>
                 <Form.Control
+                  size="sm"
                   type="number"
                   step="0.0001"
                   value={fromCurrency === toCurrency ? 0 : xeRate}
                   onChange={(e) => setXeRate(parseFloat(e.target.value) || 0)}
                 />
-                <Form.Text className="text-muted">
-                  Base Rate + Increase Amount
-                </Form.Text>
               </Form.Group>
             </Col>
           </Row>
 
-          <Button
-            variant="outline-secondary"
-            size="sm"
-            onClick={async () => {
-              setIsLoadingRates(true);
-              try {
-                const rates = await fetchExchangeRates(fromCurrency);
-                setExchangeRates(rates);
-                if (rates[toCurrency]) {
-                  const baseRate = rates[toCurrency];
-                  const finalRate = baseRate + increaseAmount;
-                  setXeRate(parseFloat(finalRate.toFixed(4)));
+          <div className="mt-2">
+            <Button
+              variant="outline-primary"
+              size="sm"
+              onClick={async () => {
+                setIsLoadingRates(true);
+                try {
+                  const rates = await fetchExchangeRates(fromCurrency);
+                  setExchangeRates(rates);
+                  if (rates[toCurrency]) {
+                    const baseRate = rates[toCurrency];
+                    const finalRate = baseRate + increaseAmount;
+                    setXeRate(parseFloat(finalRate.toFixed(4)));
+                  }
+                } catch (error) {
+                  console.error("Error refreshing rates:", error);
+                } finally {
+                  setIsLoadingRates(false);
                 }
-              } catch (error) {
-                console.error("Error refreshing rates:", error);
-              } finally {
-                setIsLoadingRates(false);
-              }
-            }}
-            disabled={isLoadingRates}
-          >
-            <FaSyncAlt className="me-1" /> Refresh Rates
-          </Button>
+              }}
+              disabled={isLoadingRates}
+            >
+              <FaSyncAlt className="me-1" /> Refresh Rates
+            </Button>
+          </div>
         </Card.Body>
       </Card>
 
-      {/* Customer and Invoice Information */}
-      <Row className="mb-4">
+      {/* Customer and Invoice Information - Compact Layout */}
+      <Row className="mb-4 g-3">
+        {/* Agent/Customer Details */}
         {(companyNo === 2 || companyNo === 1 || companyNo === 3) && (
           <Col md={6}>
-            <Card className="h-100">
-              <Card.Body>
-                <h5 className="section-title fw-semibold mb-3">
-                  Agent Details
-                </h5>
-
+            <Card className="h-100 shadow-sm">
+              <Card.Header className="bg-light d-flex align-items-center">
+                <FaUser className="me-2 text-primary" />
+                <h6 className="mb-0 fw-semibold">Agent Details</h6>
+              </Card.Header>
+              <Card.Body className="p-3">
                 <Form.Group className="mb-3">
-                  <Form.Label>Search Agent:</Form.Label>
-                  <div className="input-group">
+                  <Form.Label className="small fw-semibold">
+                    Search Agent
+                  </Form.Label>
+                  <div className="input-group input-group-sm">
                     <Form.Control
                       type="text"
                       placeholder="Search by name, code or phone"
                       value={customerSearch}
                       onChange={(e) => setCustomerSearch(e.target.value)}
+                      size="sm"
                     />
-                    <Button variant="primary">
+                    <Button variant="outline-primary" size="sm">
                       <FaSearch />
                     </Button>
                     <Button
-                      variant="success"
+                      variant="outline-success"
+                      size="sm"
                       onClick={() => setShowCustomerModal(true)}
                     >
                       <FaPlus />
@@ -2292,7 +1565,7 @@ const Invoice_create = () => {
                   {filteredCustomers.length > 0 && (
                     <div
                       className="mt-2 border rounded p-2"
-                      style={{ maxHeight: "200px", overflowY: "auto" }}
+                      style={{ maxHeight: "150px", overflowY: "auto" }}
                     >
                       {filteredCustomers.map((customer) => (
                         <div
@@ -2303,41 +1576,38 @@ const Invoice_create = () => {
                         >
                           <strong>{customer.name}</strong> ({customer.code})
                           <br />
-                          {customer.mobile} | {customer.address}
+                          <small>
+                            {customer.mobile} | {customer.address}
+                          </small>
                         </div>
                       ))}
                     </div>
                   )}
                 </Form.Group>
 
-                <Form.Group className="mb-3">
-                  <Form.Label>Agent Name:</Form.Label>
-                  <Form.Control
-                    type="text"
-                    value={formData.customer.name}
-                    onChange={(e) =>
-                      handleInputChange("customer", "name", e.target.value)
-                    }
-                  />
-                </Form.Group>
-
-                <Form.Group className="mb-3">
-                  <Form.Label>Address:</Form.Label>
-                  <Form.Control
-                    as="textarea"
-                    rows={2}
-                    value={formData.customer.address}
-                    onChange={(e) =>
-                      handleInputChange("customer", "address", e.target.value)
-                    }
-                  />
-                </Form.Group>
-
-                <Row className="mb-3">
+                <Row className="g-2">
                   <Col md={6}>
                     <Form.Group>
-                      <Form.Label>Mobile:</Form.Label>
+                      <Form.Label className="small fw-semibold">
+                        Agent Name
+                      </Form.Label>
                       <Form.Control
+                        size="sm"
+                        type="text"
+                        value={formData.customer.name}
+                        onChange={(e) =>
+                          handleInputChange("customer", "name", e.target.value)
+                        }
+                      />
+                    </Form.Group>
+                  </Col>
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label className="small fw-semibold">
+                        Mobile
+                      </Form.Label>
+                      <Form.Control
+                        size="sm"
                         type="text"
                         value={formData.customer.mobile}
                         onChange={(e) =>
@@ -2350,11 +1620,33 @@ const Invoice_create = () => {
                       />
                     </Form.Group>
                   </Col>
-
+                  <Col md={12}>
+                    <Form.Group>
+                      <Form.Label className="small fw-semibold">
+                        Address
+                      </Form.Label>
+                      <Form.Control
+                        size="sm"
+                        as="textarea"
+                        rows={2}
+                        value={formData.customer.address}
+                        onChange={(e) =>
+                          handleInputChange(
+                            "customer",
+                            "address",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </Form.Group>
+                  </Col>
                   <Col md={6}>
                     <Form.Group>
-                      <Form.Label>GST:</Form.Label>
+                      <Form.Label className="small fw-semibold">
+                        GST No
+                      </Form.Label>
                       <Form.Control
+                        size="sm"
                         type="text"
                         value={formData.customer.gst_no}
                         onChange={(e) =>
@@ -2367,34 +1659,13 @@ const Invoice_create = () => {
                       />
                     </Form.Group>
                   </Col>
-                </Row>
-
-                {/* <Form.Group className="mb-3">
-                  <Form.Label>Mobile:</Form.Label>
-                  <Form.Control
-                    type="text"
-                    value={formData.customer.mobile}
-                    onChange={(e) =>
-                      handleInputChange("customer", "mobile", e.target.value)
-                    }
-                  />
-                </Form.Group>
-                <Form.Group className="mb-3">
-                  <Form.Label>GST:</Form.Label>
-                  <Form.Control
-                    type="text"
-                    value={formData.customer.gst_no}
-                    onChange={(e) =>
-                      handleInputChange("customer", "mobile", e.target.value)
-                    }
-                  />
-                </Form.Group> */}
-
-                <Row className="align-items-end mb-3">
-                  <Col md={9}>
+                  <Col md={6}>
                     <Form.Group>
-                      <Form.Label>Customer Name:</Form.Label>
+                      <Form.Label className="small fw-semibold">
+                        Customer Name
+                      </Form.Label>
                       <Form.Control
+                        size="sm"
                         type="text"
                         value={formData.customer.customer}
                         onChange={(e) =>
@@ -2407,242 +1678,51 @@ const Invoice_create = () => {
                       />
                     </Form.Group>
                   </Col>
-                  <Col md={3}>
-                    {/* <Button
-                      variant="primary"
-                      className="w-100"
-                      onClick={handleClick}
-                    >
-                      Submit
-                    </Button> */}
-                    <Button
-                      variant="primary"
-                      className="w-100"
-                      onClick={handleClick}
-                      disabled={isLoading}
-                    >
-                      {isLoading ? (
-                        <>
-                          <Spinner
-                            animation="border"
-                            size="sm"
-                            className="me-2"
-                          />
-                          Updating...
-                        </>
-                      ) : (
-                        "Submit"
-                      )}
-                    </Button>
-                  </Col>
-                </Row>
-              </Card.Body>
-            </Card>
-          </Col>
-        )}
-        {companyNo === 4 && (
-          <Col md={6}>
-            <Card className="h-100">
-              <Card.Body>
-                <h5 className="section-title fw-semibold mb-3">
-                  Customer Details
-                </h5>
-
-                <Row className="align-items-end mb-3">
-                  <Col md={9}>
-                    <Form.Group>
-                      <Form.Label>Customer Name:</Form.Label>
-                      <Form.Control
-                        type="text"
-                        value={newCustomer.customer}
-                        onChange={(e) =>
-                          setNewCustomer({
-                            ...newCustomer,
-                            customer: e.target.value,
-                          })
-                        }
-                      />
-                      <Form.Label>Customer Email:</Form.Label>
-                      <Form.Control
-                        type="text"
-                        value={newCustomer.customer_email}
-                        onChange={(e) =>
-                          setNewCustomer({
-                            ...newCustomer,
-                            customer_email: e.target.value,
-                          })
-                        }
-                      />
-                      <Form.Label>Customer Mobile:</Form.Label>
-                      <Form.Control
-                        type="text"
-                        value={newCustomer.customer_number}
-                        onChange={(e) =>
-                          setNewCustomer({
-                            ...newCustomer,
-                            customer_number: e.target.value,
-                          })
-                        }
-                      />
-                      {/* <Form.Label>Customer GST:</Form.Label>
-                      <Form.Control
-                        type="text"
-                        value={newCustomer.gst_no}
-                        onChange={(e) =>
-                          setNewCustomer({
-                            ...newCustomer,
-                            gst_no: e.target.value,
-                          })
-                        }
-                      /> */}
-                      <Form.Label>Payment Method:</Form.Label>
-                      <Form.Select
-                        value={newCustomer.payment_method}
-                        onChange={(e) =>
-                          setNewCustomer({
-                            ...newCustomer,
-                            payment_method: e.target.value,
-                          })
-                        }
-                      >
-                        <option value="">-- Select Payment Method --</option>
-                        <option value="Aahaas Pay">Aahaas Pay</option>
-                        <option value="Credit Card">Credit Card</option>
-                        <option value="Bank Transfer">Bank Transfer</option>
-                        <option value="Cash">Cash</option>
-                      </Form.Select>
-                    </Form.Group>
-                  </Col>
-
-                  <Col md={3}>
-                    <Button
-                      variant="primary"
-                      className="w-100"
-                      onClick={createNewCustomerAahaas}
-                      disabled={isLoading || isFormEmpty} // disable if empty
-                    >
-                      {isLoading ? (
-                        <>
-                          <Spinner
-                            animation="border"
-                            size="sm"
-                            className="me-2"
-                          />
-                          Submitting...
-                        </>
-                      ) : (
-                        "Submit"
-                      )}
-                    </Button>
-                  </Col>
                 </Row>
 
-                {/* <Row className="align-items-end mb-3">
-                  <Col md={9}>
-                    <Form.Group>
-                      <Form.Label>Customer Name:</Form.Label>
-                      <Form.Control
-                        type="text"
-                        value={newCustomer.customer}
-                        onChange={(e) =>
-                          setNewCustomer({
-                            ...newCustomer,
-                            customer: e.target.value,
-                          })
-                        }
-                      />
-                      <Form.Label>Customer Email:</Form.Label>
-                      <Form.Control
-                        type="text"
-                        value={newCustomer.customer_email}
-                        onChange={(e) =>
-                          setNewCustomer({
-                            ...newCustomer,
-                            customer_email: e.target.value,
-                          })
-                        }
-                      />
-                      <Form.Label>Customer Mobile:</Form.Label>
-                      <Form.Control
-                        type="text"
-                        value={newCustomer.customer_number}
-                        onChange={(e) =>
-                          setNewCustomer({
-                            ...newCustomer,
-                            customer_number: e.target.value,
-                          })
-                        }
-                      />
-                      <Form.Label>Customer GST:</Form.Label>
-                      
-                      <Form.Control
-                        type="text"
-                        value={newCustomer.gst_no}
-                        onChange={(e) =>
-                          setNewCustomer({
-                            ...newCustomer,
-                            gst_no: e.target.value,
-                          })
-                        }
-                      />
-                      <Form.Label>Payment Method:</Form.Label>
-                      <Form.Select
-                        value={newCustomer.payment_method}
-                        onChange={(e) =>
-                          setNewCustomer({
-                            ...newCustomer,
-                            payment_method: e.target.value,
-                          })
-                        }
-                      >
-                        <option value="">-- Select Payment Method --</option>
-                        <option value="Aahaas Pay">Aahaas Pay</option>
-                        <option value="Credit Card">Credit Card</option>
-                        <option value="Bank Transfer">Bank Transfer</option>
-                        <option value="Cash">Cash</option>
-                      </Form.Select>
-                    </Form.Group>
-                  </Col>
-                  <Col md={3}>
-                    
-                    <Button
-                      variant="primary"
-                      className="w-100"
-                      onClick={createNewCustomerAahaas}
-                      disabled={isLoading}
-                    >
-                      {isLoading ? (
-                        <>
-                          <Spinner
-                            animation="border"
-                            size="sm"
-                            className="me-2"
-                          />
-                          Submitting...
-                        </>
-                      ) : (
-                        "Submit"
-                      )}
-                    </Button>
-                  </Col>
-                </Row> */}
+                <div className="mt-3">
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    onClick={handleClick}
+                    disabled={isLoading}
+                    className="w-100"
+                  >
+                    {isLoading ? (
+                      <>
+                        <Spinner
+                          animation="border"
+                          size="sm"
+                          className="me-2"
+                        />
+                        Updating...
+                      </>
+                    ) : (
+                      "Update Agent Details"
+                    )}
+                  </Button>
+                </div>
               </Card.Body>
             </Card>
           </Col>
         )}
 
+        {/* Invoice Details */}
         <Col md={6}>
-          <Card className="h-100">
-            <Card.Body>
-              <h5 className="section-title fw-semibold mb-3">
-                Invoice Details
-              </h5>
-
-              <Row>
-                <Col md={6} className="mb-3">
+          <Card className="h-100 shadow-sm">
+            <Card.Header className="bg-light d-flex align-items-center">
+              <FaFileInvoice className="me-2 text-primary" />
+              <h6 className="mb-0 fw-semibold">Invoice Details</h6>
+            </Card.Header>
+            <Card.Body className="p-3">
+              <Row className="g-2">
+                <Col md={6}>
                   <Form.Group>
-                    <Form.Label>Country:</Form.Label>
+                    <Form.Label className="small fw-semibold">
+                      Country
+                    </Form.Label>
                     <Form.Select
+                      size="sm"
                       value={formData.invoice.country}
                       onChange={(e) =>
                         handleInputChange("invoice", "country", e.target.value)
@@ -2657,10 +1737,12 @@ const Invoice_create = () => {
                   </Form.Group>
                 </Col>
 
-                <Col md={6} className="mb-3">
+                <Col md={6}>
                   <Form.Group>
-                    <Form.Label>Tour No.:</Form.Label>
-                    <div className="input-group">
+                    <Form.Label className="small fw-semibold">
+                      Tour No
+                    </Form.Label>
+                    <div className="input-group input-group-sm">
                       <span className="input-group-text">
                         {countryOptions.find(
                           (c) => c.code === formData.invoice.country
@@ -2677,10 +1759,13 @@ const Invoice_create = () => {
                   </Form.Group>
                 </Col>
 
-                <Col md={6} className="mb-3">
+                <Col md={6}>
                   <Form.Group>
-                    <Form.Label>Issue Date:</Form.Label>
+                    <Form.Label className="small fw-semibold">
+                      Issue Date
+                    </Form.Label>
                     <Form.Control
+                      size="sm"
                       type="date"
                       value={formData.invoice.issueDate}
                       onChange={(e) =>
@@ -2694,10 +1779,13 @@ const Invoice_create = () => {
                   </Form.Group>
                 </Col>
 
-                <Col md={6} className="mb-3">
+                <Col md={6}>
                   <Form.Group>
-                    <Form.Label>Your Ref.:</Form.Label>
+                    <Form.Label className="small fw-semibold">
+                      Your Ref
+                    </Form.Label>
                     <Form.Control
+                      size="sm"
                       type="text"
                       value={formData.invoice.yourRef}
                       onChange={(e) =>
@@ -2707,10 +1795,13 @@ const Invoice_create = () => {
                   </Form.Group>
                 </Col>
 
-                <Col md={6} className="mb-3">
+                <Col md={6}>
                   <Form.Group>
-                    <Form.Label>Sales ID:</Form.Label>
+                    <Form.Label className="small fw-semibold">
+                      Sales ID
+                    </Form.Label>
                     <Form.Control
+                      size="sm"
                       type="text"
                       value={formData.invoice.salesId}
                       onChange={(e) =>
@@ -2720,10 +1811,33 @@ const Invoice_create = () => {
                   </Form.Group>
                 </Col>
 
-                <Col md={6} className="mb-3">
+                <Col md={6}>
                   <Form.Group>
-                    <Form.Label>Printed By:</Form.Label>
+                    <Form.Label className="small fw-semibold">
+                      Booking ID
+                    </Form.Label>
                     <Form.Control
+                      size="sm"
+                      type="text"
+                      value={formData.invoice.bookingId}
+                      onChange={(e) =>
+                        handleInputChange(
+                          "invoice",
+                          "bookingId",
+                          e.target.value
+                        )
+                      }
+                    />
+                  </Form.Group>
+                </Col>
+
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label className="small fw-semibold">
+                      Printed By
+                    </Form.Label>
+                    <Form.Control
+                      size="sm"
                       type="text"
                       value={formData.invoice.printedBy}
                       onChange={(e) =>
@@ -2737,34 +1851,23 @@ const Invoice_create = () => {
                   </Form.Group>
                 </Col>
 
-                <Col md={6} className="mb-3">
+                <Col md={6}>
                   <Form.Group>
-                    <Form.Label>Booking ID:</Form.Label>
-                    <Form.Control
-                      type="text"
-                      value={formData.invoice.bookingId}
+                    <Form.Label className="small fw-semibold">
+                      Agent Type
+                    </Form.Label>
+                    <Form.Select
+                      size="sm"
+                      value={formData.payment.type}
                       onChange={(e) =>
-                        handleInputChange(
-                          "invoice",
-                          "bookingId",
-                          e.target.value
-                        )
+                        handleInputChange("payment", "type", e.target.value)
                       }
-                    />
+                    >
+                      <option value="">-- Select --</option>
+                      <option value="credit">Credit</option>
+                      <option value="non-credit">Non-Credit</option>
+                    </Form.Select>
                   </Form.Group>
-                </Col>
-                <Col md={6} className="mb-3">
-                  <Form.Label>Agent Type:</Form.Label>
-                  <Form.Select
-                    value={formData.payment.type}
-                    onChange={(e) =>
-                      handleInputChange("payment", "type", e.target.value)
-                    }
-                  >
-                    <option value="">-- Select Agent Type --</option>
-                    <option value="credit">Credit</option>
-                    <option value="non-credit">Non-Credit</option>
-                  </Form.Select>
                 </Col>
               </Row>
             </Card.Body>
@@ -2772,16 +1875,21 @@ const Invoice_create = () => {
         </Col>
       </Row>
 
-      {/* Travel Period */}
-      <Card className="mb-4">
-        <Card.Body>
-          <h5 className="section-title fw-semibold mb-3">Travel Period</h5>
-
-          <Row>
+      {/* Travel Period - Compact */}
+      <Card className="mb-4 shadow-sm">
+        <Card.Header className="bg-light d-flex align-items-center">
+          <FaCalendarAlt className="me-2 text-primary" />
+          <h6 className="mb-0 fw-semibold">Travel Period</h6>
+        </Card.Header>
+        <Card.Body className="p-3">
+          <Row className="g-3">
             <Col md={4}>
-              <Form.Group className="mb-3">
-                <Form.Label>Start Date:</Form.Label>
+              <Form.Group>
+                <Form.Label className="small fw-semibold">
+                  Start Date
+                </Form.Label>
                 <Form.Control
+                  size="sm"
                   type="date"
                   value={formData.invoice.startDate}
                   onChange={(e) =>
@@ -2792,9 +1900,10 @@ const Invoice_create = () => {
             </Col>
 
             <Col md={4}>
-              <Form.Group className="mb-3">
-                <Form.Label>End Date:</Form.Label>
+              <Form.Group>
+                <Form.Label className="small fw-semibold">End Date</Form.Label>
                 <Form.Control
+                  size="sm"
                   type="date"
                   value={formData.invoice.endDate}
                   min={formData.invoice.startDate || ""}
@@ -2806,9 +1915,12 @@ const Invoice_create = () => {
             </Col>
 
             <Col md={4}>
-              <Form.Group className="mb-3">
-                <Form.Label>Travel Days:</Form.Label>
+              <Form.Group>
+                <Form.Label className="small fw-semibold">
+                  Travel Days
+                </Form.Label>
                 <Form.Control
+                  size="sm"
                   type="text"
                   readOnly
                   value={
@@ -2819,7 +1931,7 @@ const Invoice_create = () => {
                         )} day(s)`
                       : "0 day(s)"
                   }
-                  className="bg-light"
+                  className="bg-light fw-semibold"
                 />
               </Form.Group>
             </Col>
@@ -2827,268 +1939,199 @@ const Invoice_create = () => {
         </Card.Body>
       </Card>
 
-      {/* Service Items */}
-      <Card className="mb-4">
-        <Card.Body>
-          <div className="d-flex justify-content-between align-items-center mb-3">
-            <h5 className="section-title fw-semibold mb-0">Service Details</h5>
-            <Button variant="primary" onClick={() => setShowItemModal(true)}>
-              <FaPlus /> Add Item
-            </Button>
+      {/* Service Items - Compact */}
+      <Card className="mb-4 shadow-sm">
+        <Card.Header className="bg-light d-flex align-items-center justify-content-between">
+          <div className="d-flex align-items-center">
+            <FaMoneyBillWave className="me-2 text-primary" />
+            <h6 className="mb-0 fw-semibold">Service Details</h6>
           </div>
-
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => setShowItemModal(true)}
+          >
+            <FaPlus className="me-1" /> Add Item
+          </Button>
+        </Card.Header>
+        <Card.Body className="p-3">
           <div className="table-responsive">
-            <Table bordered>
+            <Table bordered size="sm" className="mb-0">
               <thead className="table-light">
                 <tr>
-                  <th>Code</th>
-                  {/* <th>Type</th> */}
-                  <th>Description</th>
-                  <th>Check-in</th>
-                  <th>Check-out</th>
-                  <th>Qty</th>
-                  <th>Price</th>
-                  <th>Discount</th>
-                  <th>Total</th>
-                  <th>Action</th>
+                  <th width="8%">Code</th>
+                  <th width="25%">Description</th>
+                  <th width="10%">Check-in</th>
+                  <th width="10%">Check-out</th>
+                  <th width="8%">Qty</th>
+                  <th width="12%">Price</th>
+                  <th width="8%">Disc %</th>
+                  <th width="12%">Total</th>
+                  <th width="7%">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {formData.serviceItems.map((item) => (
                   <tr key={item.id}>
-                    <td>{item.code}</td>
-                    {/* <td>{item.type}</td> */}
-                    <td>{item.description}</td>
-                    <td>{item.checkin_time || "-"}</td>
-                    <td>{item.checkout_time || "-"}</td>
-                    <td>{item.qty}</td>
-                    <td>{item.price}</td>
-                    <td>{item.discount}%</td>
-                    <td>
+                    <td className="small">{item.code}</td>
+                    <td className="small">{item.description}</td>
+                    <td className="small">{item.checkin_time || "-"}</td>
+                    <td className="small">{item.checkout_time || "-"}</td>
+                    <td className="small text-center">{item.qty}</td>
+                    <td className="small text-end">
+                      {item.price.toFixed(2) * xeRate}
+                    </td>
+                    <td className="small text-center">{item.discount}%</td>
+                    <td className="small text-end fw-semibold">
                       {(
                         item.qty *
                         item.price *
                         (1 - item.discount / 100)
-                      ).toFixed(2)}
+                      ).toFixed(2) * xeRate}
                     </td>
                     <td>
                       <div className="d-flex gap-1">
                         <Button
-                          variant="warning"
+                          variant="outline-warning"
                           size="sm"
                           onClick={() => handleEditItem(item)}
                           title="Edit Item"
                         >
-                          <FaEdit />
+                          <FaEdit size={12} />
                         </Button>
                         <Button
-                          variant="danger"
+                          variant="outline-danger"
                           size="sm"
                           onClick={() => deleteItem(item.id, "service")}
                           title="Delete Item"
                         >
-                          <FaTrash />
+                          <FaTrash size={12} />
                         </Button>
                       </div>
                     </td>
                   </tr>
                 ))}
+                {formData.serviceItems.length === 0 && (
+                  <tr>
+                    <td colSpan="9" className="text-center text-muted py-3">
+                      No service items added yet
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </Table>
           </div>
 
-          {formData.currencyDetails.currency === "INR" && (
-            <div className="mt-3">
-              <strong>Handling Fee:</strong>{" "}
-              {formData.totals.handlingFee.toFixed(2)}
-            </div>
-          )}
+          {formData.currencyDetails.currency === "INR" &&
+            formData.serviceItems.length > 0 && (
+              <div className="mt-2 text-end">
+                <small className="fw-semibold">
+                  Handling Fee: {formData.totals.handlingFee.toFixed(2)}
+                </small>
+              </div>
+            )}
         </Card.Body>
       </Card>
 
-      {/* Additional Charges */}
-      <Card className="mb-4">
-        <Card.Body>
-          <div className="d-flex justify-content-between align-items-center mb-3">
-            <h5 className="section-title fw-semibold mb-0">
-              Additional Charges
-            </h5>
-            <Button variant="primary" onClick={() => setShowChargeModal(true)}>
-              <FaPlus /> Add Charge
-            </Button>
+      {/* Additional Charges - Compact */}
+      <Card className="mb-4 shadow-sm">
+        <Card.Header className="bg-light d-flex align-items-center justify-content-between">
+          <div className="d-flex align-items-center">
+            <FaPercent className="me-2 text-primary" />
+            <h6 className="mb-0 fw-semibold">Additional Charges</h6>
           </div>
-
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => setShowChargeModal(true)}
+          >
+            <FaPlus className="me-1" /> Add Charge
+          </Button>
+        </Card.Header>
+        <Card.Body className="p-3">
           <div className="table-responsive">
-            <Table bordered>
+            <Table bordered size="sm" className="mb-0">
               <thead className="table-light">
                 <tr>
-                  <th>Description</th>
-                  <th>Amount</th>
-                  {/* <th>Taxable</th> */}
-                  <th>Action</th>
+                  <th width="70%">Description</th>
+                  <th width="20%">Amount</th>
+                  <th width="10%">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {formData.additionalCharges.map((charge) => (
                   <tr key={charge.id}>
-                    <td>{charge.description}</td>
-                    <td>{charge.amount.toFixed(2)}</td>
-                    {/* <td>
-                      <Form.Check
-                        type="switch"
-                        checked={charge.taxable}
-                        readOnly
-                      />
-                    </td> */}
+                    <td className="small">{charge.description}</td>
+                    <td className="small text-end">
+                      {charge.amount.toFixed(2)}
+                    </td>
                     <td>
                       <Button
-                        variant="danger"
+                        variant="outline-danger"
                         size="sm"
                         onClick={() => deleteItem(charge.id, "charge")}
                       >
-                        <FaTrash />
+                        <FaTrash size={12} />
                       </Button>
                     </td>
                   </tr>
                 ))}
+                {formData.additionalCharges.length === 0 && (
+                  <tr>
+                    <td colSpan="3" className="text-center text-muted py-3">
+                      No additional charges added yet
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </Table>
           </div>
         </Card.Body>
       </Card>
 
-      {/* Tax Rates */}
-      <Card className="mb-4 d-none">
-        <Card.Body>
-          <div className="d-flex justify-content-between align-items-center mb-3">
-            <h5 className="section-title fw-semibold mb-0">Tax Rates</h5>
-            <Button variant="primary" onClick={() => setShowTaxModal(true)}>
-              <FaPlus /> Add Tax Rate
-            </Button>
+      {/* Account Details - Compact */}
+      <Card className="mb-4 shadow-sm">
+        <Card.Header className="bg-light d-flex align-items-center justify-content-between">
+          <div className="d-flex align-items-center">
+            <FaCreditCard className="me-2 text-primary" />
+            <h6 className="mb-0 fw-semibold">Account Details</h6>
           </div>
-
-          <Form.Group className="mb-3">
-            <Form.Check
-              type="switch"
-              id="vat-toggle"
-              label="VAT Included"
-              checked={vatInclude}
-              onChange={(e) => {
-                setVatInclude(e.target.checked);
-                if (!e.target.checked) {
-                  setVatComponent({ taxBased: "" });
-                }
-              }}
-            />
-          </Form.Group>
-
-          {vatInclude && (
-            <Form.Group className="mb-3">
-              <Form.Label>VAT Applied On:</Form.Label>
-              <Form.Select
-                value={vatComponent.taxBased}
-                onChange={(e) => {
-                  setVatComponent({
-                    ...vatComponent,
-                    taxBased: e.target.value,
-                  });
-                  calculateTotals();
-                }}
-              >
-                <option value="">Select VAT Component</option>
-                <option value="subtotal">Subtotal</option>
-                <option value="total">Total Amount</option>
-                <option value="handling">Handling Fee</option>
-              </Form.Select>
-              {vatComponent.taxBased && (
-                <Form.Text className="text-muted">
-                  VAT (18%) will be applied to {vatComponent.taxBased}
-                </Form.Text>
-              )}
-            </Form.Group>
-          )}
-
-          <div className="table-responsive">
-            <Table bordered>
-              <thead className="table-light">
-                <tr>
-                  <th>Component</th>
-                  <th>Rate (%)</th>
-                  <th>Type</th>
-                  <th>Status</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {taxRates.map((tax, index) => (
-                  <tr key={index}>
-                    <td>{tax.component}</td>
-                    <td>{tax.rate}</td>
-                    <td>
-                      <Badge
-                        bg={tax.component === "VAT" ? "success" : "primary"}
-                      >
-                        {tax.component === "VAT" ? "VAT" : "Standard"}
-                      </Badge>
-                    </td>
-                    <td>
-                      <Form.Check
-                        type="switch"
-                        checked={tax.isActive !== false}
-                        onChange={(e) =>
-                          toggleTaxRateStatus(tax.id, e.target.checked)
-                        }
-                      />
-                    </td>
-                    <td>
-                      <Button
-                        variant="danger"
-                        size="sm"
-                        onClick={() => deleteItem(tax.id, "tax")}
-                      >
-                        <FaTrash />
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
-          </div>
-        </Card.Body>
-      </Card>
-
-      {/* Account Details */}
-      <Card className="mb-4">
-        <Card.Body>
-          <div className="d-flex justify-content-between align-items-center mb-3">
-            <h5 className="section-title fw-semibold mb-0">Account Details</h5>
-            <Button variant="primary" onClick={() => handleAccount()}>
-              <FaPlus /> Add Account
-            </Button>
-          </div>
-
-          <Form.Group className="mb-3">
-            <Form.Label>Select Account</Form.Label>
-            <Form.Select
-              onChange={(e) => handleAccountSelect(e.target.value, currency)}
-              value={formData.selectedAccountId || ""}
-            >
-              <option value="" disabled>
-                Select an account
-              </option>
-              {accounts.map((account) => (
-                <option key={account.id} value={account.id}>
-                  {account.account_name} - {account.account_no}
-                </option>
-              ))}
-            </Form.Select>
-          </Form.Group>
-
-          <Row>
-            <Col md={4} className="mb-3">
+          <Button variant="primary" size="sm" onClick={() => handleAccount()}>
+            <FaPlus className="me-1" /> Add Account
+          </Button>
+        </Card.Header>
+        <Card.Body className="p-3">
+          <Row className="g-2">
+            <Col md={4}>
               <Form.Group>
-                <Form.Label>Account Name:</Form.Label>
+                <Form.Label className="small fw-semibold">
+                  Select Account
+                </Form.Label>
+                <Form.Select
+                  size="sm"
+                  onChange={(e) =>
+                    handleAccountSelect(e.target.value, currency)
+                  }
+                  value={formData.selectedAccountId || ""}
+                >
+                  <option value="" disabled>
+                    Select an account
+                  </option>
+                  {accounts.map((account) => (
+                    <option key={account.id} value={account.id}>
+                      {account.account_name} - {account.account_no}
+                    </option>
+                  ))}
+                </Form.Select>
+              </Form.Group>
+            </Col>
+            <Col md={4}>
+              <Form.Group>
+                <Form.Label className="small fw-semibold">
+                  Account Name
+                </Form.Label>
                 <Form.Control
+                  size="sm"
                   type="text"
                   value={formData.accountDetails.name}
                   onChange={(e) =>
@@ -3101,11 +2144,13 @@ const Invoice_create = () => {
                 />
               </Form.Group>
             </Col>
-
-            <Col md={4} className="mb-3">
+            <Col md={4}>
               <Form.Group>
-                <Form.Label>Account No:</Form.Label>
+                <Form.Label className="small fw-semibold">
+                  Account No
+                </Form.Label>
                 <Form.Control
+                  size="sm"
                   type="text"
                   value={formData.accountDetails.number}
                   onChange={(e) =>
@@ -3118,11 +2163,11 @@ const Invoice_create = () => {
                 />
               </Form.Group>
             </Col>
-
-            <Col md={4} className="mb-3">
+            <Col md={4}>
               <Form.Group>
-                <Form.Label>Bank:</Form.Label>
+                <Form.Label className="small fw-semibold">Bank</Form.Label>
                 <Form.Control
+                  size="sm"
                   type="text"
                   value={formData.accountDetails.bank}
                   onChange={(e) =>
@@ -3135,11 +2180,11 @@ const Invoice_create = () => {
                 />
               </Form.Group>
             </Col>
-
-            <Col md={4} className="mb-3">
+            <Col md={4}>
               <Form.Group>
-                <Form.Label>Branch:</Form.Label>
+                <Form.Label className="small fw-semibold">Branch</Form.Label>
                 <Form.Control
+                  size="sm"
                   type="text"
                   value={formData.accountDetails.branch}
                   onChange={(e) =>
@@ -3152,11 +2197,11 @@ const Invoice_create = () => {
                 />
               </Form.Group>
             </Col>
-
-            <Col md={4} className="mb-3">
+            <Col md={4}>
               <Form.Group>
-                <Form.Label>IFSC Code:</Form.Label>
+                <Form.Label className="small fw-semibold">IFSC Code</Form.Label>
                 <Form.Control
+                  size="sm"
                   type="text"
                   value={formData.accountDetails.ifsc}
                   onChange={(e) =>
@@ -3169,294 +2214,107 @@ const Invoice_create = () => {
                 />
               </Form.Group>
             </Col>
+          </Row>
+        </Card.Body>
+      </Card>
 
-            <Col md={4} className="mb-3">
-              <Form.Group>
-                <Form.Label>Bank Address:</Form.Label>
-                <Form.Control
-                  type="text"
-                  value={formData.accountDetails.address}
-                  onChange={(e) =>
-                    handleNestedInputChange(
-                      "accountDetails",
-                      "address",
-                      e.target.value
-                    )
-                  }
-                />
-              </Form.Group>
+      {/* Totals Section - Compact */}
+      <Card className="mb-4 shadow-sm">
+        <Card.Header className="bg-light">
+          <h6 className="mb-0 fw-semibold">Invoice Totals</h6>
+        </Card.Header>
+        <Card.Body className="p-3">
+          <Row>
+            <Col md={8}>{/* Additional information can go here */}</Col>
+            <Col md={4}>
+              <div className="border rounded p-3 bg-light">
+                <div className="d-flex justify-content-between mb-2">
+                  <span className="small">Sub Total:</span>
+                  <span className="small fw-semibold">
+                    {formData.totals.subTotal.toFixed(2)}
+                  </span>
+                </div>
+
+                {formData.currencyDetails.currency === "INR" && (
+                  <>
+                    <div className="d-flex justify-content-between mb-2">
+                      <span className="small">Handling Fee:</span>
+                      <span className="small fw-semibold">
+                        {formData.totals.handlingFee.toFixed(2)}
+                      </span>
+                    </div>
+
+                    <div className="d-flex justify-content-between mb-2 bg-white px-2 py-1 rounded">
+                      <span className="small">GST 18%:</span>
+                      <span className="small fw-semibold">
+                        {(formData.totals.handlingFee * 0.18).toFixed(2)}
+                      </span>
+                    </div>
+                  </>
+                )}
+
+                <div className="d-flex justify-content-between mb-2 bg-white px-2 py-1 rounded">
+                  <span className="small">Additional Tax:</span>
+                  <span className="small fw-semibold">
+                    {(formData.totals.additionalTax * 0.18).toFixed(2)}
+                  </span>
+                </div>
+
+                <div className="d-flex justify-content-between mb-2">
+                  <span className="small">Additional Charges:</span>
+                  <span className="small fw-semibold">
+                    {formData.additionalCharges
+                      .reduce(
+                        (sum, charge) => sum + parseFloat(charge.amount || 0),
+                        0
+                      )
+                      .toFixed(2)}
+                  </span>
+                </div>
+
+                <hr className="my-2" />
+
+                <div className="d-flex justify-content-between mb-2">
+                  <span className="fw-semibold">Total Amount:</span>
+                  <span className="fw-bold text-primary">
+                    {formData.totals.total.toFixed(2)}
+                  </span>
+                </div>
+
+                <div className="d-flex justify-content-between mb-2">
+                  <span className="small">Amount Received:</span>
+                  <Form.Control
+                    size="sm"
+                    type="number"
+                    className="w-50 text-end"
+                    value={formData.totals.amountReceived}
+                    onChange={(e) =>
+                      handleInputChange(
+                        "totals",
+                        "amountReceived",
+                        parseFloat(e.target.value) || 0
+                      )
+                    }
+                  />
+                </div>
+
+                <div className="d-flex justify-content-between mt-3 pt-2 border-top">
+                  <span className="fw-bold">Balance:</span>
+                  <span className="fw-bold text-success">
+                    {formData.totals.balance.toFixed(2)}
+                  </span>
+                </div>
+              </div>
             </Col>
           </Row>
         </Card.Body>
       </Card>
 
-      {/* Totals and Payment Information */}
-      <Row className="mb-4">
-        {/* <Col md={8}>
-          <Card className="h-100">
-            <Card.Body>
-              <h5 className="section-title fw-semibold mb-3">
-                Payment Information
-              </h5>
-
-              <Form.Group className="mb-3">
-                <div className="d-flex gap-3">
-                  <Form.Check
-                    type="radio"
-                    label="Credit (One-time Payment)"
-                    name="paymentType"
-                    id="creditType"
-                    checked={formData.payment.type === "credit"}
-                    onChange={() =>
-                      handleInputChange("payment", "type", "credit")
-                    }
-                  />
-                  <Form.Check
-                    type="radio"
-                    label="Non-Credit (Collection Payment)"
-                    name="paymentType"
-                    id="nonCreditType"
-                    checked={formData.payment.type === "non-credit"}
-                    onChange={() =>
-                      handleInputChange("payment", "type", "non-credit")
-                    }
-                  />
-                </div>
-              </Form.Group>
-
-              {formData.payment.type === "non-credit" && (
-                <div id="collectionDetails">
-                  <Row>
-                    <Col md={6} className="mb-3">
-                      <Form.Group>
-                        <Form.Label>Collection Date:</Form.Label>
-                        <Form.Control
-                          type="date"
-                          value={formData.payment.collectionDate}
-                          onChange={(e) =>
-                            handleNestedInputChange(
-                              "payment",
-                              "collectionDate",
-                              e.target.value
-                            )
-                          }
-                        />
-                      </Form.Group>
-                    </Col>
-                  </Row>
-
-                  <Form.Group className="mb-3">
-                    <Form.Label>Payment Instructions:</Form.Label>
-                    <Form.Control
-                      as="textarea"
-                      rows={2}
-                      value={formData.payment.instructions}
-                      onChange={(e) =>
-                        handleNestedInputChange(
-                          "payment",
-                          "instructions",
-                          e.target.value
-                        )
-                      }
-                    />
-                  </Form.Group>
-                </div>
-              )}
-
-              <Row>
-                <Col md={6} className="mb-3">
-                  <Form.Group>
-                    <Form.Label>Remarks:</Form.Label>
-                    <Form.Control
-                      type="text"
-                      value={formData.payment.remarks}
-                      onChange={(e) =>
-                        handleNestedInputChange(
-                          "payment",
-                          "remarks",
-                          e.target.value
-                        )
-                      }
-                    />
-                  </Form.Group>
-                </Col>
-              </Row>
-
-              <Form.Group className="mb-3">
-                <Form.Label>Payment Methods:</Form.Label>
-                <Row>
-                  <Col md={3}>
-                    <Form.Check
-                      type="checkbox"
-                      label="Bank Transfer"
-                      checked={formData.payment.methods.bankTransfer}
-                      onChange={(e) =>
-                        handlePaymentMethodChange(
-                          "bankTransfer",
-                          e.target.checked
-                        )
-                      }
-                    />
-                  </Col>
-                  <Col md={3}>
-                    <Form.Check
-                      type="checkbox"
-                      label="AMEX"
-                      checked={formData.payment.methods.amex}
-                      onChange={(e) =>
-                        handlePaymentMethodChange("amex", e.target.checked)
-                      }
-                    />
-                  </Col>
-                  <Col md={3}>
-                    <Form.Check
-                      type="checkbox"
-                      label="Google Pay"
-                      checked={formData.payment.methods.googlePay}
-                      onChange={(e) =>
-                        handlePaymentMethodChange("googlePay", e.target.checked)
-                      }
-                    />
-                  </Col>
-                  <Col md={3}>
-                    <Form.Check
-                      type="checkbox"
-                      label="USD Portal Link"
-                      checked={formData.payment.methods.usdPortal}
-                      onChange={(e) =>
-                        handlePaymentMethodChange("usdPortal", e.target.checked)
-                      }
-                    />
-                  </Col>
-                </Row>
-              </Form.Group>
-
-              <Form.Group className="mb-3">
-                <Form.Label>Attachments:</Form.Label>
-                <Form.Control
-                  type="file"
-                  multiple
-                  onChange={(e) =>
-                    setFormData((prev) => ({
-                      ...prev,
-                      attachments: Array.from(e.target.files),
-                    }))
-                  }
-                />
-
-                {Array.isArray(formData.attachments) &&
-                formData.attachments.length > 0 ? (
-                  <div className="mt-2">
-                    <strong>Selected files:</strong>
-                    <ul>
-                      {formData.attachments.map((file, index) => (
-                        <li key={index}>{file?.name || "Unnamed file"}</li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : (
-                  <div className="text-muted mt-2">No files selected.</div>
-                )}
-              </Form.Group>
-            </Card.Body>
-          </Card>
-        </Col> */}
-
-        <Col md={6}>
-          <Card className="h-100">
-            <Card.Body>
-              <h5 className="section-title fw-semibold mb-3">Invoice Totals</h5>
-
-              <div className="d-flex justify-content-between mb-2 pb-2 border-bottom">
-                <span>Sub Total:</span>
-                <span>{formData.totals.subTotal.toFixed(2)}</span>
-              </div>
-
-              {formData.currencyDetails.currency === "INR" && (
-                <>
-                  <div className="d-flex justify-content-between mb-2 pb-2 border-bottom">
-                    <span>Handling Fee:</span>
-                    <span>{formData.totals.handlingFee.toFixed(2)}</span>
-                  </div>
-
-                  <div className="d-flex justify-content-between mb-2 pb-2 border-bottom bg-light">
-                    <span>GST 18%:</span>
-                    <span>
-                      {(formData.totals.handlingFee * 0.18).toFixed(2)}
-                    </span>
-                  </div>
-                </>
-              )}
-
-              <div className="d-flex justify-content-between mb-2 pb-2 border-bottom bg-light">
-                <span>Additional Tax:</span>
-                <span>{(formData.totals.additionalTax * 0.18).toFixed(2)}</span>
-                {/* <Form.Control
-                  type="number"
-                  size="sm"
-                  className="w-50 text-end"
-                  value={formData.totals.additionalTax}
-                  onChange={(e) =>
-                    handleInputChange(
-                      "totals",
-                      "additionalTax",
-                      parseFloat(e.target.value) || 0
-                    )
-                  }
-                /> */}
-              </div>
-
-              <div className="d-flex justify-content-between mb-2 pb-2 border-bottom">
-                <span>Additional Charges:</span>
-                <span>
-                  {formData.additionalCharges
-                    .reduce(
-                      (sum, charge) => sum + parseFloat(charge.amount || 0),
-                      0
-                    )
-                    .toFixed(2)}
-                </span>
-              </div>
-
-              <div className="d-flex justify-content-between mb-2 pb-2 border-bottom fw-bold">
-                <span>Total Amount:</span>
-                <span>{formData.totals.total.toFixed(2)}</span>
-              </div>
-
-              <div className="d-flex justify-content-between mb-2 pb-2 border-bottom">
-                <span>Amount Received:</span>
-                <Form.Control
-                  type="number"
-                  size="sm"
-                  className="w-50 text-end"
-                  value={formData.totals.amountReceived}
-                  onChange={(e) =>
-                    handleInputChange(
-                      "totals",
-                      "amountReceived",
-                      parseFloat(e.target.value) || 0
-                    )
-                  }
-                />
-              </div>
-
-              <div className="d-flex justify-content-between mb-2 fw-bold">
-                <span>Balance:</span>
-                <span>{formData.totals.balance.toFixed(2)}</span>
-              </div>
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
-
       {/* Action Buttons */}
       <div className="d-flex justify-content-center gap-3 mb-4">
-        <Button variant="primary" size="lg" onClick={generatePreview}>
+        <Button variant="outline-primary" size="lg" onClick={generatePreview}>
           <FaEye className="me-2" /> Preview Invoice
         </Button>
-        {/* <Button variant="success" size="lg" onClick={handleSubmit}>
-          <FaCog className="me-2" /> Create Invoice
-        </Button> */}
         <Button
           variant="success"
           size="lg"
@@ -3474,11 +2332,11 @@ const Invoice_create = () => {
             </>
           )}
         </Button>
-
-        <Button variant="secondary" size="lg" onClick={resetForm}>
+        <Button variant="outline-secondary" size="lg" onClick={resetForm}>
           <FaSyncAlt className="me-2" /> Reset Form
         </Button>
       </div>
+
       {/* Exchange Rate Modal */}
       <Modal
         show={showExchangeModal}
@@ -3566,260 +2424,7 @@ const Invoice_create = () => {
         </Modal.Footer>
       </Modal>
       {/* Item Management Modal */}
-      <Modal
-        show={showItemModal}
-        onHide={() => setShowItemModal(false)}
-        size="lg"
-      >
-        <Modal.Header closeButton>
-          <Modal.Title>Add New Item</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Nav
-            variant="tabs"
-            activeKey={activeTab}
-            onSelect={setActiveTab}
-            className="mb-4"
-          >
-            <Nav.Item>
-              <Nav.Link eventKey="sell">Sell Details</Nav.Link>
-            </Nav.Item>
-            <Nav.Item>
-              {/* <Nav.Link eventKey="purchase">Purchase Details</Nav.Link> */}
-            </Nav.Item>
-          </Nav>
 
-          <Tab.Content>
-            <Tab.Pane eventKey="sell" active={activeTab === "sell"}>
-              <Row>
-                <Col md={6} className="mb-3">
-                  <Form.Group>
-                    <Form.Label>Item Code:</Form.Label>
-                    <Form.Control
-                      type="text"
-                      value={newItem.code}
-                      onChange={(e) =>
-                        setNewItem({ ...newItem, code: e.target.value })
-                      }
-                    />
-                  </Form.Group>
-                </Col>
-
-                <Col md={6} className="mb-3">
-                  <Form.Group>
-                    <Form.Label>Item Type:</Form.Label>
-                    <Form.Select
-                      value={newItem.type}
-                      onChange={(e) =>
-                        setNewItem({ ...newItem, type: e.target.value })
-                      }
-                    >
-                      {itemTypes.map((type) => (
-                        <option key={type} value={type}>
-                          {type}
-                        </option>
-                      ))}
-                    </Form.Select>
-                  </Form.Group>
-                </Col>
-
-                <Col md={12} className="mb-3">
-                  <Form.Group>
-                    <Form.Label>Description:</Form.Label>
-                    <Form.Select
-                      value={newItem.description}
-                      onChange={(e) =>
-                        setNewItem({
-                          ...newItem,
-                          description: e.target.value,
-                        })
-                      }
-                    >
-                      <option value="">Select Description</option>
-
-                      {companyNo === 1 || companyNo === 2 ? (
-                        <>
-                          <option value="Cost per Adult">Cost per Adult</option>
-                          <option value="Cost per Child">Cost per Child</option>
-                          <option value="Cost per Person">
-                            Cost per Person
-                          </option>
-                        </>
-                      ) : (
-                        <option value="Cost per Product">
-                          Cost per Product
-                        </option>
-                      )}
-
-                      {/* <option value="custom">Other (Type Manually)</option> */}
-                    </Form.Select>
-
-                    {newItem.description === "custom" && (
-                      <Form.Control
-                        className="mt-2"
-                        type="text"
-                        placeholder="Enter custom description"
-                        value={newItem.description || ""}
-                        onChange={(e) =>
-                          setNewItem({
-                            ...newItem,
-                            description: e.target.value,
-                            customDescription: e.target.value,
-                          })
-                        }
-                      />
-                    )}
-                    {/* <Form.Control
-                      type="text"
-                      value={newItem.description}
-                      onChange={(e) =>
-                        setNewItem({ ...newItem, description: e.target.value })
-                      }
-                    /> */}
-                  </Form.Group>
-                </Col>
-
-                <Col md={6} className="mb-3">
-                  <Form.Group>
-                    <Form.Label>Check-in Date:</Form.Label>
-                    <Form.Control
-                      type="date"
-                      value={newItem.checkin_time}
-                      onChange={(e) =>
-                        setNewItem({ ...newItem, checkin_time: e.target.value })
-                      }
-                    />
-                  </Form.Group>
-                </Col>
-
-                <Col md={6} className="mb-3">
-                  <Form.Group>
-                    <Form.Label>Check-out Date:</Form.Label>
-                    <Form.Control
-                      type="date"
-                      value={newItem.checkout_time}
-                      onChange={(e) =>
-                        setNewItem({
-                          ...newItem,
-                          checkout_time: e.target.value,
-                        })
-                      }
-                    />
-                  </Form.Group>
-                </Col>
-
-                <Col md={4} className="mb-3">
-                  <Form.Group>
-                    <Form.Label>Quantity:</Form.Label>
-                    <Form.Control
-                      type="number"
-                      value={newItem.qty}
-                      onChange={(e) =>
-                        setNewItem({
-                          ...newItem,
-                          qty: parseInt(e.target.value) || 0,
-                        })
-                      }
-                    />
-                  </Form.Group>
-                </Col>
-
-                <Col md={4} className="mb-3">
-                  <Form.Group>
-                    <Form.Label>Price:</Form.Label>
-                    <Form.Control
-                      type="number"
-                      step="0.01" // allows decimal numbers
-                      inputMode="decimal"
-                      value={newItem.price}
-                      onChange={(e) =>
-                        setNewItem({
-                          ...newItem,
-                          price: parseFloat(e.target.value) || 0,
-                        })
-                      }
-                    />
-                    {/* <Form.Control
-                      inputMode="decimal"
-                      pattern="[0-9]*"
-                      value={newItem.price}
-                      onChange={(e) =>
-                        setNewItem({
-                          ...newItem,
-                          price: parseFloat(e.target.value) || 0,
-                        })
-                      }
-                    /> */}
-                  </Form.Group>
-                </Col>
-
-                <Col md={4} className="mb-3">
-                  <Form.Group>
-                    <Form.Label>Discount (%):</Form.Label>
-                    <Form.Control
-                      type="number"
-                      value={newItem.discount}
-                      onChange={(e) =>
-                        setNewItem({
-                          ...newItem,
-                          discount: parseFloat(e.target.value) || 0,
-                        })
-                      }
-                    />
-                  </Form.Group>
-                </Col>
-              </Row>
-            </Tab.Pane>
-
-            <Tab.Pane eventKey="purchase" active={activeTab === "purchase"}>
-              <Row>
-                <Col md={6} className="mb-3">
-                  <Form.Group>
-                    <Form.Label>Cost Price:</Form.Label>
-                    <Form.Control
-                      type="number"
-                      step="0.01"
-                      value={newItem.price}
-                      onChange={(e) =>
-                        setNewItem({
-                          ...newItem,
-                          price: parseFloat(e.target.value) || 0,
-                        })
-                      }
-                    />
-                  </Form.Group>
-                </Col>
-
-                <Col md={6} className="mb-3">
-                  <Form.Group>
-                    <Form.Label>Tax Rate:</Form.Label>
-                    <Form.Select
-                      value={newItem.taxRate || 0}
-                      onChange={(e) =>
-                        setNewItem({
-                          ...newItem,
-                          taxRate: parseFloat(e.target.value) || 0,
-                        })
-                      }
-                    >
-                      <option value="0">No Tax</option>
-                      <option value="18">GST 18%</option>
-                    </Form.Select>
-                  </Form.Group>
-                </Col>
-              </Row>
-            </Tab.Pane>
-          </Tab.Content>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowItemModal(false)}>
-            Cancel
-          </Button>
-          <Button variant="primary" onClick={addNewItem}>
-            Add to Invoice
-          </Button>
-        </Modal.Footer>
-      </Modal>
       {/* Charge Modal */}
       <Modal show={showChargeModal} onHide={() => setShowChargeModal(false)}>
         <Modal.Header closeButton>
@@ -3855,13 +2460,13 @@ const Invoice_create = () => {
 
           <Form.Group className="mb-3">
             {/* <Form.Check
-              type="checkbox"
-              label="Taxable"
-              checked={newCharge.taxable}
-              onChange={(e) =>
-                setNewCharge({ ...newCharge, taxable: e.target.checked })
-              }
-            /> */}
+                   type="checkbox"
+                   label="Taxable"
+                   checked={newCharge.taxable}
+                   onChange={(e) =>
+                     setNewCharge({ ...newCharge, taxable: e.target.checked })
+                   }
+                 /> */}
           </Form.Group>
         </Modal.Body>
         <Modal.Footer>
@@ -3903,15 +2508,15 @@ const Invoice_create = () => {
             </Form.Select>
           </Form.Group>
           {/* <Form.Group className="mb-3">
-            <Form.Label>Display Name:</Form.Label>
-            <Form.Control
-              type="text"
-              value={newTaxRate.name || "-"}
-              onChange={(e) =>
-                setNewTaxRate({ ...newTaxRate, name: e.target.value })
-              }
-            />
-          </Form.Group> */}
+                 <Form.Label>Display Name:</Form.Label>
+                 <Form.Control
+                   type="text"
+                   value={newTaxRate.name || "-"}
+                   onChange={(e) =>
+                     setNewTaxRate({ ...newTaxRate, name: e.target.value })
+                   }
+                 />
+               </Form.Group> */}
           <Form.Group className="mb-3">
             <Form.Label>Rate (%):</Form.Label>
             <Form.Control
@@ -3926,28 +2531,12 @@ const Invoice_create = () => {
               // }
             />
           </Form.Group>
-          {/* <Form.Group className="mb-3">
-            <Form.Label>Rate (%):</Form.Label>
-            <Form.Control
-              // type="number"
-              // // step="0.01"
-              type="text"
-              inputMode="decimal"
-              pattern="[0-9]*"
-              value={newTaxRate.rate}
-              onChange={(e) =>
-                setNewTaxRate({
-                  ...newTaxRate,
-                  rate: parseFloat(e.target.value) || 0,
-                })
-              }
-            />
-          </Form.Group> */}
+
           {newTaxRate.rate > 0 && (
             <div className="alert alert-info">
               {/* <strong>Tax Calculation:</strong> For an item worth 100{" "}
-              {formData.currencyDetails.currency}, the tax would be{" "}
-              {newTaxRate.rate} {formData.currencyDetails.currency} */}
+                   {formData.currencyDetails.currency}, the tax would be{" "}
+                   {newTaxRate.rate} {formData.currencyDetails.currency} */}
               <strong>Tax Calculation:</strong> For an item worth{" "}
               {formData.totals.subTotal} {formData.currencyDetails.currency},
               the tax would be{" "}
@@ -3998,60 +2587,7 @@ const Invoice_create = () => {
           </Button>
         </Modal.Footer>
       </Modal>
-      {/* <Modal show={showTaxModal} onHide={() => setShowTaxModal(false)}>
-        <Modal.Header closeButton>
-          <Modal.Title>Add New Tax Rate</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Form.Group className="mb-3">
-            <Form.Label>Display Name:</Form.Label>
-            <Form.Control
-              type="text"
-              placeholder="e.g., GST, VAT"
-              value={newTaxRate.name}
-              onChange={(e) =>
-                setNewTaxRate({ ...newTaxRate, name: e.target.value })
-              }
-            />
-          </Form.Group>
 
-          <Form.Group className="mb-3">
-            <Form.Label>Tax Component:</Form.Label>
-            <Form.Control
-              type="text"
-              placeholder="e.g., Goods and Services Tax"
-              value={newTaxRate.component}
-              onChange={(e) =>
-                setNewTaxRate({ ...newTaxRate, component: e.target.value })
-              }
-            />
-          </Form.Group>
-
-          <Form.Group className="mb-3">
-            <Form.Label>Rate (%):</Form.Label>
-            <Form.Control
-              type="number"
-              step="0.01"
-              placeholder="e.g., 18.00"
-              value={newTaxRate.rate}
-              onChange={(e) =>
-                setNewTaxRate({
-                  ...newTaxRate,
-                  rate: parseFloat(e.target.value) || 0,
-                })
-              }
-            />
-          </Form.Group>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowTaxModal(false)}>
-            Cancel
-          </Button>
-          <Button variant="primary" onClick={addNewTaxRate}>
-            Add Tax Rate
-          </Button>
-        </Modal.Footer>
-      </Modal> */}
       <Modal
         show={showItemModal}
         onHide={() => (isEditing ? cancelEdit() : setShowItemModal(false))}
@@ -4111,47 +2647,17 @@ const Invoice_create = () => {
                 )}
 
                 <Col md={12} className="mb-3">
-                  {/* <Form.Group>
-                    <Form.Label>Description:</Form.Label>
-                    <Form.Select
-                      value={newItem.description}
-                      onChange={(e) =>
-                        setNewItem({
-                          ...newItem,
-                          description: e.target.value,
-                        })
-                      }
-                    >
-                      <option value="">Select Description</option>
-                      {companyNo === 1 || companyNo === 2 ? (
-                        <>
-                          <option value="Cost per Adult">Cost per Adult</option>
-                          <option value="Cost per Child">Cost per Child</option>
-                        </>
-                      ) : (
-                        <option value="Cost per Product">
-                          Cost per Product
-                        </option>
-                      )}
-                      <option onClick={() => setDescriptionValue(true)}>Other (Type Manually)</option>
-                    </Form.Select>
-
-                    {descriptionValue && (
-                      <Form.Control
-                        className="mt-2"
-                        type="text"
-                        placeholder="Enter custom description"
-                        value={newItem.customDescription || ""}
-                        onChange={(e) =>
-                          setNewItem({
-                            ...newItem,
-                            description: e.target.value,
-                          })
-                        }
-                      />
-                    )}
-                  </Form.Group> */}
                   <Form.Group>
+                                      <Form.Group>
+                                        <Form.Label>Item Code:</Form.Label>
+                                        <Form.Control
+                                          type="text"
+                                          value={newItem.code}
+                                          onChange={(e) =>
+                                            setNewItem({ ...newItem, code: e.target.value })
+                                          }
+                                        />
+                                      </Form.Group>
                     <Form.Label>Description:</Form.Label>
                     <Form.Select
                       value={newItem.description}
@@ -4262,87 +2768,11 @@ const Invoice_create = () => {
                 </Col>
 
                 {/* <Col md={4} className="mb-3">
-  <Form.Group>
-    <Form.Label>Price:</Form.Label>
-    <Form.Control
-      type="number"
-      step="0.01"        // allows decimals
-      min="0"            // optional: prevents negative prices
-      inputMode="decimal"
-      value={newItem.price}
-      onChange={(e) =>
-        setNewItem({
-          ...newItem,
-          price: e.target.value,  // keep as string for smooth typing
-        })
-      }
-      onBlur={(e) =>
-        setNewItem({
-          ...newItem,
-          price: parseFloat(e.target.value || 0).toFixed(2), // format only when leaving field
-        })
-      }
-    />
-  </Form.Group>
-</Col> */}
-
-                <Col md={4} className="mb-3">
                   <Form.Group>
                     <Form.Label>Price:</Form.Label>
 
-                    {/* Currency Conversion Row */}
-                    {/* <Row className="mb-2">
-      <Col md={5}>
-        <Form.Control
-          type="number"
-          step="0.01"
-          placeholder="Amount"
-          value={originalAmount}
-          onChange={(e) => setOriginalAmount(parseFloat(e.target.value) || 0)}
-        />
-      </Col>
-      <Col md={3}>
-        <Form.Select
-          value={convertFromCurrency}
-          onChange={(e) => setConvertFromCurrency(e.target.value)}
-          size="sm"
-        >
-          <option value="USD">USD</option>
-          <option value="INR">INR</option>
-          <option value="LKR">LKR</option>
-          <option value="SGD">SGD</option>
-          <option value="MYR">MYR</option>
-        </Form.Select>
-      </Col>
-      <Col md={1} className="text-center pt-1">
-        <span>→</span>
-      </Col>
-      <Col md={3}>
-        <Form.Select
-          value={convertToCurrency}
-          onChange={(e) => setConvertToCurrency(e.target.value)}
-          size="sm"
-        >
-          <option value="USD">USD</option>
-          <option value="INR">INR</option>
-          <option value="LKR">LKR</option>
-          <option value="SGD">SGD</option>
-          <option value="MYR">MYR</option>
-        </Form.Select>
-      </Col>
-    </Row> */}
                     <Row className="mb-2">
-                      {/* Amount Input */}
                       <Col xs={12} className="mb-2">
-                        {/* <Form.Control
-                          type="number"
-                          step="0.01"
-                          placeholder="Amount"
-                          value={originalAmount}
-                          onChange={(e) =>
-                            setOriginalAmount(parseFloat(e.target.value) || 0)
-                          }
-                        /> */}
                         <Form.Control
                           type="number"
                           step="0.01"
@@ -4358,8 +2788,6 @@ const Invoice_create = () => {
                           }}
                         />
                       </Col>
-
-                      {/* From Currency */}
                       <Col xs={12} className="mb-2">
                         <Form.Label>From</Form.Label>
                         <Form.Select
@@ -4376,13 +2804,9 @@ const Invoice_create = () => {
                           <option value="MYR">MYR</option>
                         </Form.Select>
                       </Col>
-
-                      {/* Arrow */}
                       <Col xs={12} className="text-center mb-2">
                         <span style={{ fontSize: "18px" }}>↓</span>
                       </Col>
-
-                      {/* To Currency */}
                       <Col xs={12}>
                         <Form.Label>To</Form.Label>
                         <Form.Select
@@ -4399,7 +2823,6 @@ const Invoice_create = () => {
                       </Col>
                     </Row>
 
-                    {/* Convert Button and Result */}
                     <Row className="mb-2">
                       <Col md={6}>
                         <Button
@@ -4423,7 +2846,6 @@ const Invoice_create = () => {
                       </Col>
                     </Row>
 
-                    {/* Final Price Field */}
                     <Form.Control
                       type="number"
                       step="0.01"
@@ -4437,7 +2859,6 @@ const Invoice_create = () => {
                       placeholder="Enter price or use conversion above"
                     />
 
-                    {/* Apply Converted Price Button */}
                     {convertedAmount > 0 && (
                       <Button
                         variant="success"
@@ -4457,14 +2878,19 @@ const Invoice_create = () => {
                       </Button>
                     )}
                   </Form.Group>
-                </Col>
-
-                {/* <Col md={4} className="mb-3">
+                </Col> */}
+                <Col md={4}>
                   <Form.Group>
-                    <Form.Label>Price:</Form.Label>
+                    <Form.Label className="small fw-semibold mb-1">
+                      Price ({fromCurrency})
+                    </Form.Label>
+
+                    {/* Price Input */}
                     <Form.Control
-                      inputMode="decimal"
-                      pattern="[0-9]*"
+                      size="sm"
+                      type="number"
+                      step="0.01"
+                      placeholder={`Enter price in ${fromCurrency}`}
                       value={newItem.price}
                       onChange={(e) =>
                         setNewItem({
@@ -4473,8 +2899,32 @@ const Invoice_create = () => {
                         })
                       }
                     />
+
+                    {/* Auto-conversion Info */}
+                    {newItem.price > 0 && fromCurrency !== toCurrency && (
+                      <div className="mt-1">
+                        <small className="text-muted">
+                          Auto-converted to {toCurrency}:{" "}
+                          <span className="fw-semibold">
+                            {(newItem.price * xeRate).toFixed(2)} {toCurrency}
+                          </span>
+                        </small>
+                        <br />
+                        <small className="text-muted">
+                          Rate: 1 {fromCurrency} = {xeRate} {toCurrency}
+                        </small>
+                      </div>
+                    )}
+
+                    {newItem.price > 0 && fromCurrency === toCurrency && (
+                      <div className="mt-1">
+                        <small className="text-muted">
+                          Same currency - no conversion needed
+                        </small>
+                      </div>
+                    )}
                   </Form.Group>
-                </Col> */}
+                </Col>
 
                 <Col md={4} className="mb-3">
                   <Form.Group>
@@ -4492,21 +2942,74 @@ const Invoice_create = () => {
                   </Form.Group>
                 </Col>
 
-                {/* Display calculated total */}
-                <Col md={12} className="mb-3">
-                  <Form.Group>
-                    <Form.Label>Calculated Total:</Form.Label>
-                    <Form.Control
-                      type="text"
-                      readOnly
-                      value={`${(
-                        newItem.qty *
-                        newItem.price *
-                        (1 - newItem.discount / 100)
-                      ).toFixed(2)} ${formData.currencyDetails.currency}`}
-                      className="fw-bold"
-                    />
-                  </Form.Group>
+                <Col md={12}>
+                  <Card className="bg-light border-0">
+                    <Card.Body className="py-2">
+                      <Row className="align-items-center">
+                        <Col>
+                          <span className="small fw-semibold">
+                            Calculated Total:
+                          </span>
+                        </Col>
+                        <Col xs="auto">
+                          <div className="text-end">
+                            <div className="fw-bold text-primary fs-6">
+                              {(
+                                newItem.qty *
+                                newItem.price *
+                                (1 - newItem.discount / 100) *
+                                xeRate
+                              ).toFixed(2)}{" "}
+                              {toCurrency}
+                            </div>
+                            {fromCurrency !== toCurrency && (
+                              <div className="small text-muted mt-1">
+                                ≈{" "}
+                                {(
+                                  newItem.qty *
+                                  newItem.price *
+                                  (1 - newItem.discount / 100)
+                                ).toFixed(2)}{" "}
+                                {fromCurrency}
+                              </div>
+                            )}
+                          </div>
+                        </Col>
+                      </Row>
+
+                      {newItem.discount > 0 && (
+                        <div className="mt-1">
+                          <small className="text-muted">
+                            Original: {(newItem.qty * newItem.price).toFixed(2)}{" "}
+                            {fromCurrency} | Discount:{" "}
+                            {(
+                              (newItem.qty * newItem.price * newItem.discount) /
+                              100
+                            ).toFixed(2)}{" "}
+                            {fromCurrency} | Saved:{" "}
+                            {(
+                              (newItem.qty * newItem.price * newItem.discount) /
+                              100
+                            ).toFixed(2)}{" "}
+                            {fromCurrency}
+                          </small>
+
+                          {fromCurrency !== toCurrency && (
+                            <small className="text-muted d-block">
+                              Saved in {toCurrency}:{" "}
+                              {(
+                                ((newItem.qty *
+                                  newItem.price *
+                                  newItem.discount) /
+                                  100) *
+                                xeRate
+                              ).toFixed(2)}
+                            </small>
+                          )}
+                        </div>
+                      )}
+                    </Card.Body>
+                  </Card>
                 </Col>
               </Row>
             </Tab.Pane>
@@ -4521,14 +3024,13 @@ const Invoice_create = () => {
           </Button>
           <Button
             variant="primary"
-            // disabled={!isItemFormEmpty}
             onClick={isEditing ? updateItem : addNewItem}
-            // disabled={!(originalAmount > 0.00)} // 🔒 disable until 1+ field is filled
           >
             {isEditing ? "Update Item" : "Add to Invoice"}
           </Button>
         </Modal.Footer>
       </Modal>
+
       {/* Customer Modal */}
       {(companyNo === 1 || companyNo === 2) && (
         <Modal
@@ -4595,15 +3097,15 @@ const Invoice_create = () => {
             </Form.Group>
 
             {/* <Form.Group className="mb-3">
-            <Form.Label>GST No:</Form.Label>
-            <Form.Control
-              type="text"
-              value={newCustomer.gst_no}
-              onChange={(e) =>
-                setNewCustomer({ ...newCustomer, gst_no: e.target.value })
-              }
-            />
-          </Form.Group> */}
+                  <Form.Label>GST No:</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={newCustomer.gst_no}
+                    onChange={(e) =>
+                      setNewCustomer({ ...newCustomer, gst_no: e.target.value })
+                    }
+                  />
+                </Form.Group> */}
           </Modal.Body>
           <Modal.Footer>
             <Button
@@ -4619,7 +3121,7 @@ const Invoice_create = () => {
         </Modal>
       )}
 
-      {/* Preview Invoice Modal */}
+      {/* Preview Invoice Modals */}
       {companyNo === 1 && (
         <Invoice_sharmila_modal
           show={showPreviewModal}

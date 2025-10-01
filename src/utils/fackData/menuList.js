@@ -105,60 +105,60 @@ export const menuList = [
       //   path: "/payment/list",
       //   subdropdownMenu: false,
       // },
-      {
-        id: 3,
-        name: "Refunding Payments",
-        path: "/invoice/refund",
-        subdropdownMenu: false,
-      },
-      {
-        id: 4,
-        name: "P&L Reports",
-        path: "/invoice/pnl",
-        // subdropdownMenu: false,
-           subdropdownMenu: [
-          {
-            id: 1,
-            name: "Budget P&L",
-            path: "/invoice/pnl",
-          },
-          {
-            id: 2,
-            name: "Actual P&L",
-            path: "/invoice/pnl/actual",
-          }
-        ],
-      },
-      {
-        id: 5,
-        name: "Summary invoice",
-        path: "/invoice/summary",
-        subdropdownMenu: false,
-      },
-      {
-        id: 6,
-        name: "Bank Accounts",
-        path: "/invoice/bank-accounts",
-        subdropdownMenu: false,
-      },
+      // {
+      //   id: 3,
+      //   name: "Refunding Payments",
+      //   path: "/invoice/refund",
+      //   subdropdownMenu: false,
+      // },
+      // {
+      //   id: 4,
+      //   name: "P&L Reports",
+      //   path: "/invoice/pnl",
+      //   // subdropdownMenu: false,
+      //      subdropdownMenu: [
+      //     {
+      //       id: 1,
+      //       name: "Budget P&L",
+      //       path: "/invoice/pnl",
+      //     },
+      //     {
+      //       id: 2,
+      //       name: "Actual P&L",
+      //       path: "/invoice/pnl/actual",
+      //     }
+      //   ],
+      // },
+      // {
+      //   id: 5,
+      //   name: "Summary invoice",
+      //   path: "/invoice/summary",
+      //   subdropdownMenu: false,
+      // },
+      // {
+      //   id: 6,
+      //   name: "Bank Accounts",
+      //   path: "/invoice/bank-accounts",
+      //   subdropdownMenu: false,
+      // },
       // {
       //   id: 7,
       //   name: "Reconciliation",
       //   path: "/invoice/reconciliation",
       //   subdropdownMenu: false,
       // },
-      {
-        id: 7,
-        name: "Upload Cost Sheet",
-        path: "/invoice/upload-cost-sheet",
-        subdropdownMenu: false,
-      },
-      {
-        id: 8,
-        name: "Upload Invoice",
-        path: "/invoice/upload",
-        subdropdownMenu: false,
-      },
+      // {
+      //   id: 7,
+      //   name: "Upload Cost Sheet",
+      //   path: "/invoice/upload-cost-sheet",
+      //   subdropdownMenu: false,
+      // },
+      // {
+      //   id: 8,
+      //   name: "Upload Invoice",
+      //   path: "/invoice/upload",
+      //   subdropdownMenu: false,
+      // },
       // {
       //   id: 9,
       //   name: "Actual Reconciliation",
@@ -167,183 +167,183 @@ export const menuList = [
       // },
     ],
   },
-  {
-    id: 2,
-    name: "receivables",
-    mainName:"Accounts Receivable",
-    path: "/receivables/api_list2",
-    icon: "feather-shopping-bag",
-    dropdownMenu: [
-      {
-        id: 1,
-        name: "Receivables",
-        path: "/receivables/api_list2",
-        subdropdownMenu: true,
-      },
-      {
-        id: 2,
-        name: "Summary Reports",
-        path: "/receivables/summary_reports",
-        subdropdownMenu: true,
-      },
-      // ...(companyNo === 1
-      //   ? [
-      //       {
-      //         id: 3,
-      //         name: "Sales",
-      //         path: "/receivables/sales",
-      //         subdropdownMenu: true,
-      //       },
-      //     ]
-      //   : []),
+  // {
+  //   id: 2,
+  //   name: "receivables",
+  //   mainName:"Accounts Receivable",
+  //   path: "/receivables/api_list2",
+  //   icon: "feather-shopping-bag",
+  //   dropdownMenu: [
+  //     {
+  //       id: 1,
+  //       name: "Receivables",
+  //       path: "/receivables/api_list2",
+  //       subdropdownMenu: true,
+  //     },
+  //     {
+  //       id: 2,
+  //       name: "Summary Reports",
+  //       path: "/receivables/summary_reports",
+  //       subdropdownMenu: true,
+  //     },
+  //     // ...(companyNo === 1
+  //     //   ? [
+  //     //       {
+  //     //         id: 3,
+  //     //         name: "Sales",
+  //     //         path: "/receivables/sales",
+  //     //         subdropdownMenu: true,
+  //     //       },
+  //     //     ]
+  //     //   : []),
     
-      // {
-      //   id: 3,
-      //   name: "Sales",
-      //   path: "/receivables/sales",
-      //   subdropdownMenu: true,
-      // },
-    ],
-  },
-  {
-    id: 3,
-    name: "payment",
-    mainName:"Accounts Payable",
-    path: "/payment/list",
-    icon: "feather-award",
-    dropdownMenu: [
-      {
-        id: 1,
-        name: "Payable List",
-        path: "/payment/list",
-        subdropdownMenu: false,
-      },
-    ],
-  },
+  //     // {
+  //     //   id: 3,
+  //     //   name: "Sales",
+  //     //   path: "/receivables/sales",
+  //     //   subdropdownMenu: true,
+  //     // },
+  //   ],
+  // },
+  // {
+  //   id: 3,
+  //   name: "payment",
+  //   mainName:"Accounts Payable",
+  //   path: "/payment/list",
+  //   icon: "feather-award",
+  //   dropdownMenu: [
+  //     {
+  //       id: 1,
+  //       name: "Payable List",
+  //       path: "/payment/list",
+  //       subdropdownMenu: false,
+  //     },
+  //   ],
+  // },
 
-  {
-    id: 4,
-    name: "Office Expense",
-    path: "/payment/list",
-    icon: "feather-file-text",
-    dropdownMenu: [
-      {
-        id: 1,
-        name: "Create Invoice",
-        path: "/payment/list",
-        subdropdownMenu: false,
-      },
-      {
-        id: 2,
-        name: "Edit Invoice",
-        path: "/payment/view",
-        subdropdownMenu: false,
-      },
-      {
-        id: 3,
-        name: "P&L Reports",
-        path: "/payment/view",
-        subdropdownMenu: false,
-      },
-      {
-        id: 4,
-        name: "Cancelled Invoice",
-        path: "/payment/list",
-        subdropdownMenu: false,
-      },
-      {
-        id: 5,
-        name: "Awaiting Payment Invoice",
-        path: "/payment/create",
-        subdropdownMenu: false,
-      },
-      {
-        id: 6,
-        name: "Summary invoice",
-        path: "/payment/list",
-        subdropdownMenu: false,
-      },
-    ],
-  },
-  {
-    id: 5,
-    name: "Reconciliations",
-    path: "/reconciliation",
-    icon: "feather-sliders",
-    dropdownMenu: [
-      {
-        id: 1,
-        name: "Reconciliation",
-        path: "/reconciliation",
-        subdropdownMenu: false,
-      },
-    ],
-  },
-  {
-    id: 6,
-    name: "Summary Reports",
-    path: "/summary_reports",
-    icon: "feather-framer",
-    dropdownMenu: [
-      {
-        id: 1,
-        name: "summary reports",
-        path: "/summary_reports",
-        subdropdownMenu: false,
-      },
-      // {
-      //   id: 2,
-      //   name: "Edit Invoice",
-      //   path: "/payment/view",
-      //   subdropdownMenu: false,
-      // },
+  // {
+  //   id: 4,
+  //   name: "Office Expense",
+  //   path: "/payment/list",
+  //   icon: "feather-file-text",
+  //   dropdownMenu: [
+  //     {
+  //       id: 1,
+  //       name: "Create Invoice",
+  //       path: "/payment/list",
+  //       subdropdownMenu: false,
+  //     },
+  //     {
+  //       id: 2,
+  //       name: "Edit Invoice",
+  //       path: "/payment/view",
+  //       subdropdownMenu: false,
+  //     },
+  //     {
+  //       id: 3,
+  //       name: "P&L Reports",
+  //       path: "/payment/view",
+  //       subdropdownMenu: false,
+  //     },
+  //     {
+  //       id: 4,
+  //       name: "Cancelled Invoice",
+  //       path: "/payment/list",
+  //       subdropdownMenu: false,
+  //     },
+  //     {
+  //       id: 5,
+  //       name: "Awaiting Payment Invoice",
+  //       path: "/payment/create",
+  //       subdropdownMenu: false,
+  //     },
+  //     {
+  //       id: 6,
+  //       name: "Summary invoice",
+  //       path: "/payment/list",
+  //       subdropdownMenu: false,
+  //     },
+  //   ],
+  // },
+  // {
+  //   id: 5,
+  //   name: "Reconciliations",
+  //   path: "/reconciliation",
+  //   icon: "feather-sliders",
+  //   dropdownMenu: [
+  //     {
+  //       id: 1,
+  //       name: "Reconciliation",
+  //       path: "/reconciliation",
+  //       subdropdownMenu: false,
+  //     },
+  //   ],
+  // },
+  // {
+  //   id: 6,
+  //   name: "Summary Reports",
+  //   path: "/summary_reports",
+  //   icon: "feather-framer",
+  //   dropdownMenu: [
+  //     {
+  //       id: 1,
+  //       name: "summary reports",
+  //       path: "/summary_reports",
+  //       subdropdownMenu: false,
+  //     },
+  //     // {
+  //     //   id: 2,
+  //     //   name: "Edit Invoice",
+  //     //   path: "/payment/view",
+  //     //   subdropdownMenu: false,
+  //     // },
      
-    ],
-  },
-  {
-    id: 7,
-    name: "Cheque Print",
-    path: "/cheque_print/list",
-    icon: "feather-dollar-sign",
-    dropdownMenu: [
-      {
-        id: 1,
-        name: "Cheque List",
-        path: "/cheque_print/list",
-        subdropdownMenu: false,
-      },
-      {
-        id: 2,
-        name: "Create cheque",
-        path: "/cheque_print/create",
-        subdropdownMenu: false,
-      },
-      // {
-      //   id: 3,
-      //   name: "P&L Reports",
-      //   path: "/payment/view",
-      //   subdropdownMenu: false,
-      // },
-      // {
-      //   id: 4,
-      //   name: "Cancelled Invoice",
-      //   path: "/payment/list",
-      //   subdropdownMenu: false,
-      // },
-      // {
-      //   id: 5,
-      //   name: "Awaiting Payment Invoice",
-      //   path: "/payment/create",
-      //   subdropdownMenu: false,
-      // },
-      // {
-      //   id: 6,
-      //   name: "Summary invoice",
-      //   path: "/payment/list",
-      //   subdropdownMenu: false,
-      // },
-    ],
-  },
+  //   ],
+  // },
+  // {
+  //   id: 7,
+  //   name: "Cheque Print",
+  //   path: "/cheque_print/list",
+  //   icon: "feather-dollar-sign",
+  //   dropdownMenu: [
+  //     {
+  //       id: 1,
+  //       name: "Cheque List",
+  //       path: "/cheque_print/list",
+  //       subdropdownMenu: false,
+  //     },
+  //     {
+  //       id: 2,
+  //       name: "Create cheque",
+  //       path: "/cheque_print/create",
+  //       subdropdownMenu: false,
+  //     },
+  //     // {
+  //     //   id: 3,
+  //     //   name: "P&L Reports",
+  //     //   path: "/payment/view",
+  //     //   subdropdownMenu: false,
+  //     // },
+  //     // {
+  //     //   id: 4,
+  //     //   name: "Cancelled Invoice",
+  //     //   path: "/payment/list",
+  //     //   subdropdownMenu: false,
+  //     // },
+  //     // {
+  //     //   id: 5,
+  //     //   name: "Awaiting Payment Invoice",
+  //     //   path: "/payment/create",
+  //     //   subdropdownMenu: false,
+  //     // },
+  //     // {
+  //     //   id: 6,
+  //     //   name: "Summary invoice",
+  //     //   path: "/payment/list",
+  //     //   subdropdownMenu: false,
+  //     // },
+  //   ],
+  // },
   // {
   //     id: 1,
   //     name: "reports",
@@ -682,159 +682,159 @@ export const menuList = [
   //         },
   //     ]
   // },
-  {
-    id: 10,
-    name: "role_management",
-    mainName:"Access Management",
-    path: "/role_management",
-    icon: "feather-power",
-    dropdownMenu: [
-      {
-        id: 1,
-        name: "Role Management",
-        path: "/role_management",
-        subdropdownMenu: false,
-      },
-      {
-        id: 2,
-        name: "Activity Log Management",
-        path: "/activity_management",
-        subdropdownMenu: false,
-      },
-      // {
-      //   id: 1,
-      //   name: "login",
-      //   path: "#",
-      //   subdropdownMenu: [
-      //     {
-      //       id: 1,
-      //       name: "Cover",
-      //       path: "/authentication/login/cover",
-      //     },
-      //     {
-      //       id: 2,
-      //       name: "Minimal",
-      //       path: "/authentication/login/minimal",
-      //     },
-      //     {
-      //       id: 3,
-      //       name: "Creative",
-      //       path: "/authentication/login/creative",
-      //     },
-      //   ],
-      // },
-      // {
-      //   id: 2,
-      //   name: "register",
-      //   path: "#",
-      //   subdropdownMenu: [
-      //     {
-      //       id: 1,
-      //       name: "Cover",
-      //       path: "/authentication/register/cover",
-      //     },
-      //     {
-      //       id: 2,
-      //       name: "Minimal",
-      //       path: "/authentication/register/minimal",
-      //     },
-      //     {
-      //       id: 3,
-      //       name: "Creative",
-      //       path: "/authentication/register/creative",
-      //     },
-      //   ],
-      // },
-      // {
-      //   id: 3,
-      //   name: "Error 404",
-      //   path: "#",
-      //   subdropdownMenu: [
-      //     {
-      //       id: 1,
-      //       name: "Cover",
-      //       path: "/authentication/404/cover",
-      //     },
-      //     {
-      //       id: 2,
-      //       name: "Minimal",
-      //       path: "/authentication/404/minimal",
-      //     },
-      //     {
-      //       id: 3,
-      //       name: "Creative",
-      //       path: "/authentication/404/creative",
-      //     },
-      //   ],
-      // },
-      // {
-      //   id: 4,
-      //   name: "Reset Pass",
-      //   path: "#",
-      //   subdropdownMenu: [
-      //     {
-      //       id: 1,
-      //       name: "Cover",
-      //       path: "/authentication/reset/cover",
-      //     },
-      //     {
-      //       id: 2,
-      //       name: "Minimal",
-      //       path: "/authentication/reset/minimal",
-      //     },
-      //     {
-      //       id: 3,
-      //       name: "Creative",
-      //       path: "/authentication/reset/creative",
-      //     },
-      //   ],
-      // },
-      // {
-      //   id: 5,
-      //   name: "Verify OTP",
-      //   path: "#",
-      //   subdropdownMenu: [
-      //     {
-      //       id: 1,
-      //       name: "Cover",
-      //       path: "/authentication/verify/cover",
-      //     },
-      //     {
-      //       id: 2,
-      //       name: "Minimal",
-      //       path: "/authentication/verify/minimal",
-      //     },
-      //     {
-      //       id: 3,
-      //       name: "Creative",
-      //       path: "/authentication/verify/creative",
-      //     },
-      //   ],
-      // },
-      // {
-      //   id: 6,
-      //   name: "Maintenance",
-      //   path: "#",
-      //   subdropdownMenu: [
-      //     {
-      //       id: 1,
-      //       name: "Cover",
-      //       path: "/authentication/maintenance/cover",
-      //     },
-      //     {
-      //       id: 2,
-      //       name: "Minimal",
-      //       path: "/authentication/maintenance/minimal",
-      //     },
-      //     {
-      //       id: 3,
-      //       name: "Creative",
-      //       path: "/authentication/maintenance/creative",
-      //     },
-      //   ],
-      // },
-    ],
-  },
+  // {
+  //   id: 10,
+  //   name: "role_management",
+  //   mainName:"Access Management",
+  //   path: "/role_management",
+  //   icon: "feather-power",
+  //   dropdownMenu: [
+  //     {
+  //       id: 1,
+  //       name: "Role Management",
+  //       path: "/role_management",
+  //       subdropdownMenu: false,
+  //     },
+  //     {
+  //       id: 2,
+  //       name: "Activity Log Management",
+  //       path: "/activity_management",
+  //       subdropdownMenu: false,
+  //     },
+  //     // {
+  //     //   id: 1,
+  //     //   name: "login",
+  //     //   path: "#",
+  //     //   subdropdownMenu: [
+  //     //     {
+  //     //       id: 1,
+  //     //       name: "Cover",
+  //     //       path: "/authentication/login/cover",
+  //     //     },
+  //     //     {
+  //     //       id: 2,
+  //     //       name: "Minimal",
+  //     //       path: "/authentication/login/minimal",
+  //     //     },
+  //     //     {
+  //     //       id: 3,
+  //     //       name: "Creative",
+  //     //       path: "/authentication/login/creative",
+  //     //     },
+  //     //   ],
+  //     // },
+  //     // {
+  //     //   id: 2,
+  //     //   name: "register",
+  //     //   path: "#",
+  //     //   subdropdownMenu: [
+  //     //     {
+  //     //       id: 1,
+  //     //       name: "Cover",
+  //     //       path: "/authentication/register/cover",
+  //     //     },
+  //     //     {
+  //     //       id: 2,
+  //     //       name: "Minimal",
+  //     //       path: "/authentication/register/minimal",
+  //     //     },
+  //     //     {
+  //     //       id: 3,
+  //     //       name: "Creative",
+  //     //       path: "/authentication/register/creative",
+  //     //     },
+  //     //   ],
+  //     // },
+  //     // {
+  //     //   id: 3,
+  //     //   name: "Error 404",
+  //     //   path: "#",
+  //     //   subdropdownMenu: [
+  //     //     {
+  //     //       id: 1,
+  //     //       name: "Cover",
+  //     //       path: "/authentication/404/cover",
+  //     //     },
+  //     //     {
+  //     //       id: 2,
+  //     //       name: "Minimal",
+  //     //       path: "/authentication/404/minimal",
+  //     //     },
+  //     //     {
+  //     //       id: 3,
+  //     //       name: "Creative",
+  //     //       path: "/authentication/404/creative",
+  //     //     },
+  //     //   ],
+  //     // },
+  //     // {
+  //     //   id: 4,
+  //     //   name: "Reset Pass",
+  //     //   path: "#",
+  //     //   subdropdownMenu: [
+  //     //     {
+  //     //       id: 1,
+  //     //       name: "Cover",
+  //     //       path: "/authentication/reset/cover",
+  //     //     },
+  //     //     {
+  //     //       id: 2,
+  //     //       name: "Minimal",
+  //     //       path: "/authentication/reset/minimal",
+  //     //     },
+  //     //     {
+  //     //       id: 3,
+  //     //       name: "Creative",
+  //     //       path: "/authentication/reset/creative",
+  //     //     },
+  //     //   ],
+  //     // },
+  //     // {
+  //     //   id: 5,
+  //     //   name: "Verify OTP",
+  //     //   path: "#",
+  //     //   subdropdownMenu: [
+  //     //     {
+  //     //       id: 1,
+  //     //       name: "Cover",
+  //     //       path: "/authentication/verify/cover",
+  //     //     },
+  //     //     {
+  //     //       id: 2,
+  //     //       name: "Minimal",
+  //     //       path: "/authentication/verify/minimal",
+  //     //     },
+  //     //     {
+  //     //       id: 3,
+  //     //       name: "Creative",
+  //     //       path: "/authentication/verify/creative",
+  //     //     },
+  //     //   ],
+  //     // },
+  //     // {
+  //     //   id: 6,
+  //     //   name: "Maintenance",
+  //     //   path: "#",
+  //     //   subdropdownMenu: [
+  //     //     {
+  //     //       id: 1,
+  //     //       name: "Cover",
+  //     //       path: "/authentication/maintenance/cover",
+  //     //     },
+  //     //     {
+  //     //       id: 2,
+  //     //       name: "Minimal",
+  //     //       path: "/authentication/maintenance/minimal",
+  //     //     },
+  //     //     {
+  //     //       id: 3,
+  //     //       name: "Creative",
+  //     //       path: "/authentication/maintenance/creative",
+  //     //     },
+  //     //   ],
+  //     // },
+  //   ],
+  // },
   // {
   //     id: 11,
   //     name: "Help Center",

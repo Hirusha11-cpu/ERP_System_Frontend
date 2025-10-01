@@ -205,7 +205,7 @@ const Invoice_appleholidays_modal = ({
                       maximumFractionDigits: 2,
                     })} */}
                        {(
-                      (item?.price || 0) -
+                      (item?.price*xeRate || 0) -
                       (formData.totals?.handlingFee / (item?.qty) || 0)
                     ).toLocaleString("en-US", {
                       minimumFractionDigits: 2,
@@ -221,7 +221,7 @@ const Invoice_appleholidays_modal = ({
                       maximumFractionDigits: 2,
                     })} */}
                     {(
-                      ((item?.price || 0) -
+                      ((item?.price*xeRate || 0) -
                         (formData.totals?.handlingFee || 0) ) *
                       (item?.qty || 1)
                     ).toLocaleString("en-US", {
@@ -472,7 +472,10 @@ const Invoice_appleholidays_modal = ({
               <div className="remark">
                 <strong>Remark:</strong> Invoice amount is{" "}
                 {/* {formData.currencyDetails.currency !== "USD" ?? "USD"} {formData.totals.total}. */}
-                {formData?.currencyDetails?.currency} {formData.totals?.total}.
+                {formData?.currencyDetails?.currency}  {formData.totals?.total.toLocaleString("en-US", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}{" "}
                 Payments made more than two (2) days after the invoice date will
                 be subject to the applicable Xe.com{" "}
                 {formData.currencyDetails?.currency !== "USD"

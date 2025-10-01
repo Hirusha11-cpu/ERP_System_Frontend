@@ -56,6 +56,7 @@ const Invoice_create = () => {
   const [toCurrency, setToCurrency] = useState("LKR");
   const [exchangeRates, setExchangeRates] = useState({});
   const [isLoadingRates, setIsLoadingRates] = useState(false);
+  const [isXeRateZero, setIsXeRateZero] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const [convertFromCurrency, setConvertFromCurrency] = useState("USD");
@@ -92,7 +93,7 @@ const Invoice_create = () => {
         address: "",
         mobile: "",
         code: "",
-        gstNo: "",
+        gst_no: "",
         customer: "",
         customer_email: "",
         customer_number: "",
@@ -564,7 +565,7 @@ const Invoice_create = () => {
       address: "",
       mobile: "",
       code: "",
-      gstNo: "",
+      gst_no: "",
       customer: "",
       customer_email: "",
       customer_number: "",
@@ -670,7 +671,7 @@ const Invoice_create = () => {
     name: "",
     address: "",
     mobile: "",
-    gstNo: "",
+    gst_no: "",
     customer: "",
     customer_email: "",
     customer_number: "",
@@ -704,7 +705,16 @@ const Invoice_create = () => {
   const currencyOptions = ["INR", "USD", "SGD", "MYR", "LKR"];
 
   // Item types
-  const itemTypes = ["hotel", "restaurant", "transport", "handling", "other"];
+  // const itemTypes = ["hotel", "restaurant", "transport", "other"];
+  const itemTypes = [
+    "hotel",
+    "transport",
+    "ticket",
+    "entrance",
+    "meal",
+    "guide",
+    "others",
+  ];
 
   // Calculate totals whenever relevant data changes
   useEffect(() => {
@@ -743,7 +753,8 @@ const Invoice_create = () => {
     const startDate = new Date(start);
     const endDate = new Date(end);
     const diffTime = endDate - startDate;
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 to include both days
+    // const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // +1 to include both days
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); // +1 to include both days
     return diffDays > 0 ? diffDays : 0;
   };
 
@@ -757,7 +768,7 @@ const Invoice_create = () => {
         address: customer.address,
         mobile: customer.mobile,
         code: customer.code,
-        gstNo: customer.gstNo || "",
+        gst_no: customer.gst_no || "",
         customer: customer.customer || "",
         customer_email: customer.customer_email || "",
         customer_number: customer.customer_number || "",
@@ -785,7 +796,7 @@ const Invoice_create = () => {
         name: "",
         address: "",
         mobile: "",
-        gstNo: "",
+        gst_no: "",
         customer: "",
         customer_email: "",
         customer_number: "",
@@ -836,7 +847,7 @@ const Invoice_create = () => {
       //   name: "",
       //   address: "",
       //   mobile: "",
-      //   gstNo: "",
+      //   gst_no: "",
       //   customer: "",
       //   customer_email: "",
       //   customer_number: "",
@@ -1331,8 +1342,10 @@ const Invoice_create = () => {
 
     // Handling fee (only INR)
     let handlingFee = 0;
-    if (currency === "INR" && totalPax > 0) {
-      handlingFee = 5 * xeRate * totalPax; // ensure xeRate is defined
+    console.log(isXeRateZero);
+    
+    if (currency === "INR" && totalPax > 0 && !isXeRateZero) {
+      handlingFee = 5 * (xeRate === 1 ? 0 : xeRate) * totalPax; // ensure xeRate is defined
       subTotal = totalAmount; // reset subtotal to items only
     } else {
       subTotal = totalAmount;
@@ -1571,6 +1584,7 @@ const Invoice_create = () => {
       setConvertedAmount(originalAmount);
       return;
     }
+    setIsLoading(true); // Start loading
 
     try {
       // Fetch exchange rates from your API
@@ -1598,6 +1612,8 @@ const Invoice_create = () => {
     } catch (error) {
       console.error("Error fetching exchange rates:", error);
       // Fallback logic here
+    } finally {
+      setIsLoading(false); // Stop loading
     }
   };
 
@@ -1910,7 +1926,7 @@ const Invoice_create = () => {
     !newCustomer.customer &&
     !newCustomer.customer_email &&
     !newCustomer.customer_number &&
-    !newCustomer.gstNo &&
+    !newCustomer.gst_no &&
     !newCustomer.payment_method;
 
   // Reset form
@@ -1927,7 +1943,7 @@ const Invoice_create = () => {
           address: "",
           mobile: "",
           code: "",
-          gstNo: "",
+          gst_no: "",
           customer: "",
           customer_email: "",
           customer_number: "",
@@ -2052,6 +2068,7 @@ const Invoice_create = () => {
       })
       .then((response) => {
         console.log("Customer updated:", response.data);
+        fetchCustomers();
       })
       .catch((error) => {
         console.error("Error updating customer:", error);
@@ -2060,6 +2077,15 @@ const Invoice_create = () => {
         setIsLoading(false); // stop spinner no matter success or error
       });
   };
+
+  useEffect(() => {
+  if (fromCurrency === toCurrency) {
+    setIsXeRateZero(true);
+  } else {
+    setIsXeRateZero(false);
+  }
+}, [xeRate, fromCurrency, toCurrency]);
+
 
   return (
     <div className="container py-4">
@@ -2082,7 +2108,7 @@ const Invoice_create = () => {
           </h5>
 
           <Row className="mb-3">
-            <Col md={3}>
+            {/* <Col md={3}>
               <Form.Group>
                 <Form.Label>Currency:</Form.Label>
                 <Form.Select
@@ -2096,11 +2122,11 @@ const Invoice_create = () => {
                   ))}
                 </Form.Select>
               </Form.Group>
-            </Col>
+            </Col> */}
 
-            <Col md={3}>
+            {/* <Col md={3}>
               <Form.Group>
-                <Form.Label>From Currency</Form.Label>
+                <Form.Label>Base Currency</Form.Label>
                 <Form.Select
                   value={fromCurrency}
                   onChange={(e) => setFromCurrency(e.target.value)}
@@ -2113,11 +2139,31 @@ const Invoice_create = () => {
                   ))}
                 </Form.Select>
               </Form.Group>
-            </Col>
+            </Col> */}
+            <Col md={3}>
+  <Form.Group>
+    <Form.Label>Base Currency</Form.Label>
+    <Form.Select
+      value={fromCurrency}
+      onChange={(e) => {
+        const selectedCurrency = e.target.value;
+        setFromCurrency(selectedCurrency); // update base currency
+        handleCurrencyChange(selectedCurrency); // update formData.currencyDetails.currency
+      }}
+      disabled={isLoadingRates}
+    >
+      {currencyOptions.map((currency) => (
+        <option key={currency} value={currency}>
+          {currency}
+        </option>
+      ))}
+    </Form.Select>
+  </Form.Group>
+</Col>
 
             <Col md={3}>
               <Form.Group>
-                <Form.Label>To Currency</Form.Label>
+                <Form.Label>Invoice Currency</Form.Label>
                 <Form.Select
                   value={toCurrency}
                   onChange={(e) => setToCurrency(e.target.value)}
@@ -2197,7 +2243,7 @@ const Invoice_create = () => {
                 <Form.Control
                   type="number"
                   step="0.0001"
-                  value={xeRate}
+                  value={fromCurrency === toCurrency ? 0 : xeRate}
                   onChange={(e) => setXeRate(parseFloat(e.target.value) || 0)}
                 />
                 <Form.Text className="text-muted">
@@ -2235,7 +2281,7 @@ const Invoice_create = () => {
 
       {/* Customer and Invoice Information */}
       <Row className="mb-4">
-        {(companyNo === 2 || companyNo === 1) && (
+        {(companyNo === 2 || companyNo === 1 || companyNo === 3) && (
           <Col md={6}>
             <Card className="h-100">
               <Card.Body>
@@ -2307,7 +2353,43 @@ const Invoice_create = () => {
                   />
                 </Form.Group>
 
-                <Form.Group className="mb-3">
+                <Row className="mb-3">
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label>Mobile:</Form.Label>
+                      <Form.Control
+                        type="text"
+                        value={formData.customer.mobile}
+                        onChange={(e) =>
+                          handleInputChange(
+                            "customer",
+                            "mobile",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </Form.Group>
+                  </Col>
+
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label>GST:</Form.Label>
+                      <Form.Control
+                        type="text"
+                        value={formData.customer.gst_no}
+                        onChange={(e) =>
+                          handleInputChange(
+                            "customer",
+                            "gst_no",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </Form.Group>
+                  </Col>
+                </Row>
+
+                {/* <Form.Group className="mb-3">
                   <Form.Label>Mobile:</Form.Label>
                   <Form.Control
                     type="text"
@@ -2317,6 +2399,16 @@ const Invoice_create = () => {
                     }
                   />
                 </Form.Group>
+                <Form.Group className="mb-3">
+                  <Form.Label>GST:</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={formData.customer.gst_no}
+                    onChange={(e) =>
+                      handleInputChange("customer", "mobile", e.target.value)
+                    }
+                  />
+                </Form.Group> */}
 
                 <Row className="align-items-end mb-3">
                   <Col md={9}>
@@ -2368,7 +2460,7 @@ const Invoice_create = () => {
             </Card>
           </Col>
         )}
-        {companyNo === 3 && (
+        {companyNo === 4 && (
           <Col md={6}>
             <Card className="h-100">
               <Card.Body>
@@ -2412,17 +2504,17 @@ const Invoice_create = () => {
                           })
                         }
                       />
-                      <Form.Label>Customer GST:</Form.Label>
+                      {/* <Form.Label>Customer GST:</Form.Label>
                       <Form.Control
                         type="text"
-                        value={newCustomer.gstNo}
+                        value={newCustomer.gst_no}
                         onChange={(e) =>
                           setNewCustomer({
                             ...newCustomer,
-                            gstNo: e.target.value,
+                            gst_no: e.target.value,
                           })
                         }
-                      />
+                      /> */}
                       <Form.Label>Payment Method:</Form.Label>
                       <Form.Select
                         value={newCustomer.payment_method}
@@ -2505,11 +2597,11 @@ const Invoice_create = () => {
                       
                       <Form.Control
                         type="text"
-                        value={newCustomer.gstNo}
+                        value={newCustomer.gst_no}
                         onChange={(e) =>
                           setNewCustomer({
                             ...newCustomer,
-                            gstNo: e.target.value,
+                            gst_no: e.target.value,
                           })
                         }
                       />
@@ -2587,7 +2679,7 @@ const Invoice_create = () => {
 
                 <Col md={6} className="mb-3">
                   <Form.Group>
-                    <Form.Label>Invoice No.:</Form.Label>
+                    <Form.Label>Tour No.:</Form.Label>
                     <div className="input-group">
                       <span className="input-group-text">
                         {countryOptions.find(
@@ -2852,7 +2944,7 @@ const Invoice_create = () => {
                 <tr>
                   <th>Description</th>
                   <th>Amount</th>
-                  <th>Taxable</th>
+                  {/* <th>Taxable</th> */}
                   <th>Action</th>
                 </tr>
               </thead>
@@ -2861,13 +2953,13 @@ const Invoice_create = () => {
                   <tr key={charge.id}>
                     <td>{charge.description}</td>
                     <td>{charge.amount.toFixed(2)}</td>
-                    <td>
+                    {/* <td>
                       <Form.Check
                         type="switch"
                         checked={charge.taxable}
                         readOnly
                       />
-                    </td>
+                    </td> */}
                     <td>
                       <Button
                         variant="danger"
@@ -2886,7 +2978,7 @@ const Invoice_create = () => {
       </Card>
 
       {/* Tax Rates */}
-      <Card className="mb-4">
+      <Card className="mb-4 d-none">
         <Card.Body>
           <div className="d-flex justify-content-between align-items-center mb-3">
             <h5 className="section-title fw-semibold mb-0">Tax Rates</h5>
@@ -3796,7 +3888,11 @@ const Invoice_create = () => {
           <Button variant="secondary" onClick={() => setShowChargeModal(false)}>
             Cancel
           </Button>
-          <Button variant="primary" onClick={addNewCharge}>
+          <Button
+            variant="primary"
+            onClick={addNewCharge}
+            disabled={!newCharge.description || !newCharge.amount}
+          >
             Add Charge
           </Button>
         </Modal.Footer>
@@ -4130,7 +4226,7 @@ const Invoice_create = () => {
                   </Form.Group>
                 </Col>
 
-                {companyNo === 3 && (
+                {companyNo === 4 && (
                   <Col md={6} className="mb-3">
                     <Form.Group>
                       <Form.Label>Check-in Date:</Form.Label>
@@ -4148,7 +4244,7 @@ const Invoice_create = () => {
                   </Col>
                 )}
 
-                {companyNo === 3 && (
+                {companyNo === 4 && (
                   <Col md={6} className="mb-3">
                     <Form.Group>
                       <Form.Label>Check-out Date:</Form.Label>
@@ -4168,7 +4264,10 @@ const Invoice_create = () => {
 
                 <Col md={4} className="mb-3">
                   <Form.Group>
-                    <Form.Label>Quantity:</Form.Label>
+                    <Form.Label>
+                      {" "}
+                      {newItem.type === "hotel" ? "pax" : "Quantity"}{" "}
+                    </Form.Label>
                     <Form.Control
                       type="number"
                       value={newItem.qty}
@@ -4255,7 +4354,7 @@ const Invoice_create = () => {
                     <Row className="mb-2">
                       {/* Amount Input */}
                       <Col xs={12} className="mb-2">
-                        <Form.Control
+                        {/* <Form.Control
                           type="number"
                           step="0.01"
                           placeholder="Amount"
@@ -4263,6 +4362,20 @@ const Invoice_create = () => {
                           onChange={(e) =>
                             setOriginalAmount(parseFloat(e.target.value) || 0)
                           }
+                        /> */}
+                        <Form.Control
+                          type="number"
+                          step="0.01"
+                          placeholder="Amount"
+                          value={originalAmount}
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            if (value === "" || parseFloat(value) <= 0) {
+                              setOriginalAmount("");
+                            } else {
+                              setOriginalAmount(value);
+                            }
+                          }}
                         />
                       </Col>
 
@@ -4315,15 +4428,16 @@ const Invoice_create = () => {
                           onClick={handleCurrencyConversion}
                           className="w-100"
                           disabled={!originalAmount || originalAmount <= 0}
+                          style={{ color: "black" }}
                         >
-                          Convert
+                          {isLoading ? "Converting..." : "Convert"}
                         </Button>
                       </Col>
                       <Col md={6}>
                         <Form.Control
                           type="text"
                           readOnly
-                          value={convertedAmount.toFixed(2)}
+                          value={convertedAmount}
                           className="text-center fw-bold bg-light"
                         />
                       </Col>
@@ -4359,7 +4473,7 @@ const Invoice_create = () => {
                         }}
                       >
                         Apply Converted Price ({convertToCurrency}{" "}
-                        {convertedAmount.toFixed(2)})
+                        {convertedAmount})
                       </Button>
                     )}
                   </Form.Group>
@@ -4429,7 +4543,7 @@ const Invoice_create = () => {
             variant="primary"
             // disabled={!isItemFormEmpty}
             onClick={isEditing ? updateItem : addNewItem}
-            disabled={isItemFormEmpty} // 🔒 disable until 1+ field is filled
+            // disabled={!(originalAmount > 0.00)} // 🔒 disable until 1+ field is filled
           >
             {isEditing ? "Update Item" : "Add to Invoice"}
           </Button>
@@ -4493,9 +4607,9 @@ const Invoice_create = () => {
               <Form.Label>GST NO:</Form.Label>
               <Form.Control
                 type="text"
-                value={newCustomer.gstNo}
+                value={newCustomer.gst_no}
                 onChange={(e) =>
-                  setNewCustomer({ ...newCustomer, gstNo: e.target.value })
+                  setNewCustomer({ ...newCustomer, gst_no: e.target.value })
                 }
               />
             </Form.Group>
@@ -4504,9 +4618,9 @@ const Invoice_create = () => {
             <Form.Label>GST No:</Form.Label>
             <Form.Control
               type="text"
-              value={newCustomer.gstNo}
+              value={newCustomer.gst_no}
               onChange={(e) =>
-                setNewCustomer({ ...newCustomer, gstNo: e.target.value })
+                setNewCustomer({ ...newCustomer, gst_no: e.target.value })
               }
             />
           </Form.Group> */}

@@ -136,7 +136,7 @@ const Menus = () => {
       <li className="">
         <div className="nxl-version-text">
           {/* v{process.env.REACT_APP_VERSION || "1.0.0"} */}
-          v{"1.0.1"}
+          v{"1.0.2"}
         </div>
       </li>
     </>

@@ -94,8 +94,9 @@ const Invoice_aahaas_modal = ({
                 <span className="meta-label pe-1">Invoice No: </span>
                 <span className="meta-value ">
                   {/* {formData.invoice.country+formData.invoice.number || "IS44641"} */}
-                  { formData?.invoice?.number ||
-                    "IS44641"}
+                  {/* { formData?.invoice?.number ||
+                    "IS44641"} */}
+                    {formData.invoice?.id ?? "3456"}
                 </span>
               </div>
               <div className="meta-item">
@@ -142,10 +143,10 @@ const Invoice_aahaas_modal = ({
               </thead>
               <tbody>
                 <tr>
-                  <td>{formData.customer?.customer || ""}</td>
+                  <td>{formData.customer?.name || ""}</td>
                   <td>{formData.customer?.address || "-"}</td>
-                  <td>{formData.customer?.customer_email || "-"}</td>
-                  <td>{formData.customer?.customer_number || "-"}</td>
+                  <td>{formData.customer?.email || "-"}</td>
+                  <td>{formData.customer?.mobile || "-"}</td>
                   <td>{formData.customer?.gst_no || "-"}</td>
                 </tr>
               </tbody>
@@ -189,7 +190,7 @@ const Invoice_aahaas_modal = ({
                     </td>
                   </tr>
                 ))}
-                {formData.currencyDetails?.currency === "INR" ? (
+                {formData.currencyDetails?.currency === "INR" && formData.totals?.handlingFee != 0 ? (
                   <tr>
                     <td>
                       <strong>Handling Fee:</strong>
@@ -266,7 +267,7 @@ const Invoice_aahaas_modal = ({
                       })}
                     </td>
                   </tr> */}
-                  <tr>
+                 {formData.totals?.handlingFee != 0 && <tr>
                     <td>GST of 18.00%:</td>
                     <td>
                       ₹
@@ -275,7 +276,7 @@ const Invoice_aahaas_modal = ({
                         maximumFractionDigits: 2,
                       })}
                     </td>
-                  </tr>
+                  </tr>}
                 </>
               )}
               <tr>

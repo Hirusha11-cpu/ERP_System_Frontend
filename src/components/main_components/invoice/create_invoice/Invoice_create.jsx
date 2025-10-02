@@ -1405,7 +1405,6 @@ const Invoice_create = () => {
                     const selectedCurrency = e.target.value;
                     setFromCurrency(selectedCurrency);
                     // handleCurrencyChange(selectedCurrency);
-                   
                   }}
                   disabled={isLoadingRates}
                 >
@@ -2611,7 +2610,7 @@ const Invoice_create = () => {
           <Tab.Content>
             <Tab.Pane eventKey="sell" active={activeTab === "sell"}>
               <Row>
-                {companyNo === 3 && (
+                {companyNo !== 3 && (
                   <Col md={6} className="mb-3">
                     <Form.Group>
                       <Form.Label>Item Code:</Form.Label>
@@ -2626,7 +2625,7 @@ const Invoice_create = () => {
                   </Col>
                 )}
 
-                {companyNo === 3 && (
+                {companyNo !== 3 && (
                   <Col md={6} className="mb-3">
                     <Form.Group>
                       <Form.Label>Item Type:</Form.Label>
@@ -2648,16 +2647,16 @@ const Invoice_create = () => {
 
                 <Col md={12} className="mb-3">
                   <Form.Group>
-                                      <Form.Group>
-                                        <Form.Label>Item Code:</Form.Label>
-                                        <Form.Control
-                                          type="text"
-                                          value={newItem.code}
-                                          onChange={(e) =>
-                                            setNewItem({ ...newItem, code: e.target.value })
-                                          }
-                                        />
-                                      </Form.Group>
+                    <Form.Group className="d-none">
+                      <Form.Label>Item Code:</Form.Label>
+                      <Form.Control
+                        type="text"
+                        value={newItem.code}
+                        onChange={(e) =>
+                          setNewItem({ ...newItem, code: e.target.value })
+                        }
+                      />
+                    </Form.Group>
                     <Form.Label>Description:</Form.Label>
                     <Form.Select
                       value={newItem.description}

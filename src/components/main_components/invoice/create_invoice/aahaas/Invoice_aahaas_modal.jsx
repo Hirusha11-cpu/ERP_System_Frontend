@@ -138,7 +138,7 @@ const Invoice_aahaas_modal = ({
                   <th>Address</th>
                   <th>Email</th>
                   <th>Contact</th>
-                  <th>GST</th>
+                  {/* <th>GST</th> */}
                 </tr>
               </thead>
               <tbody>
@@ -147,7 +147,7 @@ const Invoice_aahaas_modal = ({
                   <td>{formData.customer?.address || "-"}</td>
                   <td>{formData.customer?.email || "-"}</td>
                   <td>{formData.customer?.mobile || "-"}</td>
-                  <td>{formData.customer?.gst_no || "-"}</td>
+                  {/* <td>{formData.customer?.gst_no || "-"}</td> */}
                 </tr>
               </tbody>
             </table>

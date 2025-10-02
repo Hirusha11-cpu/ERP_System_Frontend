@@ -137,7 +137,6 @@ const Invoice_list = () => {
       if (user) {
         setIsAdmin(user.role.name === "admin");
       }
-    
       const response = await axios.get(
         `/api/invoices?company_id=${companyNo}&days_from_today=${days}&type=${fetchType}`,
         {
@@ -1351,16 +1350,16 @@ const Invoice_list = () => {
               </div>
             </OverlayTrigger>
             <div className="d-flex align-items-center gap-2">
-              <Form.Select
+              {/* <Form.Select
                 value={fetchType}
                 onChange={(e) => {
-                  setFetchType(e.target.value);
+                  // setFetchType(e.target.value);
                   fetchInvoices(searchDaysCount || 0);
                 }}
               >
-                <option value="automatic">Manual</option>
-                <option value="manual">Automatic</option>
-              </Form.Select>
+                <option value="automatic">Automatic</option>
+                <option value="manual">Manual</option>
+              </Form.Select> */}
             </div>
             <Button
               variant="outline-secondary"
@@ -1403,9 +1402,9 @@ const Invoice_list = () => {
                     <th>Total</th>
                     <th>Type</th>
                     <th>Status</th>
-                    <th>Payments</th>
+                    {/* <th>Payments</th>
                     <th>Exchange-Rates</th>
-                    <th>Costs</th>
+                    <th>Costs</th> */}
                     <th className="text-end">Actions</th>
                   </tr>
                 </thead>
@@ -1480,7 +1479,7 @@ const Invoice_list = () => {
                             invoice.status === "draft" ? "open" : invoice.status
                           )}
                         </td>
-                        <td>
+                        {/* <td>
                           <ActionButton
                             icon={<FaMoneyBillWave />}
                             label="View Payments"
@@ -1510,7 +1509,7 @@ const Invoice_list = () => {
                             }
                             tooltip="View Cost Details"
                           />
-                        </td>
+                        </td> */}
                         <td className="text-start">
                           <div className="d-flex justify-content-start">
                             {/* <ActionButton
@@ -1523,7 +1522,7 @@ const Invoice_list = () => {
                               disabled={exchangeRateLoading}
                               
                             /> */}
-                            <OverlayTrigger
+                            {/* <OverlayTrigger
                               placement="top"
                               overlay={
                                 <Tooltip id={`tooltip-${invoice.id}`}>
@@ -1560,7 +1559,7 @@ const Invoice_list = () => {
                                     : "Update Exchange Rate"}
                                 </ActionButton>
                               </span>
-                            </OverlayTrigger>
+                            </OverlayTrigger> */}
 
                             {/* <Button
                               variant="primary"

@@ -205,6 +205,7 @@ const Invoice_appleholidays_modal = ({
                       maximumFractionDigits: 2,
                     })} */}
                        {(
+                      // (item?.price || 0) 
                       (item?.price*xeRate || 0) -
                       (formData.totals?.handlingFee / (item?.qty) || 0)
                     ).toLocaleString("en-US", {

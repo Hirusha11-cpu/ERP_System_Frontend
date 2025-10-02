@@ -137,16 +137,29 @@ const Invoice_list = () => {
       if (user) {
         setIsAdmin(user.role.name === "admin");
       }
-      const response = await axios.get(
-        `/api/invoices?company_id=${companyNo}&days_from_today=${days}&type=${fetchType}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      let response;
+
+      if (companyNo == 3) {
+        // Always automatic for company 3
+        response = await axios.get(
+          `/api/invoices?company_id=${companyNo}&days_from_today=${days}&type=automatic`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+      } else {
+        // Others follow manual/automatic depending on fetchType
+        response = await axios.get(
+          `/api/invoices?company_id=${companyNo}&days_from_today=${days}&type=${fetchType}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+      }
       const invoicesData = response.data.data || [];
-        
-        setInvoices(invoicesData);
-      
+
+      setInvoices(invoicesData);
+
       setCurrentPage(1); // Reset to first page on new fetch
     } catch (error) {
       console.error("Error fetching invoices:", error);
@@ -1241,7 +1254,7 @@ const Invoice_list = () => {
               </Button>
             ) : null}
           </div> */}
-                    <div className="d-flex mb-4 flex-wrap align-items-center gap-3">
+          <div className="d-flex mb-4 flex-wrap align-items-center gap-3">
             <div className="input-group" style={{ width: "300px" }}>
               <span className="input-group-text">
                 <FaSearch />
@@ -1473,7 +1486,7 @@ const Invoice_list = () => {
                             {invoice.total_amount}
                           </div>
                         </td>
-                          <td>{invoice?.type}</td>
+                        <td>{invoice?.type}</td>
                         <td>
                           {getStatusBadge(
                             invoice.status === "draft" ? "open" : invoice.status
@@ -1589,7 +1602,7 @@ const Invoice_list = () => {
                               label=""
                               variant="info"
                               tooltip="View Invoice"
-                              disabled = {invoice.status === "cancelled"}
+                              disabled={invoice.status === "cancelled"}
                               onClick={() => handleViewInvoice(invoice)}
                             />
                             <ActionButton
@@ -1597,7 +1610,7 @@ const Invoice_list = () => {
                               label=""
                               variant="primary"
                               tooltip="Edit Invoice"
-                              disabled = {invoice.status === "cancelled"}
+                              disabled={invoice.status === "cancelled"}
                               onClick={() => handleEditInvoice(invoice)}
                             />
                             {/* <ActionButton
@@ -1808,7 +1821,7 @@ const Invoice_list = () => {
         xeRate={xeRate}
       />
 
-          <Modal
+      <Modal
         show={showEditModal}
         onHide={() => setShowEditModal(false)}
         size="xl"

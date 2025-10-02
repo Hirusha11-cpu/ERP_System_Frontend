@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useContext } from "react";
+import Swal from "sweetalert2";
 import {
   Modal,
   Button,
@@ -257,93 +258,194 @@ const Invoice_create = () => {
     }
   };
 
-  const handleSubmit = async () => {
-    console.log(formData);
-    setIsSubmitting(true);
-    const paymentMethodArray = Object.entries(formData.payment.methods)
-      .filter(([_, value]) => value)
-      .map(([key]) => key);
+  // const handleSubmit = async () => {
+  //   console.log(formData);
+  //   setIsSubmitting(true);
+  //   const paymentMethodArray = Object.entries(formData.payment.methods)
+  //     .filter(([_, value]) => value)
+  //     .map(([key]) => key);
 
-    const dataToSend = {
-      invoice_number: formData.invoice.number,
-      customer_id: formData.customer.id,
-      country_code: formData.invoice.country,
-      payment_method: formData.invoice.paymentMethod,
-      currency: formData.currencyDetails.currency,
-      exchange_rate: formData.currencyDetails.exchangeRate,
-      tax_treatment: formData.currencyDetails.taxTreatment,
-      payment_type: formData.payment.type,
-      collection_date: formData.payment.collectionDate,
-      payment_instructions: formData.payment.instructions,
-      staff: formData.payment.staff,
-      remarks: formData.payment.remarks,
-      payment_methods: paymentMethodArray,
-      company_id: companyNo,
-      account_id: formData.selectedAccountId || 1,
-      booking_no: formData.invoice.bookingId,
-      start_date: formData.invoice.startDate,
-      sales_id: formData.invoice.salesId,
-      end_date: formData.invoice.endDate,
-      sub_total: formData.totals.subTotal.toFixed(2),
-      handling_fee: formData.totals.handlingFee.toFixed(2),
-      gst_amount: formData.totals.handlingFee * 0.18,
-      total_amount: formData.totals.total.toFixed(2),
-      additional_tax: formData.totals.additionalTax.toFixed(2),
-      bank_charges: formData.totals.additionalTax.toFixed(2),
-      amount_received: formData.totals.amountReceived.toFixed(2),
-      balance: formData.totals.balance.toFixed(2),
-      from_currency: fromCurrency,
-      to_currency: toCurrency,
+  //   const dataToSend = {
+  //     invoice_number: formData.invoice.number,
+  //     customer_id: formData.customer.id,
+  //     country_code: formData.invoice.country,
+  //     payment_method: formData.invoice.paymentMethod,
+  //     currency: formData.currencyDetails.currency,
+  //     exchange_rate: formData.currencyDetails.exchangeRate,
+  //     tax_treatment: formData.currencyDetails.taxTreatment,
+  //     payment_type: formData.payment.type,
+  //     collection_date: formData.payment.collectionDate,
+  //     payment_instructions: formData.payment.instructions,
+  //     staff: formData.payment.staff,
+  //     remarks: formData.payment.remarks,
+  //     payment_methods: paymentMethodArray,
+  //     company_id: companyNo,
+  //     account_id: formData.selectedAccountId || 1,
+  //     booking_no: formData.invoice.bookingId,
+  //     start_date: formData.invoice.startDate,
+  //     sales_id: formData.invoice.salesId,
+  //     end_date: formData.invoice.endDate,
+  //     sub_total: formData.totals.subTotal.toFixed(2),
+  //     handling_fee: formData.totals.handlingFee.toFixed(2),
+  //     gst_amount: formData.totals.handlingFee * 0.18,
+  //     total_amount: formData.totals.total.toFixed(2),
+  //     additional_tax: formData.totals.additionalTax.toFixed(2),
+  //     bank_charges: formData.totals.additionalTax.toFixed(2),
+  //     amount_received: formData.totals.amountReceived.toFixed(2),
+  //     balance: formData.totals.balance.toFixed(2),
+  //     from_currency: fromCurrency,
+  //     to_currency: toCurrency,
 
-      travel_period: calculateTravelDays(
-        formData.invoice.startDate,
-        formData.invoice.endDate
-      ),
+  //     travel_period: calculateTravelDays(
+  //       formData.invoice.startDate,
+  //       formData.invoice.endDate
+  //     ),
 
-      items: formData.serviceItems.map((item) => ({
-        code: item.code ?? 123,
-        type: item.type,
-        description: item.description,
-        quantity: item.qty,
-        price: item.price,
-        discount: item.discount,
-        checkin_time: item.checkin_time || null,
-        checkout_time: item.checkout_time || null,
-      })),
+  //     items: formData.serviceItems.map((item) => ({
+  //       code: item.code ?? 123,
+  //       type: item.type,
+  //       description: item.description,
+  //       quantity: item.qty,
+  //       price: item.price,
+  //       discount: item.discount,
+  //       checkin_time: item.checkin_time || null,
+  //       checkout_time: item.checkout_time || null,
+  //     })),
 
-      additional_charges: formData.additionalCharges.map((charge) => ({
-        description: charge.description,
-        amount: charge.amount,
-        taxable: 1,
-      })),
-      attachments: formData.attachments,
-    };
+  //     additional_charges: formData.additionalCharges.map((charge) => ({
+  //       description: charge.description,
+  //       amount: charge.amount,
+  //       taxable: 1,
+  //     })),
+  //     attachments: formData.attachments,
+  //   };
 
-    console.log("Formatted Data to Send =>", dataToSend);
+  //   console.log("Formatted Data to Send =>", dataToSend);
 
-    try {
-      const response = await axios.post("/api/invoices", dataToSend, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      console.log(response.data);
-      alert("Invoice created successfully!");
-      resetForm();
-      setAttachments([]);
-    } catch (error) {
-      console.error("Error creating invoice:", error);
-      alert(
-        "Error creating invoice: " +
-          (error.response?.data?.message || error.message)
-      );
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  //   try {
+  //     const response = await axios.post("/api/invoices", dataToSend, {
+  //       headers: {
+  //         "Content-Type": "multipart/form-data",
+  //         Authorization: `Bearer ${token}`,
+  //       },
+  //     });
+  //     console.log(response.data);
+  //     alert("Invoice created successfully!");
+  //     resetForm();
+  //     setAttachments([]);
+  //   } catch (error) {
+  //     console.error("Error creating invoice:", error);
+  //     alert(
+  //       "Error creating invoice: " +
+  //         (error.response?.data?.message || error.message)
+  //     );
+  //   } finally {
+  //     setIsSubmitting(false);
+  //   }
+  // };
 
   // State for form data
+
+  const handleSubmit = async () => {
+  console.log(formData);
+  setIsSubmitting(true);
+
+  const paymentMethodArray = Object.entries(formData.payment.methods)
+    .filter(([_, value]) => value)
+    .map(([key]) => key);
+
+  const dataToSend = {
+    invoice_number: formData.invoice.number,
+    customer_id: formData.customer.id,
+    country_code: formData.invoice.country,
+    payment_method: formData.invoice.paymentMethod,
+    currency: formData.currencyDetails.currency,
+    exchange_rate: formData.currencyDetails.exchangeRate,
+    tax_treatment: formData.currencyDetails.taxTreatment,
+    payment_type: formData.payment.type,
+    collection_date: formData.payment.collectionDate,
+    payment_instructions: formData.payment.instructions,
+    staff: formData.payment.staff,
+    remarks: formData.payment.remarks,
+    payment_methods: paymentMethodArray,
+    company_id: companyNo,
+    account_id: formData.selectedAccountId || 1,
+    booking_no: formData.invoice.bookingId,
+    start_date: formData.invoice.startDate,
+    sales_id: formData.invoice.salesId,
+    end_date: formData.invoice.endDate,
+    sub_total: formData.totals.subTotal.toFixed(2),
+    handling_fee: formData.totals.handlingFee.toFixed(2),
+    gst_amount: (formData.totals.handlingFee * 0.18).toFixed(2),
+    total_amount: formData.totals.total.toFixed(2),
+    additional_tax: formData.totals.additionalTax.toFixed(2),
+    bank_charges: formData.totals.additionalTax.toFixed(2),
+    amount_received: formData.totals.amountReceived.toFixed(2),
+    balance: formData.totals.balance.toFixed(2),
+    from_currency: fromCurrency,
+    to_currency: toCurrency,
+    travel_period: calculateTravelDays(
+      formData.invoice.startDate,
+      formData.invoice.endDate
+    ),
+    items: formData.serviceItems.map((item) => ({
+      code: item.code ?? 123,
+      type: item.type,
+      description: item.description,
+      quantity: item.qty,
+      price: item.price,
+      discount: item.discount,
+      checkin_time: item.checkin_time || null,
+      checkout_time: item.checkout_time || null,
+    })),
+    additional_charges: formData.additionalCharges.map((charge) => ({
+      description: charge.description,
+      amount: charge.amount,
+      taxable: 1,
+    })),
+    attachments: formData.attachments,
+  };
+
+  console.log("Formatted Data to Send =>", dataToSend);
+
+  try {
+    const response = await axios.post("/api/invoices", dataToSend, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    console.log(response.data);
+
+    // ✅ SweetAlert success
+    Swal.fire({
+      icon: "success",
+      title: "Invoice Created!",
+      text: "The invoice has been created successfully.",
+      confirmButtonText: "OK",
+    });
+
+    resetForm();
+    setAttachments([]);
+  } catch (error) {
+    console.error("Error creating invoice:", error);
+
+    // ✅ SweetAlert error
+    Swal.fire({
+      icon: "error",
+      title: "Error!",
+      text:
+        "Error creating invoice: " +
+        (error.response?.data?.message || error.message),
+      confirmButtonText: "OK",
+    });
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+
+
   const [formData, setFormData] = useState({
     customer: {
       id: null,
@@ -510,6 +612,7 @@ const Invoice_create = () => {
     formData.additionalCharges,
     formData.currencyDetails,
     formData.taxRates,
+    formData.totals.amountReceived
   ]);
 
   // Update tax rates when they change
@@ -1218,12 +1321,98 @@ const Invoice_create = () => {
     !newCustomer.payment_method;
 
   // Reset form
+  // const resetForm = () => {
+  //   if (
+  //     window.confirm(
+  //       "Are you sure you want to reset the form? All data will be lost."
+  //     )
+  //   ) {
+  //     setFormData({
+  //       customer: {
+  //         id: null,
+  //         name: "",
+  //         address: "",
+  //         mobile: "",
+  //         code: "",
+  //         gst_no: "",
+  //         customer: "",
+  //         customer_email: "",
+  //         customer_number: "",
+  //         payment_method: "",
+  //       },
+  //       invoice: {
+  //         country: "IN",
+  //         number: "",
+  //         issueDate: new Date().toISOString().split("T")[0],
+  //         dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+  //           .toISOString()
+  //           .split("T")[0],
+  //         salesId: "",
+  //         printedBy: "",
+  //         yourRef: "",
+  //         bookingId: "",
+  //         paymentMethod: "",
+  //       },
+  //       currencyDetails: {
+  //         currency: "USD",
+  //         exchangeRate: 87.52,
+  //         rateSource: "custom",
+  //         customRate: 87.52,
+  //         addOneToRate: true,
+  //         addTenToRate: false,
+  //         taxTreatment: "exclusive",
+  //       },
+  //       serviceItems: [],
+  //       additionalCharges: [],
+  //       taxRates: [],
+  //       accountDetails: {
+  //         name: "",
+  //         number: "",
+  //         bank: "",
+  //         branch: "",
+  //         ifsc: "",
+  //         address: "",
+  //       },
+  //       payment: {
+  //         type: "non-credit",
+  //         collectionDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+  //           .toISOString()
+  //           .split("T")[0],
+  //         instructions: "Please settle the invoice on or before",
+  //         methods: {
+  //           bankTransfer: true,
+  //           amex: false,
+  //           googlePay: false,
+  //           usdPortal: false,
+  //         },
+  //         staff: "KAVIYA",
+  //         remarks: "Payable in INR(Rate 87.52)",
+  //       },
+  //       totals: {
+  //         subTotal: 0,
+  //         handlingFee: 0,
+  //         gst: 0,
+  //         additionalTax: 0,
+  //         bankCharges: 0,
+  //         total: 0,
+  //         amountReceived: 0,
+  //         balance: 0,
+  //       },
+  //       attachments: [],
+  //     });
+  //   }
+  // };
+
   const resetForm = () => {
-    if (
-      window.confirm(
-        "Are you sure you want to reset the form? All data will be lost."
-      )
-    ) {
+  Swal.fire({
+    title: "Are you sure?",
+    text: "All data will be lost if you reset the form!",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonText: "Yes, reset it!",
+    cancelButtonText: "Cancel",
+  }).then((result) => {
+    if (result.isConfirmed) {
       setFormData({
         customer: {
           id: null,
@@ -1297,8 +1486,18 @@ const Invoice_create = () => {
         },
         attachments: [],
       });
+
+      Swal.fire({
+        icon: "success",
+        title: "Form Reset!",
+        text: "All data has been cleared.",
+        timer: 2000,
+        showConfirmButton: false,
+      });
     }
-  };
+  });
+};
+
 
   // Auto-calculate total when item details change
   useEffect(() => {
@@ -1313,6 +1512,7 @@ const Invoice_create = () => {
       calculateTotals();
     }
   }, [xeRate, increaseAmount]);
+
 
   useEffect(() => {
     const fetchRates = async () => {
@@ -1474,6 +1674,7 @@ const Invoice_create = () => {
                   size="sm"
                   type="number"
                   step="1"
+                  min={0}
                   value={increaseAmount}
                   onChange={(e) =>
                     setIncreaseAmount(parseFloat(e.target.value) || 0)
@@ -1960,8 +2161,8 @@ const Invoice_create = () => {
                 <tr>
                   <th width="8%">Code</th>
                   <th width="25%">Description</th>
-                  <th width="10%">Check-in</th>
-                  <th width="10%">Check-out</th>
+                  {/* <th width="10%">Check-in</th>
+                  <th width="10%">Check-out</th> */}
                   <th width="8%">Qty</th>
                   <th width="12%">Price</th>
                   <th width="8%">Disc %</th>
@@ -1974,19 +2175,22 @@ const Invoice_create = () => {
                   <tr key={item.id}>
                     <td className="small">{item.code}</td>
                     <td className="small">{item.description}</td>
-                    <td className="small">{item.checkin_time || "-"}</td>
-                    <td className="small">{item.checkout_time || "-"}</td>
+                    {/* <td className="small">{item.checkin_time || "-"}</td>
+                    <td className="small">{item.checkout_time || "-"}</td> */}
                     <td className="small text-center">{item.qty}</td>
                     <td className="small text-end">
-                      {item.price.toFixed(2) * xeRate}
+                      {/* {item.price.toFixed(2) * xeRate} */}
+                      {(item.price * xeRate).toFixed(2)}
                     </td>
                     <td className="small text-center">{item.discount}%</td>
                     <td className="small text-end fw-semibold">
-                      {(
+                      {/* {(
                         item.qty *
                         item.price *
                         (1 - item.discount / 100)
-                      ).toFixed(2) * xeRate}
+                      ).toFixed(2) * xeRate} */}
+                      {((item.qty * item.price * (1 - item.discount / 100)) * xeRate).toFixed(2)}
+
                     </td>
                     <td>
                       <div className="d-flex gap-1">
@@ -2252,7 +2456,7 @@ const Invoice_create = () => {
                   </>
                 )}
 
-                <div className="d-flex justify-content-between mb-2 bg-white px-2 py-1 rounded">
+                <div className="d-flex justify-content-between mb-2">
                   <span className="small">Additional Tax:</span>
                   <span className="small fw-semibold">
                     {(formData.totals.additionalTax * 0.18).toFixed(2)}
@@ -2285,6 +2489,7 @@ const Invoice_create = () => {
                   <Form.Control
                     size="sm"
                     type="number"
+                    min={0}
                     className="w-50 text-end"
                     value={formData.totals.amountReceived}
                     onChange={(e) =>
@@ -2755,6 +2960,7 @@ const Invoice_create = () => {
                     </Form.Label>
                     <Form.Control
                       type="number"
+                      min={0}
                       value={newItem.qty}
                       onChange={(e) =>
                         setNewItem({
@@ -2889,6 +3095,7 @@ const Invoice_create = () => {
                       size="sm"
                       type="number"
                       step="0.01"
+                      min={0}
                       placeholder={`Enter price in ${fromCurrency}`}
                       value={newItem.price}
                       onChange={(e) =>
@@ -2931,6 +3138,7 @@ const Invoice_create = () => {
                     <Form.Control
                       type="number"
                       value={newItem.discount}
+                      min={0}
                       onChange={(e) =>
                         setNewItem({
                           ...newItem,

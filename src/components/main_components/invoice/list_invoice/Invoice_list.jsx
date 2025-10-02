@@ -334,6 +334,28 @@ const Invoice_list = () => {
     </OverlayTrigger>
   );
 
+  const fetchInvoiceRate = async (from, to, invoice) => {
+    try {
+      const response = await axios.get(`/api/currency/rate`, {
+        params: { from, to }, 
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.data && response.data.rate) {
+        setXeRate(response.data.rate + invoice.increment);
+        // setXeRate(invoice.exchange_rate + invoice.increment);
+      } else {
+        console.warn("Invalid response format:", response.data);
+      }
+    } catch (error) {
+      console.error("Error fetching invoice rate:", error);
+      // optional fallback
+      setXeRate(88.66);
+    }
+  };
+
   // Memoized filtered invoices to optimize computation
   const filteredInvoices = useMemo(() => {
     return invoices.filter((invoice) => {
@@ -400,6 +422,9 @@ const Invoice_list = () => {
   };
 
   const handleViewInvoice = (invoice) => {
+    let d =  fetchInvoiceRate(invoice.from_currency, invoice.to_currency,invoice)
+    console.log(d);
+    
     setCurrentInvoice(invoice);
     setShowExchangedVersion(false); // Ensure original version is shown
     if (companyNo === 2) {
@@ -451,6 +476,8 @@ const Invoice_list = () => {
     setIsEditingPayments(true);
   };
 
+  
+  
   const handleRemovePayment = (index) => {
     const updatedPayments = selectedInvoicePayments.filter(
       (_, i) => i !== index
@@ -1119,13 +1146,15 @@ const Invoice_list = () => {
             <FaFileInvoiceDollar className="me-2" />
             Invoice Management
           </h5>
-       {companyNo !== 3 && <Button
-            variant="light"
-            onClick={() => navigate("/invoice/create")}
-            className="d-flex align-items-center"
-          >
-            <FaPlus className="me-1" /> New Invoice
-          </Button>}
+          {companyNo !== 3 && (
+            <Button
+              variant="light"
+              onClick={() => navigate("/invoice/create")}
+              className="d-flex align-items-center"
+            >
+              <FaPlus className="me-1" /> New Invoice
+            </Button>
+          )}
         </Card.Header>
 
         <Card.Body>
@@ -1307,7 +1336,7 @@ const Invoice_list = () => {
               </Form.Select>
             </div>
             {/* Adjusted Days Filter */}
-            <OverlayTrigger
+            {/* <OverlayTrigger
               placement="top"
               overlay={<Tooltip>Filter invoices by days from today</Tooltip>}
             >
@@ -1361,7 +1390,7 @@ const Invoice_list = () => {
                   </Button>
                 )}
               </div>
-            </OverlayTrigger>
+            </OverlayTrigger> */}
             <div className="d-flex align-items-center gap-2">
               {/* <Form.Select
                 value={fetchType}
@@ -1415,9 +1444,9 @@ const Invoice_list = () => {
                     <th>Total</th>
                     <th>Type</th>
                     <th>Status</th>
-                    {/* <th>Payments</th>
-                    <th>Exchange-Rates</th>
-                    <th>Costs</th> */}
+                    {/* <th>Payments</th> */}
+                    {companyNo !=3 && <th>Exchange-Rates</th>}
+                    {/* <th>Costs</th> */}
                     <th className="text-end">Actions</th>
                   </tr>
                 </thead>
@@ -1500,8 +1529,8 @@ const Invoice_list = () => {
                             disabled = {invoice.status === "cancelled"}
                             onClick={() => handleViewPayments(invoice)}
                           />
-                        </td>
-                        <td>
+                        </td> */}
+                       {companyNo != 3 &&  <td>
                           <ActionButton
                             icon={<FaMoneyBillWave />}
                             label="View Exchange Rates"
@@ -1509,8 +1538,8 @@ const Invoice_list = () => {
                             disabled = {invoice.status === "cancelled"}
                             onClick={() => handleExchangeRates(invoice)}
                           />
-                        </td>
-                        <td>
+                        </td>}
+                        {/* <td>
                           <ActionButton
                             icon={<FaMoneyBillWave />}
                             label="View Costs"

@@ -258,92 +258,6 @@ const Invoice_create = () => {
     }
   };
 
-  // const handleSubmit = async () => {
-  //   console.log(formData);
-  //   setIsSubmitting(true);
-  //   const paymentMethodArray = Object.entries(formData.payment.methods)
-  //     .filter(([_, value]) => value)
-  //     .map(([key]) => key);
-
-  //   const dataToSend = {
-  //     invoice_number: formData.invoice.number,
-  //     customer_id: formData.customer.id,
-  //     country_code: formData.invoice.country,
-  //     payment_method: formData.invoice.paymentMethod,
-  //     currency: formData.currencyDetails.currency,
-  //     exchange_rate: formData.currencyDetails.exchangeRate,
-  //     tax_treatment: formData.currencyDetails.taxTreatment,
-  //     payment_type: formData.payment.type,
-  //     collection_date: formData.payment.collectionDate,
-  //     payment_instructions: formData.payment.instructions,
-  //     staff: formData.payment.staff,
-  //     remarks: formData.payment.remarks,
-  //     payment_methods: paymentMethodArray,
-  //     company_id: companyNo,
-  //     account_id: formData.selectedAccountId || 1,
-  //     booking_no: formData.invoice.bookingId,
-  //     start_date: formData.invoice.startDate,
-  //     sales_id: formData.invoice.salesId,
-  //     end_date: formData.invoice.endDate,
-  //     sub_total: formData.totals.subTotal.toFixed(2),
-  //     handling_fee: formData.totals.handlingFee.toFixed(2),
-  //     gst_amount: formData.totals.handlingFee * 0.18,
-  //     total_amount: formData.totals.total.toFixed(2),
-  //     additional_tax: formData.totals.additionalTax.toFixed(2),
-  //     bank_charges: formData.totals.additionalTax.toFixed(2),
-  //     amount_received: formData.totals.amountReceived.toFixed(2),
-  //     balance: formData.totals.balance.toFixed(2),
-  //     from_currency: fromCurrency,
-  //     to_currency: toCurrency,
-
-  //     travel_period: calculateTravelDays(
-  //       formData.invoice.startDate,
-  //       formData.invoice.endDate
-  //     ),
-
-  //     items: formData.serviceItems.map((item) => ({
-  //       code: item.code ?? 123,
-  //       type: item.type,
-  //       description: item.description,
-  //       quantity: item.qty,
-  //       price: item.price,
-  //       discount: item.discount,
-  //       checkin_time: item.checkin_time || null,
-  //       checkout_time: item.checkout_time || null,
-  //     })),
-
-  //     additional_charges: formData.additionalCharges.map((charge) => ({
-  //       description: charge.description,
-  //       amount: charge.amount,
-  //       taxable: 1,
-  //     })),
-  //     attachments: formData.attachments,
-  //   };
-
-  //   console.log("Formatted Data to Send =>", dataToSend);
-
-  //   try {
-  //     const response = await axios.post("/api/invoices", dataToSend, {
-  //       headers: {
-  //         "Content-Type": "multipart/form-data",
-  //         Authorization: `Bearer ${token}`,
-  //       },
-  //     });
-  //     console.log(response.data);
-  //     alert("Invoice created successfully!");
-  //     resetForm();
-  //     setAttachments([]);
-  //   } catch (error) {
-  //     console.error("Error creating invoice:", error);
-  //     alert(
-  //       "Error creating invoice: " +
-  //         (error.response?.data?.message || error.message)
-  //     );
-  //   } finally {
-  //     setIsSubmitting(false);
-  //   }
-  // };
-
   // State for form data
 
   const handleSubmit = async () => {
@@ -357,10 +271,11 @@ const Invoice_create = () => {
     const dataToSend = {
       invoice_number: formData.invoice.number,
       customer_id: formData.customer.id,
+      increment: increaseAmount,
       country_code: formData.invoice.country,
       payment_method: formData.invoice.paymentMethod,
       currency: formData.currencyDetails.currency,
-      exchange_rate: formData.currencyDetails.exchangeRate,
+      exchange_rate: xeRate - increaseAmount,
       tax_treatment: formData.currencyDetails.taxTreatment,
       payment_type: formData.payment.type,
       collection_date: formData.payment.collectionDate,

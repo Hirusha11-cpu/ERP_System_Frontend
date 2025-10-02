@@ -135,12 +135,12 @@ export const menuList = [
       //   path: "/invoice/summary",
       //   subdropdownMenu: false,
       // },
-      // {
-      //   id: 6,
-      //   name: "Bank Accounts",
-      //   path: "/invoice/bank-accounts",
-      //   subdropdownMenu: false,
-      // },
+      {
+        id: 6,
+        name: "Bank Accounts",
+        path: "/invoice/bank-accounts",
+        subdropdownMenu: false,
+      },
       // {
       //   id: 7,
       //   name: "Reconciliation",

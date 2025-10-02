@@ -35,42 +35,42 @@ export const menuList = [
         path: "/invoice",
         subdropdownMenu: false,
       },
-      {
-        id: 3,
-        name: "Account Receivable",
-        path: "/receivables/api_list",
-        subdropdownMenu: false,
-      },
-      {
-        id: 4,
-        name: "Account Payable",
-        path: "/dashboards/analytics",
-        subdropdownMenu: false,
-      },
-      {
-        id: 5,
-        name: "Office Expense",
-        path: "/dashboards/analytics",
-        subdropdownMenu: false,
-      },
-      {
-        id: 6,
-        name: "Bank Accounts",
-        path: "/dashboards/analytics",
-        subdropdownMenu: false,
-      },
-      {
-        id: 7,
-        name: "Reconciliation",
-        path: "/dashboards/analytics",
-        subdropdownMenu: false,
-      },
-      {
-        id: 8,
-        name: "Summary",
-        path: "/dashboards/analytics",
-        subdropdownMenu: false,
-      },
+      // {
+      //   id: 3,
+      //   name: "Account Receivable",
+      //   path: "/receivables/api_list",
+      //   subdropdownMenu: false,
+      // },
+      // {
+      //   id: 4,
+      //   name: "Account Payable",
+      //   path: "/dashboards/analytics",
+      //   subdropdownMenu: false,
+      // },
+      // {
+      //   id: 5,
+      //   name: "Office Expense",
+      //   path: "/dashboards/analytics",
+      //   subdropdownMenu: false,
+      // },
+      // {
+      //   id: 6,
+      //   name: "Bank Accounts",
+      //   path: "/dashboards/analytics",
+      //   subdropdownMenu: false,
+      // },
+      // {
+      //   id: 7,
+      //   name: "Reconciliation",
+      //   path: "/dashboards/analytics",
+      //   subdropdownMenu: false,
+      // },
+      // {
+      //   id: 8,
+      //   name: "Summary",
+      //   path: "/dashboards/analytics",
+      //   subdropdownMenu: false,
+      // },
     ],
   },
   {
@@ -92,12 +92,12 @@ export const menuList = [
         path: "/invoice/create",
         subdropdownMenu: true,
       },
-      // {
-      //   id: 3,
-      //   name: "Edit Invoice",
-      //   path: "/payment/view",
-      //   subdropdownMenu: false,
-      // },
+      {
+        id: 3,
+        name: "PnL Report",
+        path: "/invoice/pnl",
+        subdropdownMenu: false,
+      },
 
       // {
       //   id: 3,

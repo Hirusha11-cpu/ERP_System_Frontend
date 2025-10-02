@@ -1119,13 +1119,13 @@ const Invoice_list = () => {
             <FaFileInvoiceDollar className="me-2" />
             Invoice Management
           </h5>
-          <Button
+       {companyNo !== 3 && <Button
             variant="light"
             onClick={() => navigate("/invoice/create")}
             className="d-flex align-items-center"
           >
             <FaPlus className="me-1" /> New Invoice
-          </Button>
+          </Button>}
         </Card.Header>
 
         <Card.Body>

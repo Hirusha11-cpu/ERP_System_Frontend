@@ -1,8 +1,11 @@
-import React, { Fragment, useEffect, useState } from "react";
+import React, { Fragment, useEffect, useState, useContext } from "react";
 import { FiChevronRight } from "react-icons/fi";
 import { Link, useLocation } from "react-router-dom";
 import { menuList } from "@/utils/fackData/menuList";
 import getIcon from "@/utils/getIcon";
+import { CompanyContext } from "../../../contentApi/CompanyProvider";
+
+
 // import "./Menu.css";
 
 const Menus = () => {
@@ -10,8 +13,11 @@ const Menus = () => {
   const [openSubDropdown, setOpenSubDropdown] = useState(null);
   const [activeParent, setActiveParent] = useState("");
   const [activeChild, setActiveChild] = useState("");
+  const { selectedCompany } = useContext(CompanyContext);
+  const [companyNo, setCompanyNo] = useState(null);
+  const [filteredMenu, setFilteredMenu] = useState([]);
   const pathName = useLocation().pathname;
-
+  
   const handleMainMenu = (e, name) => {
     if (openDropdown === name) {
       setOpenDropdown(null);
@@ -29,6 +35,28 @@ const Menus = () => {
     }
   };
 
+   useEffect(() => {
+    const companyMap = {
+      appleholidays: 2,
+      aahaas: 3,
+      shirmila: 1,
+    };
+    const currentCompanyNo =
+      companyMap[selectedCompany?.toLowerCase()] || null;
+    setCompanyNo(currentCompanyNo);
+
+    // Filter menu dynamically
+    const menu = menuList.map((menuItem) => ({
+      ...menuItem,
+      dropdownMenu:
+        currentCompanyNo === 3
+          ? menuItem.dropdownMenu.filter((item) => item.name !== "Create Invoice")
+          : menuItem.dropdownMenu,
+    }));
+
+    setFilteredMenu(menu);
+  }, [selectedCompany]);
+
   useEffect(() => {
     if (pathName !== "/") {
       const x = pathName.split("/");
@@ -44,7 +72,8 @@ const Menus = () => {
 
   return (
     <>
-      {menuList.map(({ dropdownMenu, id, name, path, icon, mainName }) => {
+      {/* {menuList.map(({ dropdownMenu, id, name, path, icon, mainName }) => { */}
+      {filteredMenu.map(({ dropdownMenu, id, name, path, icon, mainName }) => {
         return (
           <li
             key={id}

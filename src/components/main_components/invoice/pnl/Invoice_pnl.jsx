@@ -1,790 +1,532 @@
 import React, { useState, useEffect, useContext } from "react";
 import {
-  Table,
   Card,
-  Badge,
   Row,
   Col,
   Form,
+  Table,
   Button,
-  Modal,
-  ProgressBar,
-  OverlayTrigger,
-  Tooltip,
-  Alert,
-  InputGroup,
+  Badge,
   Spinner,
-  Dropdown,
-  Tabs,
-  Tab,
-  Pagination
+  Container,
 } from "react-bootstrap";
-import {
-  FaFilter,
-  FaSearch,
-  FaChartLine,
-  FaChartPie,
-  FaMoneyBillWave,
-  FaInfoCircle,
-  FaEye,
-  FaCalculator,
-  FaCheckCircle,
-  FaExclamationTriangle,
-  FaFileExcel,
-  FaFilePdf,
-  FaDollarSign,
-  FaPercent,
-  FaCalendarAlt,
-  FaBuilding,
-  FaFileInvoiceDollar,
-  FaArrowUp,
-  FaArrowDown,
-  FaSync,
-  FaChartBar,
-  FaUsers,
-  FaReceipt
-} from "react-icons/fa";
-import axios from "axios";
 import { CompanyContext } from "../../../../contentApi/CompanyProvider";
-import jsPDF from "jspdf";
-import "jspdf-autotable";
-import * as XLSX from "xlsx";
+import axios from "axios";
+import { FaDownload, FaFilter, FaSyncAlt, FaChartLine } from "react-icons/fa";
 
 const Invoice_pnl = () => {
-  const [pnlData, setPnlData] = useState(null);
-  const [invoiceDetails, setInvoiceDetails] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [filters, setFilters] = useState({
-    days: 30,
-    company_id: "",
-    start_date: "",
-    end_date: "",
-    status: ""
-  });
-  const [searchInvoice, setSearchInvoice] = useState("");
-  const [selectedInvoice, setSelectedInvoice] = useState(null);
-  const [showInvoiceModal, setShowInvoiceModal] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10);
-  const { selectedCompany } = useContext(CompanyContext);
   const token = localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+  const { selectedCompany } = useContext(CompanyContext);
+  const [companyNo, setCompanyNo] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [invoices, setInvoices] = useState([]);
+  const [filters, setFilters] = useState({
+    startDate: "",
+    endDate: "",
+    status: "all",
+    type: "all",
+  });
 
-  // Currency symbols mapping
-  const currencySymbols = {
-    USD: "$",
-    INR: "₹",
-    LKR: "Rs",
-    SGD: "S$",
-    MYR: "RM"
-  };
-
-  // Fetch P&L data
-  const fetchPnlData = async () => {
-    try {
-      setLoading(true);
-      setError("");
-      
-      const params = new URLSearchParams();
-      if (filters.days) params.append('days', filters.days);
-      if (filters.company_id) params.append('company_id', filters.company_id);
-      if (filters.start_date) params.append('start_date', filters.start_date);
-      if (filters.end_date) params.append('end_date', filters.end_date);
-      if (filters.status) params.append('status', filters.status);
-
-      const response = await axios.get(`/api/pnl/invoices?${params.toString()}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      if (response.data.success) {
-        setPnlData(response.data.data);
-      } else {
-        setError(response.data.message || "Failed to fetch P&L data");
-      }
-    } catch (err) {
-      setError(err.response?.data?.message || "Failed to fetch P&L data");
-      console.error("Error fetching P&L data:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Fetch individual invoice P&L details
-  const fetchInvoicePnl = async (invoiceNumber) => {
-    console.log("Fetching P&L for invoice:", invoiceNumber);
-    
-    try {
-      setLoading(true);
-      const response = await axios.get(`/api/invoices/${invoiceNumber.invoice_id}/pnl`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      if (response.data.success) {
-        setInvoiceDetails(response.data.data);
-        setShowInvoiceModal(true);
-      }
-    } catch (err) {
-      setError("Failed to fetch invoice P&L details");
-      console.error("Error fetching invoice P&L:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Search invoice by number
-  const handleSearchInvoice = async () => {
-    if (!searchInvoice.trim()) return;
-    
-    try {
-      setLoading(true);
-      const response = await axios.get(`/api/invoices/${searchInvoice}/pnl`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      if (response.data.success) {
-        setSelectedInvoice({
-          invoice_number: searchInvoice,
-          ...response.data.data
-        });
-        setShowInvoiceModal(true);
-      } else {
-        setError("Invoice not found");
-      }
-    } catch (err) {
-      setError("Invoice not found or P&L data unavailable");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Export to Excel
-  const exportToExcel = () => {
-    if (!pnlData?.invoices) return;
-
-    const worksheet = XLSX.utils.json_to_sheet(pnlData.invoices.map(invoice => ({
-      'Invoice Number': invoice.invoice_number,
-      'Issue Date': new Date(invoice.issue_date).toLocaleDateString(),
-      'Customer': invoice.customer_name,
-      'Revenue': invoice.pnl_details.total_revenue,
-      'Cost': invoice.pnl_details.total_cost,
-      'Profit/Loss': invoice.pnl_details.profit_loss,
-      'Profit Margin (%)': invoice.pnl_details.profit_margin,
-      'Profit Markup (%)': invoice.pnl_details.profit_markup,
-      'Currency': invoice.currency
-    })));
-
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "P&L Report");
-    XLSX.writeFile(workbook, `pnl-report-${new Date().toISOString().split('T')[0]}.xlsx`);
-  };
-
-  // Export to PDF
-  const exportToPDF = () => {
-    if (!pnlData?.invoices) return;
-
-    const doc = new jsPDF();
-    doc.text("Profit & Loss Report", 20, 20);
-    
-    const tableData = pnlData.invoices.map(invoice => [
-      invoice.invoice_number,
-      new Date(invoice.issue_date).toLocaleDateString(),
-      invoice.customer_name,
-      `${currencySymbols[invoice.currency] || invoice.currency} ${invoice.pnl_details.total_revenue.toFixed(2)}`,
-      `${currencySymbols[invoice.currency] || invoice.currency} ${invoice.pnl_details.total_cost.toFixed(2)}`,
-      `${currencySymbols[invoice.currency] || invoice.currency} ${invoice.pnl_details.profit_loss.toFixed(2)}`,
-      `${invoice.pnl_details.profit_margin.toFixed(2)}%`
-    ]);
-
-    doc.autoTable({
-      head: [['Invoice', 'Date', 'Customer', 'Revenue', 'Cost', 'P&L', 'Margin']],
-      body: tableData,
-      startY: 30,
-    });
-
-    doc.save(`pnl-report-${new Date().toISOString().split('T')[0]}.pdf`);
-  };
-
-  // Format currency
-  const formatCurrency = (amount, currency = 'USD') => {
-    return `${currencySymbols[currency] || currency} ${parseFloat(amount).toFixed(2)}`;
-  };
-
-  // Get profit/loss badge variant
-  const getProfitBadgeVariant = (profit) => {
-    return profit >= 0 ? "success" : "danger";
-  };
-
-  // Get profit/loss icon
-  const getProfitIcon = (profit) => {
-    return profit >= 0 ? <FaArrowUp /> : <FaArrowDown />;
-  };
-
-  // Pagination
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentInvoices = pnlData?.invoices?.slice(indexOfFirstItem, indexOfLastItem) || [];
-  const totalPages = Math.ceil((pnlData?.invoices?.length || 0) / itemsPerPage);
-
-  // Initialize with company context
   useEffect(() => {
-    if (selectedCompany) {
-      const companyMap = {
-        appleholidays: 2,
-        aahaas: 3,
-        shirmila: 1,
-      };
-      setFilters(prev => ({
-        ...prev,
-        company_id: companyMap[selectedCompany?.toLowerCase()] || 3
-      }));
-    }
+    const companyMap = {
+      appleholidays: 2,
+      aahaas: 3,
+      shirmila: 1,
+    };
+    const defaultCompanyNo = companyMap[selectedCompany?.toLowerCase()] || 3;
+    setCompanyNo(defaultCompanyNo);
   }, [selectedCompany]);
 
-  // Fetch data when filters change
   useEffect(() => {
-    fetchPnlData();
-  }, [filters.days, filters.company_id]);
+    if (companyNo) {
+      fetchPNLData();
+    }
+  }, [companyNo, filters]);
 
-  if (loading && !pnlData) {
+  const fetchPNLData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      let url = `/api/invoices?company_id=${companyNo}`;
+      
+      // Add filters to URL
+      const params = [];
+      if (filters.startDate) params.push(`start_date=${filters.startDate}`);
+      if (filters.endDate) params.push(`end_date=${filters.endDate}`);
+      if (filters.status !== 'all') params.push(`status=${filters.status}`);
+      if (filters.type !== 'all') params.push(`type=${filters.type}`);
+      
+      if (params.length > 0) {
+        url += `&${params.join('&')}`;
+      }
+
+      const response = await axios.get(url, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const invoicesData = response.data.data || [];
+      setInvoices(invoicesData);
+    } catch (error) {
+      console.error("Error fetching PNL data:", error);
+      setError(
+        error.response?.data?.message ||
+          "Failed to fetch PNL data. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Calculate P&L metrics
+  const calculatePNLMetrics = () => {
+    if (!invoices.length) return {};
+
+    let totalRevenue = 0;
+    let totalCost = 0;
+    let totalProfit = 0;
+    let totalInvoices = 0;
+    let paidInvoices = 0;
+    let draftInvoices = 0;
+
+    const monthlyData = {};
+    const typeWiseData = {};
+
+    invoices.forEach(invoice => {
+      const revenue = parseFloat(invoice.total_amount) || 0;
+      const cost = parseFloat(invoice.cost_of_invoices?.[0]?.total_tour_cost || invoice.cost_of_invoices?.[0]?.net_cost_amount || 0);
+      const profit = parseFloat(invoice.profit?.profit || revenue - cost);
+      
+      totalRevenue += revenue;
+      totalCost += cost;
+      totalProfit += profit;
+      totalInvoices++;
+
+      // Status count
+      if (invoice.status === 'paid') paidInvoices++;
+      if (invoice.status === 'draft') draftInvoices++;
+
+      // Monthly breakdown
+      const month = new Date(invoice.issue_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+      if (!monthlyData[month]) {
+        monthlyData[month] = { revenue: 0, cost: 0, profit: 0, count: 0 };
+      }
+      monthlyData[month].revenue += revenue;
+      monthlyData[month].cost += cost;
+      monthlyData[month].profit += profit;
+      monthlyData[month].count++;
+
+      // Type-wise breakdown
+      const type = invoice.type || 'manual';
+      if (!typeWiseData[type]) {
+        typeWiseData[type] = { revenue: 0, cost: 0, profit: 0, count: 0 };
+      }
+      typeWiseData[type].revenue += revenue;
+      typeWiseData[type].cost += cost;
+      typeWiseData[type].profit += profit;
+      typeWiseData[type].count++;
+    });
+
+    const profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
+    const profitMarkup = totalCost > 0 ? (totalProfit / totalCost) * 100 : 0;
+
+    return {
+      summary: {
+        totalRevenue,
+        totalCost,
+        totalProfit,
+        profitMargin,
+        profitMarkup,
+        totalInvoices,
+        paidInvoices,
+        draftInvoices,
+      },
+      monthlyData,
+      typeWiseData,
+    };
+  };
+
+  const pnlMetrics = calculatePNLMetrics();
+
+  const handleFilterChange = (key, value) => {
+    setFilters(prev => ({
+      ...prev,
+      [key]: value
+    }));
+  };
+
+  const handleResetFilters = () => {
+    setFilters({
+      startDate: "",
+      endDate: "",
+      status: "all",
+      type: "all",
+    });
+  };
+
+  const exportToCSV = () => {
+    const headers = [
+      'Invoice Number', 'Issue Date', 'Customer', 'Type', 'Status',
+      'Revenue', 'Cost', 'Profit', 'Profit Margin %', 'Currency'
+    ];
+    
+    const csvData = invoices.map(invoice => [
+      invoice.invoice_number,
+      invoice.issue_date,
+      invoice.customer?.name || 'N/A',
+      invoice.type,
+      invoice.status,
+      invoice.total_amount,
+      invoice.cost_of_invoices?.[0]?.total_tour_cost || invoice.cost_of_invoices?.[0]?.net_cost_amount || 0,
+      invoice.profit?.profit || 0,
+      invoice.profit?.profit_margin || 0,
+      invoice.currency
+    ]);
+
+    const csvContent = [
+      headers.join(','),
+      ...csvData.map(row => row.join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `PNL-Report-${selectedCompany}-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
+  if (loading) {
     return (
-      <div className="d-flex justify-content-center align-items-center" style={{ height: '400px' }}>
-        <Spinner animation="border" variant="primary" />
-        <span className="ms-2">Loading P&L Data...</span>
-      </div>
+      <Container className="py-4">
+        <div className="text-center">
+          <Spinner animation="border" role="status">
+            <span className="visually-hidden">Loading P&L Report...</span>
+          </Spinner>
+          <p className="mt-2">Loading P&L Report...</p>
+        </div>
+      </Container>
     );
   }
 
   return (
-    <div className="container-fluid py-4">
+    <Container className="py-4">
       {/* Header */}
-      <Row className="mb-4">
-        <Col>
-          <div className="d-flex justify-content-between align-items-center">
-            <div>
-              <h2 className="mb-1">
-                <FaChartLine className="me-2 text-primary" />
-                Profit & Loss Dashboard
-              </h2>
-              <p className="text-muted mb-0">Comprehensive view of invoice profitability and cost analysis</p>
-            </div>
-            <div className="d-flex gap-2">
-              <Dropdown>
-                <Dropdown.Toggle variant="outline-primary">
-                  <FaFileExcel className="me-2 text-success" />
-                  Export
-                </Dropdown.Toggle>
-                <Dropdown.Menu>
-                  <Dropdown.Item onClick={exportToExcel}>
-                    <FaFileExcel className="me-2 text-success" />
-                    Export to Excel
-                  </Dropdown.Item>
-                  <Dropdown.Item onClick={exportToPDF}>
-                    <FaFilePdf className="me-2 text-danger" />
-                    Export to PDF
-                  </Dropdown.Item>
-                </Dropdown.Menu>
-              </Dropdown>
-              <Button variant="primary" onClick={fetchPnlData}>
-                <FaSync className="me-2" />
-                Refresh
-              </Button>
-            </div>
-          </div>
-        </Col>
-      </Row>
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h2 className="fw-bold text-primary mb-1">
+            <FaChartLine className="me-2" />
+            Profit & Loss Report
+          </h2>
+          <p className="text-muted mb-0">
+            {selectedCompany ? `Company: ${selectedCompany}` : 'All Companies'}
+          </p>
+        </div>
+        <Button variant="success" onClick={exportToCSV}>
+          <FaDownload className="me-2" />
+          Export CSV
+        </Button>
+      </div>
 
-      {/* Search and Filters */}
-      <Card className="mb-4">
-        <Card.Header>
-          <div className="d-flex justify-content-between align-items-center">
-            <h5 className="mb-0">
-              <FaFilter className="me-2" />
-              Filters & Search
-            </h5>
-            <Badge bg="primary" pill>
-              {pnlData?.summary?.total_invoices || 0} invoices
-            </Badge>
-          </div>
+      {/* Filters */}
+      <Card className="mb-4 shadow-sm">
+        <Card.Header className="bg-light d-flex justify-content-between align-items-center">
+          <h5 className="mb-0">
+            <FaFilter className="me-2" />
+            Filters
+          </h5>
+          <Button variant="outline-secondary" size="sm" onClick={handleResetFilters}>
+            Reset Filters
+          </Button>
         </Card.Header>
         <Card.Body>
           <Row className="g-3">
             <Col md={3}>
-              <Form.Label>Time Period</Form.Label>
-              <Form.Select
-                value={filters.days}
-                onChange={(e) => setFilters({ ...filters, days: e.target.value })}
-              >
-                <option value={7}>Last 7 Days</option>
-                <option value={30}>Last 30 Days</option>
-                <option value={90}>Last 90 Days</option>
-                <option value={365}>Last 365 Days</option>
-                <option value="custom">Custom Range</option>
-              </Form.Select>
-            </Col>
-            
-            {filters.days === 'custom' && (
-              <>
-                <Col md={3}>
-                  <Form.Label>Start Date</Form.Label>
-                  <Form.Control
-                    type="date"
-                    value={filters.start_date}
-                    onChange={(e) => setFilters({ ...filters, start_date: e.target.value })}
-                  />
-                </Col>
-                <Col md={3}>
-                  <Form.Label>End Date</Form.Label>
-                  <Form.Control
-                    type="date"
-                    value={filters.end_date}
-                    onChange={(e) => setFilters({ ...filters, end_date: e.target.value })}
-                  />
-                </Col>
-              </>
-            )}
-
-            <Col md={3}>
-              <Form.Label>Invoice Search</Form.Label>
-              <InputGroup>
+              <Form.Group>
+                <Form.Label>Start Date</Form.Label>
                 <Form.Control
-                  type="text"
-                  placeholder="Enter invoice number..."
-                  value={searchInvoice}
-                  onChange={(e) => setSearchInvoice(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSearchInvoice()}
+                  type="date"
+                  value={filters.startDate}
+                  onChange={(e) => handleFilterChange('startDate', e.target.value)}
                 />
-                <Button variant="primary" onClick={handleSearchInvoice}>
-                  <FaSearch />
-                </Button>
-              </InputGroup>
+              </Form.Group>
+            </Col>
+            <Col md={3}>
+              <Form.Group>
+                <Form.Label>End Date</Form.Label>
+                <Form.Control
+                  type="date"
+                  value={filters.endDate}
+                  onChange={(e) => handleFilterChange('endDate', e.target.value)}
+                />
+              </Form.Group>
+            </Col>
+            <Col md={3}>
+              <Form.Group>
+                <Form.Label>Status</Form.Label>
+                <Form.Select
+                  value={filters.status}
+                  onChange={(e) => handleFilterChange('status', e.target.value)}
+                >
+                  <option value="all">All Status</option>
+                  <option value="draft">Draft</option>
+                  <option value="paid">Paid</option>
+                  <option value="pending">Pending</option>
+                </Form.Select>
+              </Form.Group>
+            </Col>
+            <Col md={3}>
+              <Form.Group>
+                <Form.Label>Type</Form.Label>
+                <Form.Select
+                  value={filters.type}
+                  onChange={(e) => handleFilterChange('type', e.target.value)}
+                >
+                  <option value="all">All Types</option>
+                  <option value="automatic">Automatic</option>
+                  <option value="manual">Manual</option>
+                </Form.Select>
+              </Form.Group>
             </Col>
           </Row>
         </Card.Body>
       </Card>
 
-      {/* Error Alert */}
       {error && (
-        <Alert variant="danger" dismissible onClose={() => setError("")}>
-          <FaExclamationTriangle className="me-2" />
+        <div className="alert alert-danger" role="alert">
           {error}
-        </Alert>
+        </div>
       )}
 
       {/* Summary Cards */}
-      {pnlData?.summary && (
-        <Row className="mb-4">
-          <Col xl={3} lg={6} className="mb-3">
-            <Card className="h-100 border-0 shadow-sm">
-              <Card.Body>
-                <div className="d-flex justify-content-between align-items-center">
-                  <div>
-                    <h6 className="card-title text-muted mb-2">Total Revenue</h6>
-                    <h3 className="text-primary mb-0">
-                      {formatCurrency(pnlData.summary.total_revenue)}
-                    </h3>
-                    <small className="text-muted">{pnlData.summary.total_invoices} invoices</small>
-                  </div>
-                  <div className="bg-primary rounded-circle p-3">
-                    <FaDollarSign size={24} className="text-white" />
-                  </div>
+      <Row className="mb-4 g-3 d-none">
+        <Col md={3}>
+          <Card className="border-0 bg-primary text-white">
+            <Card.Body>
+              <div className="d-flex justify-content-between">
+                <div>
+                  <h6 className="card-title">Total Revenue</h6>
+                  <h3 className="fw-bold">
+                    {pnlMetrics.summary?.totalRevenue.toFixed(2)}
+                  </h3>
                 </div>
-              </Card.Body>
-            </Card>
-          </Col>
-
-          <Col xl={3} lg={6} className="mb-3">
-            <Card className="h-100 border-0 shadow-sm">
-              <Card.Body>
-                <div className="d-flex justify-content-between align-items-center">
-                  <div>
-                    <h6 className="card-title text-muted mb-2">Total Cost</h6>
-                    <h3 className="text-warning mb-0">
-                      {formatCurrency(pnlData.summary.total_cost)}
-                    </h3>
-                    <small className="text-muted">
-                      {pnlData.summary.total_revenue > 0 ? 
-                        `${((pnlData.summary.total_cost / pnlData.summary.total_revenue) * 100).toFixed(1)}% of revenue` 
-                        : 'N/A'}
-                    </small>
-                  </div>
-                  <div className="bg-warning rounded-circle p-3">
-                    <FaCalculator size={24} className="text-white" />
-                  </div>
+                <div className="display-4 opacity-50">
+                  ₹
                 </div>
-              </Card.Body>
-            </Card>
-          </Col>
-
-          <Col xl={3} lg={6} className="mb-3">
-            <Card className="h-100 border-0 shadow-sm">
-              <Card.Body>
-                <div className="d-flex justify-content-between align-items-center">
-                  <div>
-                    <h6 className="card-title text-muted mb-2">Net Profit</h6>
-                    <h3 className={pnlData.summary.total_profit_loss >= 0 ? "text-success" : "text-danger"}>
-                      {formatCurrency(pnlData.summary.total_profit_loss)}
-                    </h3>
-                    <small className="text-muted">
-                      <Badge bg={getProfitBadgeVariant(pnlData.summary.total_profit_loss)}>
-                        {getProfitIcon(pnlData.summary.total_profit_loss)}
-                        {pnlData.summary.overall_profit_margin.toFixed(1)}% margin
-                      </Badge>
-                    </small>
-                  </div>
-                  <div className={`rounded-circle p-3 ${pnlData.summary.total_profit_loss >= 0 ? "bg-success" : "bg-danger"}`}>
-                    <FaChartLine size={24} className="text-white" />
-                  </div>
+              </div>
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col md={3}>
+          <Card className="border-0 bg-warning text-dark">
+            <Card.Body>
+              <div className="d-flex justify-content-between">
+                <div>
+                  <h6 className="card-title">Total Cost</h6>
+                  <h3 className="fw-bold">
+                    {pnlMetrics.summary?.totalCost.toFixed(2)}
+                  </h3>
                 </div>
-              </Card.Body>
-            </Card>
-          </Col>
-
-          <Col xl={3} lg={6} className="mb-3">
-            <Card className="h-100 border-0 shadow-sm">
-              <Card.Body>
-                <div className="d-flex justify-content-between align-items-center">
-                  <div>
-                    <h6 className="card-title text-muted mb-2">Profitability</h6>
-                    <h3 className="text-info mb-0">
-                      {pnlData.summary.overall_profit_margin.toFixed(1)}%
-                    </h3>
-                    <div className="mt-2">
-                      <ProgressBar 
-                        variant={pnlData.summary.overall_profit_margin >= 0 ? "success" : "danger"}
-                        now={Math.min(Math.abs(pnlData.summary.overall_profit_margin), 100)} 
-                        max={100}
-                        style={{ height: '6px' }}
-                      />
-                    </div>
-                  </div>
-                  <div className="bg-info rounded-circle p-3">
-                    <FaPercent size={24} className="text-white" />
-                  </div>
+                <div className="display-4 opacity-50">
+                  ₹
                 </div>
-              </Card.Body>
-            </Card>
-          </Col>
-        </Row>
-      )}
+              </div>
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col md={3}>
+          <Card className="border-0 bg-success text-white">
+            <Card.Body>
+              <div className="d-flex justify-content-between">
+                <div>
+                  <h6 className="card-title">Total Profit</h6>
+                  <h3 className="fw-bold">
+                    {pnlMetrics.summary?.totalProfit.toFixed(2)}
+                  </h3>
+                </div>
+                <div className="display-4 opacity-50">
+                  ₹
+                </div>
+              </div>
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col md={3}>
+          <Card className="border-0 bg-info text-white">
+            <Card.Body>
+              <div className="d-flex justify-content-between">
+                <div>
+                  <h6 className="card-title">Profit Margin</h6>
+                  <h3 className="fw-bold">
+                    {pnlMetrics.summary?.profitMargin.toFixed(1)}%
+                  </h3>
+                </div>
+                <div className="display-4 opacity-50">
+                  %
+                </div>
+              </div>
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
 
-      {/* Invoices Table */}
-      <Card>
-        <Card.Header>
-          <div className="d-flex justify-content-between align-items-center">
-            <h5 className="mb-0">
-              <FaFileInvoiceDollar className="me-2" />
-              Invoice Profitability Analysis
-            </h5>
-            <div>
-              <Badge bg="light" text="dark" className="me-2">
-                Page {currentPage} of {totalPages}
-              </Badge>
-              <Badge bg="primary" pill>
-                {pnlData?.invoices?.length || 0} records
-              </Badge>
-            </div>
-          </div>
+      {/* Invoice Statistics */}
+      <Row className="mb-4 g-3 d-none">
+        <Col md={4}>
+          <Card>
+            <Card.Body className="text-center">
+              <h6 className="text-muted">Total Invoices</h6>
+              <h3 className="text-primary">{pnlMetrics.summary?.totalInvoices}</h3>
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col md={4}>
+          <Card>
+            <Card.Body className="text-center">
+              <h6 className="text-muted">Paid Invoices</h6>
+              <h3 className="text-success">{pnlMetrics.summary?.paidInvoices}</h3>
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col md={4}>
+          <Card>
+            <Card.Body className="text-center">
+              <h6 className="text-muted">Draft Invoices</h6>
+              <h3 className="text-warning">{pnlMetrics.summary?.draftInvoices}</h3>
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
+
+      {/* Detailed P&L Table */}
+      <Card className="shadow-sm">
+        <Card.Header className="bg-light">
+          <h5 className="mb-0">Detailed Profit & Loss Analysis</h5>
         </Card.Header>
-        <Card.Body className="p-0">
+        <Card.Body>
           <div className="table-responsive">
-            <Table hover className="mb-0">
+            <Table striped hover>
               <thead className="table-light">
                 <tr>
                   <th>Invoice #</th>
-                  <th>Date</th>
+                  <th>Issue Date</th>
                   <th>Customer</th>
-                  <th>Revenue</th>
-                  <th>Cost</th>
-                  <th>Profit/Loss</th>
-                  <th>Margin</th>
-                  <th>Markup</th>
+                  <th>Type</th>
+                  <th>Status</th>
+                  <th className="text-end">Revenue</th>
+                  <th className="text-end">Cost</th>
+                  <th className="text-end">Profit</th>
+                  <th className="text-end">Margin %</th>
                   <th>Currency</th>
-                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {currentInvoices.map((invoice) => (
-                  <tr key={invoice.invoice_id}>
-                    <td>
-                      <strong>{invoice.invoice_number}</strong>
-                    </td>
-                    <td>
-                      <small>{new Date(invoice.issue_date).toLocaleDateString()}</small>
-                    </td>
-                    <td>
-                      <div className="text-truncate" style={{ maxWidth: '150px' }} title={invoice.customer_name}>
-                        {invoice.customer_name}
-                      </div>
-                    </td>
-                    <td>
-                      <strong>{formatCurrency(invoice.pnl_details.total_revenue, invoice.currency)}</strong>
-                    </td>
-                    <td>
-                      <span className={invoice.pnl_details.total_cost > 0 ? "text-warning" : "text-muted"}>
-                        {formatCurrency(invoice.pnl_details.total_cost, invoice.currency)}
-                      </span>
-                    </td>
-                    <td>
-                      <Badge bg={getProfitBadgeVariant(invoice.pnl_details.profit_loss)}>
-                        {getProfitIcon(invoice.pnl_details.profit_loss)}
-                        {formatCurrency(invoice.pnl_details.profit_loss, invoice.currency)}
-                      </Badge>
-                    </td>
-                    <td>
-                      <div className="d-flex align-items-center">
-                        <span className={invoice.pnl_details.profit_margin >= 0 ? "text-success" : "text-danger"}>
-                          {invoice.pnl_details.profit_margin.toFixed(1)}%
+                {invoices.map((invoice) => {
+                  const revenue = parseFloat(invoice.total_amount) || 0;
+                  const cost = parseFloat(invoice.cost_of_invoices?.[0]?.total_tour_cost || invoice.cost_of_invoices?.[0]?.net_cost_amount || 0);
+                  const profit = parseFloat(invoice.profit?.profit || revenue - cost);
+                  const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
+
+                  return (
+                    <tr key={invoice.id}>
+                      <td>
+                        <strong>{invoice.invoice_number}</strong>
+                      </td>
+                      <td>{new Date(invoice.issue_date).toLocaleDateString()}</td>
+                      <td>{invoice.customer?.name || 'N/A'}</td>
+                      <td>
+                        <Badge bg={invoice.type === 'automatic' ? 'info' : 'secondary'}>
+                          {invoice.type}
+                        </Badge>
+                      </td>
+                      <td>
+                        <Badge bg={
+                          invoice.status === 'paid' ? 'success' :
+                          invoice.status === 'draft' ? 'warning' : 'secondary'
+                        }>
+                          {invoice.status === "draft" ? "open" : invoice.status }
+                        </Badge>
+                      </td>
+                      <td className="text-end">{revenue.toFixed(2)}</td>
+                      <td className="text-end">{cost.toFixed(2)}</td>
+                      <td className="text-end">
+                        <span className={profit >= 0 ? 'text-success' : 'text-danger'}>
+                          {profit.toFixed(2)}
                         </span>
-                        <ProgressBar 
-                          variant={invoice.pnl_details.profit_margin >= 0 ? "success" : "danger"}
-                          now={Math.min(Math.abs(invoice.pnl_details.profit_margin), 100)} 
-                          max={100}
-                          style={{ width: '60px', height: '4px', marginLeft: '8px' }}
-                        />
-                      </div>
-                    </td>
-                    <td>
-                      <span className={invoice.pnl_details.profit_markup >= 0 ? "text-info" : "text-danger"}>
-                        {invoice.pnl_details.profit_markup.toFixed(1)}%
-                      </span>
-                    </td>
-                    <td>
-                      <Badge bg="outline-secondary" style={{ color: "black"}}>{invoice.currency}</Badge>
-                    </td>
-                    <td>
-                      <OverlayTrigger overlay={<Tooltip>View detailed P&L analysis</Tooltip>}>
-                        <Button
-                          variant="outline-primary"
-                          size="sm"
-                          onClick={() => fetchInvoicePnl(invoice)}
-                        >
-                          <FaEye className="me-1" />
-                          Details
-                        </Button>
-                      </OverlayTrigger>
+                      </td>
+                      <td className="text-end">
+                        <span className={margin >= 0 ? 'text-success' : 'text-danger'}>
+                          {margin.toFixed(1)}%
+                        </span>
+                      </td>
+                      <td>{invoice.currency}</td>
+                    </tr>
+                  );
+                })}
+                {invoices.length === 0 && (
+                  <tr>
+                    <td colSpan="10" className="text-center text-muted py-4">
+                      No invoices found for the selected filters
                     </td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </Table>
           </div>
-          
-          {(!pnlData?.invoices || pnlData.invoices.length === 0) && (
-            <div className="text-center py-5">
-              <FaChartLine size={48} className="text-muted mb-3" />
-              <h5>No P&L data available</h5>
-              <p className="text-muted">Try adjusting your filters or check back later.</p>
-            </div>
-          )}
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="d-flex justify-content-center mt-3">
-              <Pagination>
-                <Pagination.First 
-                  onClick={() => setCurrentPage(1)} 
-                  disabled={currentPage === 1} 
-                />
-                <Pagination.Prev 
-                  onClick={() => setCurrentPage(currentPage - 1)} 
-                  disabled={currentPage === 1} 
-                />
-                
-                {[...Array(totalPages)].map((_, index) => (
-                  <Pagination.Item
-                    key={index + 1}
-                    active={index + 1 === currentPage}
-                    onClick={() => setCurrentPage(index + 1)}
-                  >
-                    {index + 1}
-                  </Pagination.Item>
-                ))}
-                
-                <Pagination.Next 
-                  onClick={() => setCurrentPage(currentPage + 1)} 
-                  disabled={currentPage === totalPages} 
-                />
-                <Pagination.Last 
-                  onClick={() => setCurrentPage(totalPages)} 
-                  disabled={currentPage === totalPages} 
-                />
-              </Pagination>
-            </div>
-          )}
         </Card.Body>
       </Card>
 
-      {/* Invoice Details Modal */}
-      <Modal show={showInvoiceModal} onHide={() => setShowInvoiceModal(false)} size="xl">
-        <Modal.Header closeButton className="bg-primary text-white">
-          <Modal.Title>
-            <FaChartLine className="me-2" />
-            Detailed P&L Analysis - {selectedInvoice?.invoice_number || invoiceDetails?.invoice_number}
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          {invoiceDetails ? (
-            <Tabs defaultActiveKey="summary" className="mb-3">
-              <Tab eventKey="summary" title={
-                <span>
-                  <FaChartBar className="me-1" />
-                  Financial Summary
-                </span>
-              }>
-                <Row className="g-3">
-                  <Col md={6}>
-                    <Card className="h-100 border-0 shadow-sm">
-                      <Card.Header className="bg-light">
-                        <h6 className="mb-0">Profit & Loss Summary</h6>
-                      </Card.Header>
-                      <Card.Body>
-                        <table className="table table-sm">
-                          <tbody>
-                            <tr>
-                              <td><strong>Total Revenue:</strong></td>
-                              <td className="text-end text-success">
-                                {formatCurrency(invoiceDetails.total_revenue, invoiceDetails.currency)}
-                              </td>
-                            </tr>
-                            <tr>
-                              <td><strong>Total Cost:</strong></td>
-                              <td className="text-end text-warning">
-                                {formatCurrency(invoiceDetails.total_cost, invoiceDetails.currency)}
-                              </td>
-                            </tr>
-                            <tr>
-                              <td><strong>Net Profit/Loss:</strong></td>
-                              <td className="text-end">
-                                <Badge bg={getProfitBadgeVariant(invoiceDetails.profit_loss)}>
-                                  {formatCurrency(invoiceDetails.profit_loss, invoiceDetails.currency)}
-                                </Badge>
-                              </td>
-                            </tr>
-                            <tr>
-                              <td><strong>Profit Margin:</strong></td>
-                              <td className="text-end">
-                                <Badge bg={invoiceDetails.profit_margin >= 0 ? "success" : "danger"}>
-                                  {invoiceDetails.profit_margin.toFixed(2)}%
-                                </Badge>
-                              </td>
-                            </tr>
-                            <tr>
-                              <td><strong>Profit Markup:</strong></td>
-                              <td className="text-end">
-                                <Badge bg={invoiceDetails.profit_markup >= 0 ? "info" : "danger"}>
-                                  {invoiceDetails.profit_markup.toFixed(2)}%
-                                </Badge>
-                              </td>
-                            </tr>
-                          </tbody>
-                        </table>
-                      </Card.Body>
-                    </Card>
-                  </Col>
-                  
-                  <Col md={6}>
-                    <Card className="h-100 border-0 shadow-sm">
-                      <Card.Header className="bg-light">
-                        <h6 className="mb-0">Invoice Details</h6>
-                      </Card.Header>
-                      <Card.Body>
-                        <table className="table table-sm">
-                          <tbody>
-                            <tr>
-                              <td><strong>Sub Total:</strong></td>
-                              <td className="text-end">
-                                {formatCurrency(invoiceDetails.invoice_details.sub_total, invoiceDetails.currency)}
-                              </td>
-                            </tr>
-                            <tr>
-                              <td><strong>Handling Fee:</strong></td>
-                              <td className="text-end">
-                                {formatCurrency(invoiceDetails.invoice_details.handling_fee, invoiceDetails.currency)}
-                              </td>
-                            </tr>
-                            <tr>
-                              <td><strong>GST Amount:</strong></td>
-                              <td className="text-end">
-                                {formatCurrency(invoiceDetails.invoice_details.gst_amount, invoiceDetails.currency)}
-                              </td>
-                            </tr>
-                            <tr>
-                              <td><strong>Total Amount:</strong></td>
-                              <td className="text-end text-primary">
-                                <strong>
-                                  {formatCurrency(invoiceDetails.invoice_details.total_amount, invoiceDetails.currency)}
-                                </strong>
-                              </td>
-                            </tr>
-                            <tr>
-                              <td><strong>Amount Received:</strong></td>
-                              <td className="text-end">
-                                {formatCurrency(invoiceDetails.invoice_details.amount_received, invoiceDetails.currency)}
-                              </td>
-                            </tr>
-                            <tr>
-                              <td><strong>Balance:</strong></td>
-                              <td className="text-end">
-                                {formatCurrency(invoiceDetails.invoice_details.balance, invoiceDetails.currency)}
-                              </td>
-                            </tr>
-                          </tbody>
-                        </table>
-                      </Card.Body>
-                    </Card>
-                  </Col>
-                </Row>
-              </Tab>
-
-              <Tab eventKey="breakdown" title={
-                <span>
-                  <FaReceipt className="me-1" />
-                  Cost Breakdown
-                </span>
-              }>
-                {invoiceDetails.cost_breakdown && (
-                  <Card className="border-0 shadow-sm">
-                    <Card.Header className="bg-light">
-                      <h6 className="mb-0">Detailed Cost Analysis</h6>
-                    </Card.Header>
-                    <Card.Body>
-                      <Row className="g-3">
-                        {Object.entries(invoiceDetails.cost_breakdown).map(([key, value]) => (
-                          <Col md={6} key={key}>
-                            <Card className="h-100">
-                              <Card.Body className="text-center">
-                                <h6 className="text-capitalize text-muted">
-                                  {key.replace(/_/g, ' ')}
-                                </h6>
-                                <h4 className={typeof value === 'number' && value < 0 ? "text-danger" : "text-success"}>
-                                  {typeof value === 'number' ? 
-                                    formatCurrency(value, invoiceDetails.currency) 
-                                    : value}
-                                </h4>
-                              </Card.Body>
-                            </Card>
-                          </Col>
-                        ))}
-                      </Row>
-                    </Card.Body>
-                  </Card>
-                )}
-              </Tab>
-            </Tabs>
-          ) : (
-            <div className="text-center py-4">
-              <Spinner animation="border" variant="primary" />
-              <p className="mt-2">Loading invoice details...</p>
+      {/* Monthly Breakdown */}
+      {Object.keys(pnlMetrics.monthlyData || {}).length > 0 && (
+        <Card className="mt-4 shadow-sm">
+          <Card.Header className="bg-light">
+            <h5 className="mb-0">Monthly Breakdown</h5>
+          </Card.Header>
+          <Card.Body>
+            <div className="table-responsive">
+              <Table striped hover>
+                <thead className="table-light">
+                  <tr>
+                    <th>Month</th>
+                    <th className="text-end">Invoices</th>
+                    <th className="text-end">Revenue</th>
+                    <th className="text-end">Cost</th>
+                    <th className="text-end">Profit</th>
+                    <th className="text-end">Margin %</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Object.entries(pnlMetrics.monthlyData).map(([month, data]) => {
+                    const margin = data.revenue > 0 ? (data.profit / data.revenue) * 100 : 0;
+                    return (
+                      <tr key={month}>
+                        <td><strong>{month}</strong></td>
+                        <td className="text-end">{data.count}</td>
+                        <td className="text-end">{data.revenue.toFixed(2)}</td>
+                        <td className="text-end">{data.cost.toFixed(2)}</td>
+                        <td className="text-end">
+                          <span className={data.profit >= 0 ? 'text-success' : 'text-danger'}>
+                            {data.profit.toFixed(2)}
+                          </span>
+                        </td>
+                        <td className="text-end">
+                          <span className={margin >= 0 ? 'text-success' : 'text-danger'}>
+                            {margin.toFixed(1)}%
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </Table>
             </div>
-          )}
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowInvoiceModal(false)}>
-            Close
-          </Button>
-        </Modal.Footer>
-      </Modal>
-    </div>
+          </Card.Body>
+        </Card>
+      )}
+      
+    </Container>
   );
 };
 

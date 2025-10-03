@@ -215,6 +215,10 @@ const Invoice_aahaas_modal = ({
                 <td>
                   {currencySymbols[formData.currencyDetails?.currency] || "$"}
                   {/* {formData.totals.subTotal.toFixed(2)} */}
+                  {/* {formData.totals?.subTotal.toLocaleString("en-US", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })} */}
                   {formData.totals?.subTotal.toLocaleString("en-US", {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
@@ -359,7 +363,12 @@ const Invoice_aahaas_modal = ({
                 </div>
               </div>
             </div>
+            <br />
             <p>
+              <strong>Service Date:</strong> {formData.invoice?.startDate}{" "}
+              &nbsp;
+            </p>
+            {/* <p>
               <strong>Start Date:</strong> {formData.invoice?.startDate}{" "}
               &nbsp;|&nbsp;
               <strong>End Date:</strong> {formData.invoice?.endDate}{" "}
@@ -370,7 +379,7 @@ const Invoice_aahaas_modal = ({
                 formData.invoice?.endDate
               )}{" "}
               days
-            </p>
+            </p> */}
             {/* <div className="row">
               <div className="col-md-6">
                 {formData.payment_instructions && (

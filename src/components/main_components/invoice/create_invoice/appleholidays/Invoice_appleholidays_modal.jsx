@@ -12,8 +12,18 @@ const Invoice_appleholidays_modal = ({
   currencySymbols,
   printInvoice,
   xeRate,
+  showExchangedOpen
 }) => {
   console.log("Invoice Data Apple:", formData);
+  console.log(formData.currencyDetails?.exchangeRate);
+  console.log(formData.currencyDetails?.increment);
+  console.log(Number(formData.currencyDetails?.exchangeRate || 0).toFixed(2) + formData.currencyDetails?.increment);
+  console.log(
+  Number(
+    Number(formData.currencyDetails?.exchangeRate || 0).toFixed(2)
+  ) + Number(formData.currencyDetails?.increment || 0)
+);
+  
   const calculateTravelDays = (start, end) => {
     const startDate = new Date(start);
     const endDate = new Date(end);
@@ -204,11 +214,30 @@ const Invoice_appleholidays_modal = ({
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
                     })} */}
-                       {(
-                      // (item?.price || 0) 
-                      (item?.price*xeRate || 0) -
+                       {/* {(
+                      // (item?.price || 0)
+                      (item?.price * Number(
+    Number(formData.currencyDetails?.exchangeRate || 0).toFixed(2)
+  ) + Number(formData.currencyDetails?.increment || 0) || 0) -     
                       (formData.totals?.handlingFee / (item?.qty) || 0)
                     ).toLocaleString("en-US", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })} */}
+
+                   {/* {( (item?.price*xeRate || 0) -
+                      (formData.totals?.handlingFee / (item?.qty) || 0)).toLocaleString("en-US", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })} */}
+                     {showExchangedOpen ? (((item?.price * xeRate || 0) -
+                      (formData.totals?.handlingFee / (item?.qty) || 0))).toLocaleString("en-US", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    }) : (((item?.price || 0) * (Number(
+    Number(formData.currencyDetails?.exchangeRate || 0).toFixed(2)
+  ) + Number(formData.currencyDetails?.increment || 0)) -
+                      (formData.totals?.handlingFee / (item?.qty) || 0))).toLocaleString("en-US", {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
                     })}
@@ -221,11 +250,14 @@ const Invoice_appleholidays_modal = ({
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
                     })} */}
-                    {(
-                      ((item?.price*xeRate || 0) -
-                        (formData.totals?.handlingFee || 0) ) *
-                      (item?.qty || 1)
-                    ).toLocaleString("en-US", {
+                    {showExchangedOpen ? (((item?.price * xeRate || 0) -
+                      (formData.totals?.handlingFee / (item?.qty) || 0)) * item?.qty).toLocaleString("en-US", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    }) : (((item?.price || 0) * (Number(
+    Number(formData.currencyDetails?.exchangeRate || 0).toFixed(2)
+  ) + Number(formData.currencyDetails?.increment || 0)) -
+                      (formData.totals?.handlingFee / (item?.qty) || 0)) * item?.qty).toLocaleString("en-US", {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
                     })}
@@ -480,7 +512,9 @@ const Invoice_appleholidays_modal = ({
                 Payments made more than two (2) days after the invoice date will
                 be subject to the applicable Xe.com{" "}
                 {formData.currencyDetails?.currency !== "USD"
-                  ? `${xeRate}`
+                  ? `${Number(
+    Number(formData.currencyDetails?.exchangeRate || 0).toFixed(2)
+  ) + Number(formData.currencyDetails?.increment || 0)}`
                   : ""}{" "}
                 exchange rate. The payment deadline shall be in accordance with
                 the booking confirmation or{" "}

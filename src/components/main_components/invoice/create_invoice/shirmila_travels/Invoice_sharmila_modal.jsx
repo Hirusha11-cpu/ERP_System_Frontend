@@ -13,8 +13,11 @@ const Invoice_sharmila_modal = ({
   printInvoice,
   formatDate,
   xeRate,
+  showExchangedOpen
 }) => {
   console.log("Invoice Data:", formData);
+  console.log("xe", xeRate);
+  
   const calculateTravelDays = (start, end) => {
     const startDate = new Date(start);
     const endDate = new Date(end);
@@ -200,13 +203,22 @@ const Invoice_sharmila_modal = ({
                     }}
                   >
                     {currencySymbols[formData.currencyDetails?.currency] || ""}
-                    {(
-                      (item?.price || 0) -
-                      (formData.totals?.handlingFee / item?.qty || 0)
-                    ).toLocaleString("en-US", {
+                   {( (item?.price*xeRate || 0) -
+                      (formData.totals?.handlingFee / (item?.qty) || 0)).toLocaleString("en-US", {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
                     })}
+                    {/* {showExchangedOpen ? (((item?.price * xeRate || 0) -
+                      (formData.totals?.handlingFee / (item?.qty) || 0))).toLocaleString("en-US", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    }) : (((item?.price || 0) * (Number(
+    Number(formData.currencyDetails?.exchangeRate || 0).toFixed(2)
+  ) + Number(formData.currencyDetails?.increment || 0)) -
+                      (formData.totals?.handlingFee / (item?.qty) || 0))).toLocaleString("en-US", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })} */}
                     {/* {item.price.toFixed(2)} */}
                     {/* {item?.price.toLocaleString("en-US", {
                     minimumFractionDigits: 2,
@@ -244,14 +256,22 @@ const Invoice_sharmila_modal = ({
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2,
                   })} */}
-                    {(
-                      ((item?.price || 0) -
-                        (formData.totals?.handlingFee || 0) / item?.qty) *
-                      (item?.qty || 1)
-                    ).toLocaleString("en-US", {
+                   {( ((item?.price*xeRate || 0) -
+                      (formData.totals?.handlingFee / (item?.qty) || 0))*item?.qty).toLocaleString("en-US", {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
                     })}
+                     {/* {showExchangedOpen ? (((item?.price * xeRate || 0) -
+                      (formData.totals?.handlingFee / (item?.qty) || 0)) * item?.qty).toLocaleString("en-US", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    }) : (((item?.price || 0) * (Number(
+    Number(formData.currencyDetails?.exchangeRate || 0).toFixed(2)
+  ) + Number(formData.currencyDetails?.increment || 0)) -
+                      (formData.totals?.handlingFee / (item?.qty) || 0)) * item?.qty).toLocaleString("en-US", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })} */}
                   </td>
                 </tr>
               ))}

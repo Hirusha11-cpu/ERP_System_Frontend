@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useContext, useRef, useMemo } from "react";
 import ReactDOM from "react-dom/client"; // Add this import
+import Swal from "sweetalert2";
 
 import {
   Table,
@@ -44,7 +45,9 @@ import {
   FaFilePdf, // For PDF export
   FaFileCsv, // For CSV export
   FaStepBackward, // For first page
-  FaStepForward, // For last page
+  FaStepForward,
+  FaCalculator,
+  FaSave, // For last page
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -337,7 +340,7 @@ const Invoice_list = () => {
   const fetchInvoiceRate = async (from, to, invoice) => {
     try {
       const response = await axios.get(`/api/currency/rate`, {
-        params: { from, to }, 
+        params: { from, to },
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -422,9 +425,13 @@ const Invoice_list = () => {
   };
 
   const handleViewInvoice = (invoice) => {
-    let d =  fetchInvoiceRate(invoice.from_currency, invoice.to_currency,invoice)
+    let d = fetchInvoiceRate(
+      invoice.from_currency,
+      invoice.to_currency,
+      invoice
+    );
     console.log(d);
-    
+
     setCurrentInvoice(invoice);
     setShowExchangedVersion(false); // Ensure original version is shown
     if (companyNo === 2) {
@@ -476,8 +483,6 @@ const Invoice_list = () => {
     setIsEditingPayments(true);
   };
 
-  
-  
   const handleRemovePayment = (index) => {
     const updatedPayments = selectedInvoicePayments.filter(
       (_, i) => i !== index
@@ -757,6 +762,7 @@ const Invoice_list = () => {
         exchangeRate: invoice.exchange_rate || 87.52,
         rateSource: "custom",
         customRate: invoice.exchange_rate || 87.52,
+        increment: invoice.increment || 1,
         addOneToRate: true,
         addTenToRate: false,
         taxTreatment: invoice.tax_treatment || "exclusive",
@@ -917,72 +923,151 @@ const Invoice_list = () => {
     }
   };
 
-  const handleUpdateInvoice = async (formData) => {
-    try {
-      const items = [];
-      for (let key in formData) {
-        if (key.startsWith("items[")) {
-          const matches = key.match(/items\[(\d+)\]\[(\w+)\]/);
-          if (matches) {
-            const index = matches[1];
-            const field = matches[2];
-            if (!items[index])
-              items[index] = { id: currentInvoice.items?.[index]?.id };
-            items[index][field] =
-              field === "quantity" || field === "price" || field === "discount"
-                ? parseFloat(formData[key])
-                : formData[key];
+// Add state for loading
+const [isUpdating, setIsUpdating] = useState(false);
+
+const handleUpdateInvoice = async (formData) => {
+  try {
+    setIsUpdating(true); // Start loading
+    
+    // Parse items from form data
+    const items = [];
+    for (let key in formData) {
+      if (key.startsWith("items[")) {
+        const matches = key.match(/items\[(\d+)\]\[(\w+)\]/);
+        if (matches) {
+          const index = matches[1];
+          const field = matches[2];
+          if (!items[index]) {
+            items[index] = { 
+              id: currentInvoice.items?.[index]?.id || null 
+            };
+          }
+          items[index][field] =
+            field === "quantity" || field === "price" || field === "discount"
+              ? parseFloat(formData[key])
+              : formData[key];
+        }
+      }
+    }
+
+    // Parse additional charges from form data
+    const additionalCharges = [];
+    for (let key in formData) {
+      if (key.startsWith("additional_charges[")) {
+        const matches = key.match(/additional_charges\[(\d+)\]\[(\w+)\]/);
+        if (matches) {
+          const index = matches[1];
+          const field = matches[2];
+          if (!additionalCharges[index]) {
+            additionalCharges[index] = {
+              id: currentInvoice.additional_charges?.[index]?.id || null,
+            };
+          }
+          if (field === "taxable") {
+            additionalCharges[index][field] = formData[key] === "1";
+          } else if (field === "amount") {
+            additionalCharges[index][field] = parseFloat(formData[key]);
+          } else {
+            additionalCharges[index][field] = formData[key];
           }
         }
       }
-      const additionalCharges = [];
-      for (let key in formData) {
-        if (key.startsWith("additional_charges[")) {
-          const matches = key.match(/additional_charges\[(\d+)\]\[(\w+)\]/);
-          if (matches) {
-            const index = matches[1];
-            const field = matches[2];
-            if (!additionalCharges[index])
-              additionalCharges[index] = {
-                id: currentInvoice.additional_charges?.[index]?.id,
-              };
-            additionalCharges[index][field] =
-              field === "amount" ? parseFloat(formData[key]) : formData[key];
-          }
-        }
+    }
+
+    // Parse payment methods
+    const paymentMethods = formData.payment_methods
+      ? formData.payment_methods.split(",").map(method => method.trim()).filter(method => method)
+      : currentInvoice.payment_methods;
+
+    // Prepare the update data as JSON object
+    const updatedData = {
+      customer_id: currentInvoice.customer?.id,
+      country_code: formData.country_code || currentInvoice.country_code,
+      currency: formData.currency,
+      exchange_rate: parseFloat(formData.exchange_rate) || 1.0,
+      tax_treatment: formData.tax_treatment || "inclusive",
+      payment_type: formData.payment_type,
+      collection_date: formData.collection_date || null,
+      payment_instructions: formData.payment_instructions,
+      staff: formData.staff || currentInvoice.staff,
+      remarks: formData.remarks || currentInvoice.remarks,
+      payment_methods: paymentMethods,
+      items: items.filter(item => item && item.code && item.description),
+      additional_charges: additionalCharges.filter(charge => charge && charge.description),
+      amount_received: parseFloat(formData.amount_received) || 0,
+      account_id: currentInvoice.account_id,
+      company_id: currentInvoice.company_id,
+      issue_date: formData.issue_date || currentInvoice.issue_date?.split('T')[0],
+      due_date: formData.due_date || currentInvoice.due_date?.split('T')[0],
+      booking_no: formData.booking_no || currentInvoice.booking_no,
+      customer_po_number: formData.customer_po_number || currentInvoice.customer_po_number,
+      sales_id: formData.sales_id || currentInvoice.sales_id,
+      start_date: formData.start_date || currentInvoice.start_date?.split('T')[0],
+      end_date: formData.end_date || currentInvoice.end_date?.split('T')[0],
+      travel_period: formData.travel_period || currentInvoice.travel_period,
+      status: formData.status || currentInvoice.status,
+      sub_total: parseFloat(formData.sub_total) || currentInvoice.sub_total,
+      handling_fee: parseFloat(formData.handling_fee) || currentInvoice.handling_fee,
+      gst_amount: parseFloat(formData.gst_amount) || currentInvoice.gst_amount,
+      additional_tax: parseFloat(formData.additional_tax) || currentInvoice.additional_tax,
+      bank_charges: parseFloat(formData.bank_charges) || currentInvoice.bank_charges,
+      total_amount: parseFloat(formData.total_amount) || currentInvoice.total_amount,
+      balance: parseFloat(formData.balance) || currentInvoice.balance,
+    };
+
+    const response = await axios.put(
+      `/api/invoices/by-number/${currentInvoice.invoice_number}`,
+      updatedData,
+      {
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
       }
-      const updatedData = {
-        customer_id: currentInvoice.customer?.id,
-        country_code: formData.country_code || currentInvoice.country_code,
-        currency: formData.currency,
-        exchange_rate: parseFloat(formData.exchange_rate) || 1.0,
-        tax_treatment: formData.tax_treatment || "inclusive",
-        payment_type: formData.payment_type,
-        collection_date: formData.collection_date || null,
-        payment_instructions: formData.payment_instructions,
-        staff: formData.staff,
-        remarks: formData.remarks,
-        // payment_methods: formData.payment_methods
-        //   ? formData.payment_methods.split(",")
-        //   : currentInvoice.payment_methods,
-        // items: items.filter((item) => item),
-        // additional_charges: additionalCharges.filter((charge) => charge),
-        amount_received: parseFloat(formData.amount_received) || 0,
-      };
-      await axios.put(
-        `/api/invoices/by-number/${currentInvoice.invoice_number}`,
-        updatedData,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+    );
+
+    if (response.data) {
       fetchInvoices(0);
       setShowEditModal(false);
-    } catch (error) {
-      console.error("Error updating invoice:", error);
+      // alert('Invoice updated successfully!');
+        Swal.fire({
+        title: "Success!",
+        text: "Invoice updated successfully.",
+        icon: "success",
+        confirmButtonText: "OK",
+        timer: 2000,
+        showConfirmButton: false,
+      });
     }
-  };
+  } catch (error) {
+    console.error("Error updating invoice:", error);
+    let errorMessage = "";
 
+    if (error.response?.data?.errors) {
+      errorMessage = Object.values(error.response.data.errors).flat().join("\n");
+    } else if (error.response?.data?.message) {
+      errorMessage = error.response.data.message;
+    } else {
+      errorMessage = error.message;
+    }
+
+    Swal.fire({
+      title: "Error!",
+      text: errorMessage,
+      icon: "error",
+      confirmButtonText: "Close",
+    });
+  } finally {
+    setIsUpdating(false); // Stop loading regardless of success/error
+  }
+};
+
+// Update the modal close function to reset loading state
+const handleCloseModal = () => {
+  setShowEditModal(false);
+  setIsUpdating(false); // Reset loading state when modal closes
+};
   const getStatusBadge = (status) => {
     switch (status) {
       case "paid":
@@ -1045,8 +1130,9 @@ const Invoice_list = () => {
   //     setShowPreviewModalAahaas(true);
   //   }
   // }
-
+  const [showExchangedOpen, setShowExchangedOpen] = useState(false);
   const handleShowExchangedInvoice = (history) => {
+    setShowExchangedOpen(true);
     const exchangedInvoice = {
       ...currentInvoice,
       sub_total: history.sub_total,
@@ -1445,7 +1531,7 @@ const Invoice_list = () => {
                     <th>Type</th>
                     <th>Status</th>
                     {/* <th>Payments</th> */}
-                    {companyNo !=3 && <th>Exchange-Rates</th>}
+                    {companyNo != 3 && <th>Exchange-Rates</th>}
                     {/* <th>Costs</th> */}
                     <th className="text-end">Actions</th>
                   </tr>
@@ -1530,15 +1616,17 @@ const Invoice_list = () => {
                             onClick={() => handleViewPayments(invoice)}
                           />
                         </td> */}
-                       {companyNo != 3 &&  <td>
-                          <ActionButton
-                            icon={<FaMoneyBillWave />}
-                            label="View Exchange Rates"
-                            variant="warning"
-                            disabled = {invoice.status === "cancelled"}
-                            onClick={() => handleExchangeRates(invoice)}
-                          />
-                        </td>}
+                        {companyNo != 3 && (
+                          <td>
+                            <ActionButton
+                              icon={<FaMoneyBillWave />}
+                              label="View Exchange Rates"
+                              variant="warning"
+                              disabled={invoice.status === "cancelled"}
+                              onClick={() => handleExchangeRates(invoice)}
+                            />
+                          </td>
+                        )}
                         {/* <td>
                           <ActionButton
                             icon={<FaMoneyBillWave />}
@@ -1837,6 +1925,7 @@ const Invoice_list = () => {
         printInvoice={handlePrintInvoiceAppleHolidays}
         formatDate={formatDate}
         xeRate={xeRate}
+        showExchangedOpen={showExchangedOpen}
       />
 
       <Invoice_sharmila_modal
@@ -1848,20 +1937,25 @@ const Invoice_list = () => {
         printInvoice={handlePrintInvoiceSharmila}
         formatDate={formatDate}
         xeRate={xeRate}
+        showExchangedOpen={showExchangedOpen}
       />
 
       <Modal
         show={showEditModal}
         onHide={() => setShowEditModal(false)}
         size="xl"
+        className="invoice-edit-modal"
       >
-        <Modal.Header closeButton className="bg-primary text-white">
-          <Modal.Title className="d-flex align-items-center">
+        <Modal.Header closeButton className="bg-primary text-white py-3">
+          <Modal.Title className="d-flex align-items-center fs-6">
             <FaEdit className="me-2" />
             Edit Invoice - {currentInvoice?.invoice_number}
           </Modal.Title>
         </Modal.Header>
-        <Modal.Body>
+        <Modal.Body
+          className="p-3"
+          style={{ maxHeight: "80vh", overflowY: "auto" }}
+        >
           {currentInvoice && (
             <form
               onSubmit={(e) => {
@@ -1870,81 +1964,107 @@ const Invoice_list = () => {
                 const formValues = Object.fromEntries(formData.entries());
                 handleUpdateInvoice(formValues);
               }}
+              className="compact-form"
             >
+              {/* Hidden required fields */}
+              <input
+                type="hidden"
+                name="customer_id"
+                value={currentInvoice.customer?.id}
+              />
+              <input
+                type="hidden"
+                name="company_id"
+                value={currentInvoice.company_id}
+              />
+              <input
+                type="hidden"
+                name="account_id"
+                value={currentInvoice.account_id}
+              />
+
               <Accordion
                 defaultActiveKey={["customer", "invoice", "items"]}
                 alwaysOpen
               >
-                <Accordion.Item eventKey="customer">
-                  <Accordion.Header>
+                {/* Customer Information */}
+                <Accordion.Item eventKey="customer" className="mb-2">
+                  <Accordion.Header className="py-2">
                     <div className="d-flex align-items-center">
-                      <FaUser className="me-2" />
-                      <span>Customer Information</span>
+                      <FaUser className="me-2 fs-6" />
+                      <span className="fw-semibold">Customer Information</span>
                     </div>
                   </Accordion.Header>
-                  <Accordion.Body>
-                    <input
-                      type="hidden"
-                      name="customer_id"
-                      value={currentInvoice.customer?.id}
-                    />
-                    <Row>
+                  <Accordion.Body className="p-3">
+                    <Row className="g-2">
                       <Col md={6}>
-                        <FloatingLabel label="Customer Name" className="mb-3">
+                        <FloatingLabel
+                          controlId="customerName"
+                          label="Customer Name"
+                          className="mb-2"
+                        >
                           <Form.Control
                             type="text"
                             name="customer_name"
+                            size="sm"
                             defaultValue={currentInvoice.customer?.name}
                             required
                           />
                         </FloatingLabel>
                       </Col>
                       <Col md={6}>
-                        <FloatingLabel label="Mobile Number" className="mb-3">
+                        <FloatingLabel
+                          controlId="customerMobile"
+                          label="Mobile Number"
+                          className="mb-2"
+                        >
                           <Form.Control
                             type="text"
                             name="customer_mobile"
+                            size="sm"
                             defaultValue={currentInvoice.customer?.mobile}
                             required
                           />
                         </FloatingLabel>
                       </Col>
-                    </Row>
-                    <Row>
-                      <Col md={6}>
-                        <FloatingLabel label="Customer Code" className="mb-3">
+                      <Col md={4}>
+                        <FloatingLabel
+                          controlId="customerCode"
+                          label="Customer Code"
+                          className="mb-2"
+                        >
                           <Form.Control
                             type="text"
                             name="customer_code"
+                            size="sm"
                             defaultValue={currentInvoice.customer?.code}
                             required
                           />
                         </FloatingLabel>
                       </Col>
-                      <Col md={6}>
-                        <FloatingLabel label="GST Number" className="mb-3">
+                      <Col md={4}>
+                        <FloatingLabel
+                          controlId="customerGst"
+                          label="GST Number"
+                          className="mb-2"
+                        >
                           <Form.Control
                             type="text"
                             name="customer_gst_no"
+                            size="sm"
                             defaultValue={currentInvoice.customer?.gst_no}
                           />
                         </FloatingLabel>
                       </Col>
-                    </Row>
-                    <FloatingLabel label="Customer Address" className="mb-3">
-                      <Form.Control
-                        as="textarea"
-                        name="customer_address"
-                        style={{ height: "80px" }}
-                        defaultValue={currentInvoice.customer?.address}
-                        required
-                      />
-                    </FloatingLabel>
-                    <Row>
-                      <Col md={6}>
-                        <FloatingLabel label="Country Code" className="mb-3">
+                      <Col md={4}>
+                        <FloatingLabel
+                          controlId="countryCode"
+                          label="Country Code"
+                          className="mb-2"
+                        >
                           <Form.Select
                             name="country_code"
+                            size="sm"
                             defaultValue={currentInvoice.country_code}
                             required
                           >
@@ -1957,64 +2077,132 @@ const Invoice_list = () => {
                           </Form.Select>
                         </FloatingLabel>
                       </Col>
-                      <Col md={6}>
-                        <FloatingLabel label="Currency" className="mb-3">
+                      <Col md={4}>
+                        <FloatingLabel
+                          controlId="currency"
+                          label="Currency"
+                          className="mb-2"
+                        >
                           <Form.Select
                             name="currency"
+                            size="sm"
                             defaultValue={currentInvoice.currency}
                             required
                           >
-                            <option value="LKR">LKR (Sri Lankan Rupee)</option>
-                            <option value="INR">INR (Indian Rupee)</option>
-                            <option value="SGD">SGD (Singapore Dollar)</option>
-                            <option value="MYR">MYR (Malaysian Ringgit)</option>
-                            <option value="USD">USD (US Dollar)</option>
-                            <option value="EUR">EUR (Euro)</option>
+                            <option value="LKR">LKR</option>
+                            <option value="INR">INR</option>
+                            <option value="SGD">SGD</option>
+                            <option value="MYR">MYR</option>
+                            <option value="USD">USD</option>
+                            <option value="EUR">EUR</option>
                           </Form.Select>
+                        </FloatingLabel>
+                      </Col>
+                      <Col md={8}>
+                        <FloatingLabel
+                          controlId="customerAddress"
+                          label="Customer Address"
+                          className="mb-2"
+                        >
+                          <Form.Control
+                            as="textarea"
+                            name="customer_address"
+                            size="sm"
+                            style={{ height: "60px" }}
+                            defaultValue={currentInvoice.customer?.address}
+                            required
+                          />
                         </FloatingLabel>
                       </Col>
                     </Row>
                   </Accordion.Body>
                 </Accordion.Item>
-                <Accordion.Item eventKey="invoice">
-                  <Accordion.Header>
+
+                {/* Invoice Details */}
+                <Accordion.Item eventKey="invoice" className="mb-2">
+                  <Accordion.Header className="py-2">
                     <div className="d-flex align-items-center">
-                      <FaFileInvoiceDollar className="me-2" />
-                      <span>Invoice Details</span>
+                      <FaFileInvoiceDollar className="me-2 fs-6" />
+                      <span className="fw-semibold">Invoice Details</span>
                     </div>
                   </Accordion.Header>
-                  <Accordion.Body>
-                    <Row className="mb-3">
-                      <Col md={6}>
-                        <FloatingLabel label="Currency" className="mb-3">
-                          <Form.Select
-                            name="currency"
-                            defaultValue={currentInvoice.currency}
+                  <Accordion.Body className="p-3">
+                    <Row className="g-2">
+                      <Col md={3}>
+                        <FloatingLabel
+                          controlId="issueDate"
+                          label="Issue Date"
+                          className="mb-2"
+                        >
+                          <Form.Control
+                            type="date"
+                            name="issue_date"
+                            size="sm"
+                            defaultValue={
+                              currentInvoice.issue_date?.split("T")[0]
+                            }
                             required
-                          >
-                            <option value="MYR">MYR</option>
-                            <option value="INR">INR</option>
-                            <option value="USD">USD</option>
-                          </Form.Select>
+                          />
                         </FloatingLabel>
                       </Col>
-                      <Col md={6}>
-                        <FloatingLabel label="Exchange Rate" className="mb-3">
+                      <Col md={3}>
+                        <FloatingLabel
+                          controlId="dueDate"
+                          label="Due Date"
+                          className="mb-2"
+                        >
+                          <Form.Control
+                            type="date"
+                            name="due_date"
+                            size="sm"
+                            defaultValue={
+                              currentInvoice.due_date?.split("T")[0]
+                            }
+                            required
+                          />
+                        </FloatingLabel>
+                      </Col>
+                      <Col md={3}>
+                        <FloatingLabel
+                          controlId="collectionDate"
+                          label="Collection Date"
+                          className="mb-2"
+                        >
+                          <Form.Control
+                            type="date"
+                            name="collection_date"
+                            size="sm"
+                            defaultValue={
+                              currentInvoice.collection_date?.split("T")[0]
+                            }
+                          />
+                        </FloatingLabel>
+                      </Col>
+                      <Col md={3}>
+                        <FloatingLabel
+                          controlId="exchangeRate"
+                          label="Exchange Rate"
+                          className="mb-2"
+                        >
                           <Form.Control
                             type="number"
                             name="exchange_rate"
+                            size="sm"
                             step="0.0001"
                             defaultValue={currentInvoice.exchange_rate || 1.0}
                             required
                           />
                         </FloatingLabel>
                       </Col>
-                    </Row>
-                    <Row className="mb-3">
-                      <Col md={6}>
-                        <FloatingLabel label="Tax Treatment" className="mb-3">
+                      <Col md={3}>
+                        <FloatingLabel
+                          controlId="taxTreatment"
+                          label="Tax Treatment"
+                          className="mb-2"
+                        >
                           <Form.Select
                             name="tax_treatment"
+                            size="sm"
                             defaultValue={currentInvoice.tax_treatment}
                             required
                           >
@@ -2024,10 +2212,15 @@ const Invoice_list = () => {
                           </Form.Select>
                         </FloatingLabel>
                       </Col>
-                      <Col md={6}>
-                        <FloatingLabel label="Payment Type" className="mb-3">
+                      <Col md={3}>
+                        <FloatingLabel
+                          controlId="paymentType"
+                          label="Payment Type"
+                          className="mb-2"
+                        >
                           <Form.Select
                             name="payment_type"
+                            size="sm"
                             defaultValue={currentInvoice.payment_type}
                             required
                           >
@@ -2036,290 +2229,552 @@ const Invoice_list = () => {
                           </Form.Select>
                         </FloatingLabel>
                       </Col>
-                    </Row>
-                    <Row className="mb-3">
-                      <Col md={4}>
-                        <FloatingLabel label="Issue Date" className="mb-3">
-                          <Form.Control
-                            type="date"
-                            name="issue_date"
-                            defaultValue={
-                              currentInvoice.issue_date?.split("T")[0]
-                            }
-                            required
-                          />
-                        </FloatingLabel>
-                      </Col>
-                      <Col md={4}>
-                        <FloatingLabel label="Due Date" className="mb-3">
-                          <Form.Control
-                            type="date"
-                            name="due_date"
-                            defaultValue={
-                              currentInvoice.due_date?.split("T")[0]
-                            }
-                            required
-                          />
-                        </FloatingLabel>
-                      </Col>
-                      <Col md={4}>
-                        <FloatingLabel label="Collection Date" className="mb-3">
-                          <Form.Control
-                            type="date"
-                            name="collection_date"
-                            defaultValue={
-                              currentInvoice.collection_date?.split("T")[0]
-                            }
-                          />
-                        </FloatingLabel>
-                      </Col>
-                    </Row>
-                    <Row className="mb-3">
-                      <Col md={6}>
+                      <Col md={3}>
                         <FloatingLabel
-                          label="Payment Instructions"
-                          className="mb-3"
+                          controlId="staff"
+                          label="Staff"
+                          className="mb-2"
                         >
-                          <Form.Control
-                            as="textarea"
-                            name="payment_instructions"
-                            style={{ height: "100px" }}
-                            defaultValue={currentInvoice.payment_instructions}
-                            required
-                          />
-                        </FloatingLabel>
-                      </Col>
-                      <Col md={6}>
-                        <FloatingLabel
-                          label="Payment Methods (comma separated)"
-                          className="mb-3"
-                        >
-                          <Form.Control
-                            type="text"
-                            name="payment_methods"
-                            defaultValue={
-                              Array.isArray(currentInvoice?.payment_methods)
-                                ? currentInvoice.payment_methods.join(",")
-                                : ""
-                            }
-                          />
-                        </FloatingLabel>
-                      </Col>
-                    </Row>
-                    <Row className="mb-3">
-                      {/* <Col md={6}>
-                        <FloatingLabel label="Staff" className="mb-3">
                           <Form.Control
                             type="text"
                             name="staff"
+                            size="sm"
                             defaultValue={currentInvoice.staff}
                             required
                           />
                         </FloatingLabel>
-                      </Col> */}
-                      <Col md={6}>
-                        <FloatingLabel label="Amount Received" className="mb-3">
+                      </Col>
+                      <Col md={3}>
+                        <FloatingLabel
+                          controlId="amountReceived"
+                          label="Amount Received"
+                          className="mb-2"
+                        >
                           <Form.Control
                             type="number"
                             name="amount_received"
+                            size="sm"
                             step="0.01"
                             defaultValue={currentInvoice.amount_received}
                           />
                         </FloatingLabel>
                       </Col>
+                      <Col md={6}>
+                        <FloatingLabel
+                          controlId="paymentMethods"
+                          label="Payment Methods"
+                          className="mb-2"
+                        >
+                          <Form.Control
+                            type="text"
+                            name="payment_methods"
+                            size="sm"
+                            placeholder="Cash, Card, Bank Transfer..."
+                            defaultValue={
+                              Array.isArray(currentInvoice?.payment_methods)
+                                ? currentInvoice.payment_methods.join(", ")
+                                : currentInvoice.payment_methods
+                            }
+                          />
+                        </FloatingLabel>
+                      </Col>
+                      <Col md={6}>
+                        <FloatingLabel
+                          controlId="bookingNo"
+                          label="Booking No"
+                          className="mb-2"
+                        >
+                          <Form.Control
+                            type="text"
+                            name="booking_no"
+                            size="sm"
+                            defaultValue={currentInvoice.booking_no}
+                          />
+                        </FloatingLabel>
+                      </Col>
+                      <Col md={6}>
+                        <FloatingLabel
+                          controlId="customerPo"
+                          label="Customer PO Number"
+                          className="mb-2"
+                        >
+                          <Form.Control
+                            type="text"
+                            name="customer_po_number"
+                            size="sm"
+                            defaultValue={currentInvoice.customer_po_number}
+                          />
+                        </FloatingLabel>
+                      </Col>
+                      <Col md={6}>
+                        <FloatingLabel
+                          controlId="salesId"
+                          label="Sales ID"
+                          className="mb-2"
+                        >
+                          <Form.Control
+                            type="text"
+                            name="sales_id"
+                            size="sm"
+                            defaultValue={currentInvoice.sales_id}
+                          />
+                        </FloatingLabel>
+                      </Col>
+                      <Col md={12}>
+                        <FloatingLabel
+                          controlId="paymentInstructions"
+                          label="Payment Instructions"
+                          className="mb-2"
+                        >
+                          <Form.Control
+                            as="textarea"
+                            name="payment_instructions"
+                            size="sm"
+                            style={{ height: "60px" }}
+                            defaultValue={currentInvoice.payment_instructions}
+                            required
+                          />
+                        </FloatingLabel>
+                      </Col>
+                      <Col md={12}>
+                        <FloatingLabel
+                          controlId="remarks"
+                          label="Remarks"
+                          className="mb-2"
+                        >
+                          <Form.Control
+                            as="textarea"
+                            name="remarks"
+                            size="sm"
+                            style={{ height: "60px" }}
+                            defaultValue={currentInvoice.remarks}
+                          />
+                        </FloatingLabel>
+                      </Col>
                     </Row>
-                    <FloatingLabel label="Remarks" className="mb-3">
-                      <Form.Control
-                        as="textarea"
-                        name="remarks"
-                        style={{ height: "100px" }}
-                        defaultValue={currentInvoice.remarks}
-                      />
-                    </FloatingLabel>
                   </Accordion.Body>
                 </Accordion.Item>
-                <Accordion.Item eventKey="items">
-                  <Accordion.Header>
+
+                {/* Travel Details */}
+                <Accordion.Item eventKey="travel" className="mb-2">
+                  <Accordion.Header className="py-2">
                     <div className="d-flex align-items-center">
-                      <FaReceipt className="me-2" />
-                      <span>Invoice Items</span>
-                      <Badge bg="primary" className="ms-2">
+                      <FaCalendarAlt className="me-2 fs-6" />
+                      <span className="fw-semibold">Travel Details</span>
+                    </div>
+                  </Accordion.Header>
+                  <Accordion.Body className="p-3">
+                    <Row className="g-2">
+                      <Col md={4}>
+                        <FloatingLabel
+                          controlId="startDate"
+                          label="Start Date"
+                          className="mb-2"
+                        >
+                          <Form.Control
+                            type="date"
+                            name="start_date"
+                            size="sm"
+                            defaultValue={
+                              currentInvoice.start_date?.split("T")[0]
+                            }
+                          />
+                        </FloatingLabel>
+                      </Col>
+                      <Col md={4}>
+                        <FloatingLabel
+                          controlId="endDate"
+                          label="End Date"
+                          className="mb-2"
+                        >
+                          <Form.Control
+                            type="date"
+                            name="end_date"
+                            size="sm"
+                            defaultValue={
+                              currentInvoice.end_date?.split("T")[0]
+                            }
+                          />
+                        </FloatingLabel>
+                      </Col>
+                      <Col md={4}>
+                        <FloatingLabel
+                          controlId="travelPeriod"
+                          label="Travel Period"
+                          className="mb-2"
+                        >
+                          <Form.Control
+                            type="text"
+                            name="travel_period"
+                            size="sm"
+                            defaultValue={currentInvoice.travel_period}
+                          />
+                        </FloatingLabel>
+                      </Col>
+                    </Row>
+                  </Accordion.Body>
+                </Accordion.Item>
+
+                {/* Invoice Items */}
+                <Accordion.Item eventKey="items" className="mb-2">
+                  <Accordion.Header className="py-2">
+                    <div className="d-flex align-items-center">
+                      <FaReceipt className="me-2 fs-6" />
+                      <span className="fw-semibold">Invoice Items</span>
+                      <Badge bg="primary" className="ms-2 fs-3">
                         {currentInvoice.items?.length || 0}
                       </Badge>
                     </div>
                   </Accordion.Header>
-                  <Accordion.Body>
-                    <table className="table">
-                      <thead className="table-light">
-                        <tr>
-                          <th>Code</th>
-                          <th>Type</th>
-                          <th>Description</th>
-                          <th>Price</th>
-                          <th>Discount %</th>
-                          <th>Quantity</th>
-                          <th>Total</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {currentInvoice.items?.map((item, index) => (
-                          <tr key={index}>
-                            <td>
-                              <Form.Control
-                                type="text"
-                                name={`items[${index}][code]`}
-                                size="sm"
-                                defaultValue={item.code}
-                                required
-                              />
-                            </td>
-                            <td>
-                              <Form.Control
-                                type="text"
-                                name={`items[${index}][type]`}
-                                size="sm"
-                                defaultValue={item.type}
-                                required
-                              />
-                            </td>
-                            <td>
-                              <Form.Control
-                                type="text"
-                                name={`items[${index}][description]`}
-                                size="sm"
-                                defaultValue={item.description}
-                                required
-                              />
-                            </td>
-                            <td>
-                              <Form.Control
-                                type="number"
-                                name={`items[${index}][price]`}
-                                size="sm"
-                                step="0.01"
-                                min="0"
-                                defaultValue={item.price}
-                                required
-                              />
-                            </td>
-                            <td>
-                              <Form.Control
-                                type="number"
-                                name={`items[${index}][discount]`}
-                                size="sm"
-                                min="0"
-                                max="100"
-                                defaultValue={item.discount}
-                                required
-                              />
-                            </td>
-                            <td>
-                              <Form.Control
-                                type="number"
-                                name={`items[${index}][quantity]`}
-                                size="sm"
-                                min="1"
-                                defaultValue={item.quantity}
-                                required
-                              />
-                            </td>
-                            <td className="text-end">
-                              {currencySymbols[currentInvoice.currency] ||
-                                currentInvoice.currency}{" "}
-                              {calculateItemTotal(item).toFixed(2)}
-                            </td>
+                  <Accordion.Body className="p-3">
+                    <div
+                      className="table-responsive"
+                      style={{ maxHeight: "300px", overflowY: "auto" }}
+                    >
+                      <table className="table table-sm table-hover">
+                        <thead className="table-light sticky-top">
+                          <tr>
+                            <th width="12%">Code</th>
+                            <th width="12%">Type</th>
+                            <th width="25%">Description</th>
+                            <th width="10%">Price</th>
+                            <th width="10%">Discount %</th>
+                            <th width="8%">Qty</th>
+                            <th width="13%">Total</th>
+                            <th width="10%">Actions</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                    <div className="d-flex justify-content-end mt-2">
-                      <Button variant="outline-primary" size="sm">
-                        <FaPlus className="me-1" /> Add Item
-                      </Button>
-                    </div>
-                  </Accordion.Body>
-                </Accordion.Item>
-                <Accordion.Item eventKey="charges">
-                  <Accordion.Header>
-                    <div className="d-flex align-items-center">
-                      <FaMoneyBillWave className="me-2" />
-                      <span>Additional Charges</span>
-                      <Badge bg="primary" className="ms-2">
-                        {currentInvoice.additional_charges?.length || 0}
-                      </Badge>
-                    </div>
-                  </Accordion.Header>
-                  <Accordion.Body>
-                    <table className="table">
-                      <thead className="table-light">
-                        <tr>
-                          <th>Description</th>
-                          <th>Amount</th>
-                          <th>Taxable</th>
-                          <th></th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {currentInvoice.additional_charges?.map(
-                          (charge, index) => (
+                        </thead>
+                        <tbody>
+                          {currentInvoice.items?.map((item, index) => (
                             <tr key={index}>
                               <td>
                                 <Form.Control
                                   type="text"
-                                  name={`additional_charges[${index}][description]`}
+                                  name={`items[${index}][code]`}
                                   size="sm"
-                                  defaultValue={charge.description}
+                                  defaultValue={item.code}
+                                  required
+                                />
+                              </td>
+                              <td>
+                                <Form.Select
+                                  name={`items[${index}][type]`}
+                                  size="sm"
+                                  defaultValue={item.type}
+                                  required
+                                >
+                                  <option value="hotel">Hotel</option>
+                                  <option value="restaurant">Restaurant</option>
+                                  <option value="transport">Transport</option>
+                                  <option value="tour">Tour</option>
+                                  <option value="other">Other</option>
+                                </Form.Select>
+                              </td>
+                              <td>
+                                <Form.Control
+                                  type="text"
+                                  name={`items[${index}][description]`}
+                                  size="sm"
+                                  defaultValue={item.description}
+                                  required
                                 />
                               </td>
                               <td>
                                 <Form.Control
                                   type="number"
-                                  name={`additional_charges[${index}][amount]`}
+                                  name={`items[${index}][price]`}
                                   size="sm"
                                   step="0.01"
                                   min="0"
-                                  defaultValue={charge.amount}
+                                  defaultValue={item.price}
+                                  required
                                 />
                               </td>
                               <td>
-                                <Form.Select
-                                  name={`additional_charges[${index}][taxable]`}
+                                <Form.Control
+                                  type="number"
+                                  name={`items[${index}][discount]`}
                                   size="sm"
-                                  defaultValue={charge.taxable ? "1" : "0"}
-                                >
-                                  <option value="1">Yes</option>
-                                  <option value="0">No</option>
-                                </Form.Select>
+                                  min="0"
+                                  max="100"
+                                  defaultValue={item.discount}
+                                  required
+                                />
                               </td>
-                              <td className="text-end">
-                                <Button variant="outline-danger" size="sm">
-                                  <FaTrash />
+                              <td>
+                                <Form.Control
+                                  type="number"
+                                  name={`items[${index}][quantity]`}
+                                  size="sm"
+                                  min="1"
+                                  defaultValue={item.quantity}
+                                  required
+                                />
+                              </td>
+                              <td className="text-end fw-semibold">
+                                {currencySymbols[currentInvoice.currency] ||
+                                  currentInvoice.currency}{" "}
+                                {calculateItemTotal(item).toFixed(2)}
+                              </td>
+                              <td className="text-center">
+                                <Button
+                                  variant="outline-danger"
+                                  size="sm"
+                                  className="px-2"
+                                >
+                                  <FaTrash className="fs-3" />
                                 </Button>
                               </td>
                             </tr>
-                          )
-                        )}
-                      </tbody>
-                    </table>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                     <div className="d-flex justify-content-end mt-2">
-                      <Button variant="outline-primary" size="sm">
-                        <FaPlus className="me-1" /> Add Charge
+                      <Button
+                        variant="outline-primary"
+                        size="sm"
+                        className="px-3"
+                      >
+                        <FaPlus className="me-1 fs-3" /> Add Item
                       </Button>
                     </div>
                   </Accordion.Body>
                 </Accordion.Item>
+
+                {/* Additional Charges */}
+                <Accordion.Item eventKey="charges" className="mb-2">
+                  <Accordion.Header className="py-2">
+                    <div className="d-flex align-items-center">
+                      <FaMoneyBillWave className="me-2 fs-6" />
+                      <span className="fw-semibold">Additional Charges</span>
+                      <Badge bg="primary" className="ms-2 fs-3">
+                        {currentInvoice.additional_charges?.length || 0}
+                      </Badge>
+                    </div>
+                  </Accordion.Header>
+                  <Accordion.Body className="p-3">
+                    <div
+                      className="table-responsive"
+                      style={{ maxHeight: "200px", overflowY: "auto" }}
+                    >
+                      <table className="table table-sm table-hover">
+                        <thead className="table-light sticky-top">
+                          <tr>
+                            <th width="45%">Description</th>
+                            <th width="20%">Amount</th>
+                            <th width="20%">Taxable</th>
+                            <th width="15%">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {currentInvoice.additional_charges?.map(
+                            (charge, index) => (
+                              <tr key={index}>
+                                <td>
+                                  <Form.Control
+                                    type="text"
+                                    name={`additional_charges[${index}][description]`}
+                                    size="sm"
+                                    defaultValue={charge.description}
+                                  />
+                                </td>
+                                <td>
+                                  <Form.Control
+                                    type="number"
+                                    name={`additional_charges[${index}][amount]`}
+                                    size="sm"
+                                    step="0.01"
+                                    min="0"
+                                    defaultValue={charge.amount}
+                                  />
+                                </td>
+                                <td>
+                                  <Form.Select
+                                    name={`additional_charges[${index}][taxable]`}
+                                    size="sm"
+                                    defaultValue={charge.taxable ? "1" : "0"}
+                                  >
+                                    <option value="1">Yes</option>
+                                    <option value="0">No</option>
+                                  </Form.Select>
+                                </td>
+                                <td className="text-center">
+                                  <Button
+                                    variant="outline-danger"
+                                    size="sm"
+                                    className="px-2"
+                                  >
+                                    <FaTrash className="fs-3" />
+                                  </Button>
+                                </td>
+                              </tr>
+                            )
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                    <div className="d-flex justify-content-end mt-2">
+                      <Button
+                        variant="outline-primary"
+                        size="sm"
+                        className="px-3"
+                      >
+                        <FaPlus className="me-1 fs-3" /> Add Charge
+                      </Button>
+                    </div>
+                  </Accordion.Body>
+                </Accordion.Item>
+
+                {/* Financial Summary */}
+                <Accordion.Item eventKey="financial" className="mb-2">
+                  <Accordion.Header className="py-2">
+                    <div className="d-flex align-items-center">
+                      <FaCalculator className="me-2 fs-6" />
+                      <span className="fw-semibold">Financial Summary</span>
+                    </div>
+                  </Accordion.Header>
+                  <Accordion.Body className="p-3">
+                    <Row className="g-2">
+                      <Col md={3}>
+                        <FloatingLabel
+                          controlId="subTotal"
+                          label="Sub Total"
+                          className="mb-2"
+                        >
+                          <Form.Control
+                            type="number"
+                            name="sub_total"
+                            size="sm"
+                            step="0.01"
+                            defaultValue={currentInvoice.sub_total}
+                            readOnly
+                          />
+                        </FloatingLabel>
+                      </Col>
+                      <Col md={3}>
+                        <FloatingLabel
+                          controlId="handlingFee"
+                          label="Handling Fee"
+                          className="mb-2"
+                        >
+                          <Form.Control
+                            type="number"
+                            name="handling_fee"
+                            size="sm"
+                            step="0.01"
+                            defaultValue={currentInvoice.handling_fee}
+                          />
+                        </FloatingLabel>
+                      </Col>
+                      <Col md={3}>
+                        <FloatingLabel
+                          controlId="gstAmount"
+                          label="GST Amount"
+                          className="mb-2"
+                        >
+                          <Form.Control
+                            type="number"
+                            name="gst_amount"
+                            size="sm"
+                            step="0.01"
+                            defaultValue={currentInvoice.gst_amount}
+                          />
+                        </FloatingLabel>
+                      </Col>
+                      <Col md={3}>
+                        <FloatingLabel
+                          controlId="additionalTax"
+                          label="Additional Tax"
+                          className="mb-2"
+                        >
+                          <Form.Control
+                            type="number"
+                            name="additional_tax"
+                            size="sm"
+                            step="0.01"
+                            defaultValue={currentInvoice.additional_tax}
+                          />
+                        </FloatingLabel>
+                      </Col>
+                      <Col md={4}>
+                        <FloatingLabel
+                          controlId="bankCharges"
+                          label="Bank Charges"
+                          className="mb-2"
+                        >
+                          <Form.Control
+                            type="number"
+                            name="bank_charges"
+                            size="sm"
+                            step="0.01"
+                            defaultValue={currentInvoice.bank_charges}
+                          />
+                        </FloatingLabel>
+                      </Col>
+                      <Col md={4}>
+                        <FloatingLabel
+                          controlId="totalAmount"
+                          label="Total Amount"
+                          className="mb-2"
+                        >
+                          <Form.Control
+                            type="number"
+                            name="total_amount"
+                            size="sm"
+                            step="0.01"
+                            defaultValue={currentInvoice.total_amount}
+                          />
+                        </FloatingLabel>
+                      </Col>
+                      <Col md={4}>
+                        <FloatingLabel
+                          controlId="balance"
+                          label="Balance"
+                          className="mb-2"
+                        >
+                          <Form.Control
+                            type="number"
+                            name="balance"
+                            size="sm"
+                            step="0.01"
+                            defaultValue={currentInvoice.balance}
+                            readOnly
+                          />
+                        </FloatingLabel>
+                      </Col>
+                    </Row>
+                  </Accordion.Body>
+                </Accordion.Item>
               </Accordion>
-              <div className="d-flex justify-content-end mt-4">
+
+              <div className="d-flex justify-content-end mt-4 pt-3 border-top">
                 <Button
-                  variant="secondary"
+                  variant="outline-secondary"
+                  size="sm"
                   onClick={() => setShowEditModal(false)}
-                  className="me-2"
+                  className="me-2 px-3"
                 >
                   Cancel
                 </Button>
-                <Button variant="primary" type="submit">
-                  Save Changes
-                </Button>
+              <Button
+      variant="primary"
+      size="sm"
+      type="submit"
+      className="px-4"
+      disabled={isUpdating} // Disable button while loading
+    >
+      {isUpdating ? (
+        <>
+          <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+          Saving...
+        </>
+      ) : (
+        <>
+          <FaSave className="me-1" /> Save Changes
+        </>
+      )}
+    </Button>
               </div>
             </form>
           )}

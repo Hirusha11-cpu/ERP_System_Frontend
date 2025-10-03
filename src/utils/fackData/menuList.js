@@ -167,44 +167,44 @@ export const menuList = [
       // },
     ],
   },
-  // {
-  //   id: 2,
-  //   name: "receivables",
-  //   mainName:"Accounts Receivable",
-  //   path: "/receivables/api_list2",
-  //   icon: "feather-shopping-bag",
-  //   dropdownMenu: [
-  //     {
-  //       id: 1,
-  //       name: "Receivables",
-  //       path: "/receivables/api_list2",
-  //       subdropdownMenu: true,
-  //     },
-  //     {
-  //       id: 2,
-  //       name: "Summary Reports",
-  //       path: "/receivables/summary_reports",
-  //       subdropdownMenu: true,
-  //     },
-  //     // ...(companyNo === 1
-  //     //   ? [
-  //     //       {
-  //     //         id: 3,
-  //     //         name: "Sales",
-  //     //         path: "/receivables/sales",
-  //     //         subdropdownMenu: true,
-  //     //       },
-  //     //     ]
-  //     //   : []),
+  {
+    id: 2,
+    name: "receivables",
+    mainName:"Accounts Receivable",
+    path: "/receivables/api_list2",
+    icon: "feather-shopping-bag",
+    dropdownMenu: [
+      {
+        id: 1,
+        name: "Receivables",
+        path: "/receivables/api_list2",
+        subdropdownMenu: true,
+      },
+      // {
+      //   id: 2,
+      //   name: "Summary Reports",
+      //   path: "/receivables/summary_reports",
+      //   subdropdownMenu: true,
+      // },
+      // ...(companyNo === 1
+      //   ? [
+      //       {
+      //         id: 3,
+      //         name: "Sales",
+      //         path: "/receivables/sales",
+      //         subdropdownMenu: true,
+      //       },
+      //     ]
+      //   : []),
     
-  //     // {
-  //     //   id: 3,
-  //     //   name: "Sales",
-  //     //   path: "/receivables/sales",
-  //     //   subdropdownMenu: true,
-  //     // },
-  //   ],
-  // },
+      // {
+      //   id: 3,
+      //   name: "Sales",
+      //   path: "/receivables/sales",
+      //   subdropdownMenu: true,
+      // },
+    ],
+  },
   // {
   //   id: 3,
   //   name: "payment",

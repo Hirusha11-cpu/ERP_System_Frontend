@@ -1121,8 +1121,10 @@ const Invoice_create = () => {
   };
 
   // Generate invoice preview
+  const [showExchangedOpen, setShowExchangedOpen] = useState(false);
   const generatePreview = () => {
     setShowPreviewModal(true);
+    setShowExchangedOpen(true);
     console.log(formData);
   };
 
@@ -3267,6 +3269,7 @@ const Invoice_create = () => {
           currencySymbols={currencySymbols}
           printInvoice={printInvoice}
           xeRate={xeRate}
+          showExchangedOpen={showExchangedOpen}
         />
       )}
 
@@ -3280,6 +3283,7 @@ const Invoice_create = () => {
           printInvoice={printInvoice}
           formatDate={formatDate}
           xeRate={xeRate}
+          showExchangedOpen={showExchangedOpen}
         />
       )}
     </div>

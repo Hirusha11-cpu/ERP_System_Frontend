@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Button, Form, Table, Alert, Modal, Badge, Row, Col, Spinner } from 'react-bootstrap';
-import { FaUpload, FaEye, FaLink, FaFileExcel, FaInfoCircle, FaDownload, FaTimes } from 'react-icons/fa';
+import { Card, Button, Form, Table, Alert, Modal, Badge, Row, Col, Spinner, InputGroup } from 'react-bootstrap';
+import { FaUpload, FaEye, FaLink, FaFileExcel, FaInfoCircle, FaDownload, FaTimes, FaSearch, FaSync } from 'react-icons/fa';
 import axios from 'axios';
 
 const OSReportUpload1 = () => {
@@ -16,15 +16,12 @@ const OSReportUpload1 = () => {
   const [linking, setLinking] = useState(false);
   const [unlinkedRecords, setUnlinkedRecords] = useState([]);
   const [loadingUnlinked, setLoadingUnlinked] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [allRecords, setAllRecords] = useState([]);
+  const [loadingAll, setLoadingAll] = useState(false);
+  const [activeTab, setActiveTab] = useState('unlinked'); // 'unlinked' or 'all'
 
-  // Sample templates for download
-  const templateHeaders = {
-    type1: ['Invoice No', 'Supplier expectation', 'Invoice Amount', 'Service charges', 'TDS2%', 'Already paid', 'Payout final payment', 'Remarks'],
-    type2: ['Invoice #', 'Customer PO #', 'Customer Name', 'Amount (USD)', 'Comment', 'Promised Date', 'Amount Paid', 'Final Due Amount in USD', 'Remark', 'MMT Amount - final amount', 'Remarks']
-  };
-
-    const token =
-    localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+  const token = localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
 
   const showAlert = (message, type = 'success') => {
     setAlert({ show: true, message, type });
@@ -38,25 +35,39 @@ const OSReportUpload1 = () => {
         showAlert('Please select a valid Excel file (xlsx, xls, csv)', 'danger');
         return;
       }
+      if (selectedFile.size > 10 * 1024 * 1024) {
+        showAlert('File size must be less than 10MB', 'danger');
+        return;
+      }
       setFile(selectedFile);
       previewExcelFile(selectedFile);
     }
   };
 
-  const previewExcelFile = (file) => {
-    // In a real implementation, you would use a library like sheetjs to parse Excel
-    // For now, we'll just show a mock preview
-    const mockData = reportType === 'type1' 
-      ? [
-          { invoiceNo: 'INV-001', supplierExpectation: 1000, invoiceAmount: 5000, serviceCharges: 200, tds: 100, alreadyPaid: 1000, payoutFinal: 4000, remarks: 'Sample remark' },
-          { invoiceNo: 'INV-002', supplierExpectation: 1500, invoiceAmount: 6000, serviceCharges: 250, tds: 120, alreadyPaid: 2000, payoutFinal: 4000, remarks: 'Another remark' }
-        ]
-      : [
-          { invoiceNumber: 'INV-001', customerPO: 'PO-001', customerName: 'Customer A', amountUSD: 5000, comment: 'Sample comment', promisedDate: '2024-01-15', amountPaid: 1000, finalDue: 4000, remark: 'Pending', mmtAmount: 4500, remarks: 'Final remarks' }
-        ];
-    
-    setPreviewData(mockData);
-    setShowPreview(true);
+  const previewExcelFile = async (file) => {
+    try {
+      // For real Excel parsing, you would use a library like sheetjs
+      // This is a simplified preview
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        // In a real implementation, parse the Excel file here
+        const mockData = reportType === 'type1' 
+          ? [
+              { invoiceNo: 'INV-001', supplierExpectation: 1000, invoiceAmount: 5000, serviceCharges: 200, tds: 100, alreadyPaid: 1000, payoutFinal: 4000, remarks: 'Sample remark' },
+              { invoiceNo: 'INV-002', supplierExpectation: 1500, invoiceAmount: 6000, serviceCharges: 250, tds: 120, alreadyPaid: 2000, payoutFinal: 4000, remarks: 'Another remark' }
+            ]
+          : [
+              { invoiceNumber: 'INV-001', customerPO: 'PO-001', customerName: 'Customer A', amountUSD: 5000, comment: 'Sample comment', promisedDate: '2024-01-15', amountPaid: 1000, finalDue: 4000, remark: 'Pending', mmtAmount: 4500, remarks: 'Final remarks' }
+            ];
+        
+        setPreviewData(mockData);
+        setShowPreview(true);
+      };
+      reader.readAsArrayBuffer(file);
+    } catch (error) {
+      console.error('Error previewing file:', error);
+      showAlert('Error previewing file', 'danger');
+    }
   };
 
   const handleUpload = async () => {
@@ -71,7 +82,6 @@ const OSReportUpload1 = () => {
     formData.append('report_type', reportType);
 
     try {
-      
       const response = await axios.post('/api/account-receivables/import-os-report', formData, {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -84,12 +94,13 @@ const OSReportUpload1 = () => {
         setFile(null);
         setShowPreview(false);
         loadUnlinkedRecords();
+        loadAllRecords();
       } else {
         showAlert(response.data.message, 'danger');
       }
     } catch (error) {
       console.error('Upload error:', error);
-      const errorMessage = error.response?.data?.message || 'Upload failed';
+      const errorMessage = error.response?.data?.message || error.response?.data?.error || 'Upload failed';
       showAlert(errorMessage, 'danger');
     } finally {
       setUploading(false);
@@ -100,16 +111,41 @@ const OSReportUpload1 = () => {
     setLoadingUnlinked(true);
     try {
       const response = await axios.get('/api/account-receivables/unlinked', {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 'Authorization': `Bearer ${token}` },
+        params: { search: searchTerm }
       });
 
       if (response.data.success) {
-        setUnlinkedRecords(response.data.data.data || []);
+        setUnlinkedRecords(response.data.data.data || response.data.data || []);
+      } else {
+        showAlert('Failed to load unlinked records', 'danger');
       }
     } catch (error) {
       console.error('Error loading unlinked records:', error);
+      showAlert('Error loading unlinked records', 'danger');
     } finally {
       setLoadingUnlinked(false);
+    }
+  };
+
+  const loadAllRecords = async () => {
+    setLoadingAll(true);
+    try {
+      const response = await axios.get('/api/account-receivables', {
+        headers: { 'Authorization': `Bearer ${token}` },
+        params: { 
+          search: searchTerm,
+          link_status: 'unlinked'
+        }
+      });
+
+      if (response.data.success) {
+        setAllRecords(response.data.data.data || response.data.data || []);
+      }
+    } catch (error) {
+      console.error('Error loading all records:', error);
+    } finally {
+      setLoadingAll(false);
     }
   };
 
@@ -118,7 +154,7 @@ const OSReportUpload1 = () => {
       showAlert('Please enter an invoice number', 'danger');
       return;
     }
-
+    
     setLinking(true);
     try {
       const response = await axios.post(`/api/account-receivables/${record.id}/link-invoice`, {
@@ -131,12 +167,14 @@ const OSReportUpload1 = () => {
         showAlert('Invoice linked successfully', 'success');
         setShowLinkModal(false);
         setInvoiceNumber('');
+        setSelectedRecord(null);
         loadUnlinkedRecords();
+        loadAllRecords();
       } else {
         showAlert(response.data.message, 'danger');
       }
     } catch (error) {
-      const errorMessage = error.response?.data?.message || 'Linking failed';
+      const errorMessage = error.response?.data?.message || error.response?.data?.error || 'Linking failed';
       showAlert(errorMessage, 'danger');
     } finally {
       setLinking(false);
@@ -145,19 +183,123 @@ const OSReportUpload1 = () => {
 
   const downloadTemplate = () => {
     const headers = templateHeaders[reportType];
-    const csvContent = headers.join(',') + '\n';
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `os-report-${reportType}-template.csv`;
-    a.click();
-    window.URL.revokeObjectURL(url);
+    const csvContent = "data:text/csv;charset=utf-8," + headers.join(',') + '\n';
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `os-report-${reportType}-template.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const refreshData = () => {
+    if (activeTab === 'unlinked') {
+      loadUnlinkedRecords();
+    } else {
+      loadAllRecords();
+    }
   };
 
   useEffect(() => {
-    loadUnlinkedRecords();
-  }, []);
+    refreshData();
+  }, [activeTab, searchTerm]);
+
+  const templateHeaders = {
+    type1: ['Invoice No', 'Supplier expectation', 'Invoice Amount', 'Service charges', 'TDS2%', 'Already paid', 'Payout final payment', 'Remarks'],
+    type2: ['Invoice #', 'Customer PO #', 'Customer Name', 'Amount (USD)', 'Comment', 'Promised Date', 'Amount Paid', 'Final Due Amount in USD', 'Remark', 'MMT Amount - final amount', 'Remarks']
+  };
+
+  const renderRecordsTable = (records, loading, showLinkButton = true) => {
+    if (loading) {
+      return (
+        <div className="text-center py-4">
+          <Spinner animation="border" variant="primary" />
+          <div className="mt-2">Loading records...</div>
+        </div>
+      );
+    }
+
+    if (!records || records.length === 0) {
+      return (
+        <Alert variant="info" className="text-center">
+          No records found.
+        </Alert>
+      );
+    }
+
+    return (
+      <div className="table-responsive">
+        <Table striped hover size="sm">
+          <thead>
+            <tr>
+              <th>Invoice #</th>
+              <th>Customer Name</th>
+              <th>Invoice Amount</th>
+              <th>Amount Paid</th>
+              <th>Final Due</th>
+              <th>Status</th>
+              <th>Linked</th>
+              <th>Created</th>
+              {/* {showLinkButton && <th>Actions</th>} */}
+            </tr>
+          </thead>
+          <tbody>
+            {records.map((record) => (
+              <tr key={record.id}>
+                <td>
+                  <strong>{record.invoice_number}</strong>
+                  {record.customer_po_number && (
+                    <div><small className="text-muted">PO: {record.customer_po_number}</small></div>
+                  )}
+                </td>
+                <td>{record.customer_name}</td>
+                <td>${parseFloat(record.invoice_amount).toLocaleString()}</td>
+                <td>${parseFloat(record.amount_paid).toLocaleString()}</td>
+                <td>
+                  <strong>${parseFloat(record.final_due_amount_usd).toLocaleString()}</strong>
+                </td>
+                <td>
+                  <Badge bg={
+                    record.status === 'paid' ? 'success' :
+                    record.status === 'partially_paid' ? 'warning' :
+                    record.status === 'overdue' ? 'danger' : 'secondary'
+                  }>
+                    {record.status?.replace('_', ' ') || 'pending'}
+                  </Badge>
+                </td>
+                <td>
+                  {record.invoice_id ? (
+                    <Badge bg="success">Yes</Badge>
+                  ) : (
+                    <Badge bg="warning">No</Badge>
+                  )}
+                </td>
+                <td>{new Date(record.created_at).toLocaleDateString()}</td>
+                {/* {showLinkButton && (
+                  <td>
+                    {!record.invoice_id && (
+                      <Button
+                        variant="outline-primary"
+                        size="sm"
+                        onClick={() => {
+                          setSelectedRecord(record);
+                          setShowLinkModal(true);
+                        }}
+                      >
+                        <FaLink className="me-1" />
+                        Link Invoice
+                      </Button>
+                    )}
+                  </td>
+                )} */}
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+      </div>
+    );
+  };
 
   return (
     <div className="container-fluid">
@@ -186,7 +328,11 @@ const OSReportUpload1 = () => {
                     <Form.Label>Report Type</Form.Label>
                     <Form.Select 
                       value={reportType} 
-                      onChange={(e) => setReportType(e.target.value)}
+                      onChange={(e) => {
+                        setReportType(e.target.value);
+                        setFile(null);
+                        setPreviewData([]);
+                      }}
                     >
                       <option value="type1">Type 1 (Supplier OS)</option>
                       <option value="type2">Type 2 (Customer OS)</option>
@@ -225,11 +371,18 @@ const OSReportUpload1 = () => {
                   <Button
                     variant="outline-info"
                     size="sm"
-                    className="ms-auto"
+                    className="ms-auto me-2"
                     onClick={() => setShowPreview(true)}
                   >
                     <FaEye className="me-1" />
                     Preview
+                  </Button>
+                  <Button
+                    variant="outline-danger"
+                    size="sm"
+                    onClick={() => setFile(null)}
+                  >
+                    <FaTimes />
                   </Button>
                 </Alert>
               )}
@@ -279,7 +432,7 @@ const OSReportUpload1 = () => {
                   <h6>Type 1 - Supplier OS Report</h6>
                   <small className="text-muted">
                     Required columns:
-                    <ul className="mt-2">
+                    <ul className="mt-2 mb-0">
                       <li>Invoice No</li>
                       <li>Supplier expectation</li>
                       <li>Invoice Amount</li>
@@ -296,7 +449,7 @@ const OSReportUpload1 = () => {
                   <h6>Type 2 - Customer OS Report</h6>
                   <small className="text-muted">
                     Required columns:
-                    <ul className="mt-2">
+                    <ul className="mt-2 mb-0">
                       <li>Invoice #</li>
                       <li>Customer PO #</li>
                       <li>Customer Name</li>
@@ -317,86 +470,67 @@ const OSReportUpload1 = () => {
         </Col>
       </Row>
 
-      {/* Unlinked Records Table */}
+      {/* Records Tabs */}
       <Card className="mt-4">
-        <Card.Header className="bg-warning text-dark d-flex justify-content-between align-items-center">
-          <h6 className="mb-0">
-            <FaLink className="me-2" />
-            Unlinked Account Receivables
-          </h6>
-          <Button variant="outline-dark" size="sm" onClick={loadUnlinkedRecords}>
-            Refresh
-          </Button>
+        <Card.Header className="bg-light">
+          <div className="d-flex justify-content-between align-items-center">
+            <div>
+              <Button
+                variant={activeTab === 'unlinked' ? 'primary' : 'outline-primary'}
+                size="sm"
+                className="me-2"
+                onClick={() => setActiveTab('unlinked')}
+              >
+                Unlinked Records
+                <Badge bg="danger" className="ms-1">
+                  {unlinkedRecords.length}
+                </Badge>
+              </Button>
+              <Button
+                variant={activeTab === 'all' ? 'primary' : 'outline-primary'}
+                size="sm"
+                onClick={() => setActiveTab('all')}
+              >
+                All Records
+              </Button>
+            </div>
+            <div className="d-flex gap-2">
+              <InputGroup size="sm" style={{ width: '300px' }}>
+                <Form.Control
+                  placeholder="Search invoices..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+                <InputGroup.Text>
+                  <FaSearch />
+                </InputGroup.Text>
+              </InputGroup>
+              <Button variant="outline-secondary" size="sm" onClick={refreshData}>
+                <FaSync />
+              </Button>
+            </div>
+          </div>
         </Card.Header>
         <Card.Body>
-          {loadingUnlinked ? (
-            <div className="text-center">
-              <Spinner animation="border" variant="primary" />
-            </div>
-          ) : unlinkedRecords.length > 0 ? (
-            <div className="table-responsive">
-              <Table striped hover size="sm">
-                <thead>
-                  <tr>
-                    <th>Invoice #</th>
-                    <th>Customer Name</th>
-                    <th>Amount</th>
-                    <th>Status</th>
-                    <th>Created</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {unlinkedRecords.map((record) => (
-                    <tr key={record.id}>
-                      <td>{record.invoice_number}</td>
-                      <td>{record.customer_name}</td>
-                      <td>${record.invoice_amount}</td>
-                      <td>
-                        <Badge bg={
-                          record.status === 'paid' ? 'success' :
-                          record.status === 'partially_paid' ? 'warning' :
-                          record.status === 'overdue' ? 'danger' : 'secondary'
-                        }>
-                          {record.status}
-                        </Badge>
-                      </td>
-                      <td>{new Date(record.created_at).toLocaleDateString()}</td>
-                      <td>
-                        <Button
-                          variant="outline-primary"
-                          size="sm"
-                          onClick={() => {
-                            setSelectedRecord(record);
-                            setShowLinkModal(true);
-                          }}
-                        >
-                          <FaLink className="me-1" />
-                          Link Invoice
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
-            </div>
-          ) : (
-            <Alert variant="info" className="text-center">
-              No unlinked account receivables found.
-            </Alert>
-          )}
+          {activeTab === 'unlinked' 
+            ? renderRecordsTable(unlinkedRecords, loadingUnlinked, true)
+            : renderRecordsTable(allRecords, loadingAll, false)
+          }
         </Card.Body>
       </Card>
 
       {/* Preview Modal */}
-      <Modal show={showPreview} onHide={() => setShowPreview(false)} size="lg">
+      <Modal show={showPreview} onHide={() => setShowPreview(false)} size="xl">
         <Modal.Header closeButton>
-          <Modal.Title>File Preview</Modal.Title>
+          <Modal.Title>File Preview - {file?.name}</Modal.Title>
         </Modal.Header>
         <Modal.Body>
+          <Alert variant="info">
+            This is a sample preview. Actual data will be parsed from your Excel file.
+          </Alert>
           <div className="table-responsive">
             <Table striped bordered hover>
-              <thead>
+              <thead className="table-dark">
                 <tr>
                   {reportType === 'type1' ? (
                     <>
@@ -420,6 +554,7 @@ const OSReportUpload1 = () => {
                       <th>Amount Paid</th>
                       <th>Final Due</th>
                       <th>MMT Amount</th>
+                      <th>Remarks</th>
                     </>
                   )}
                 </tr>
@@ -430,12 +565,12 @@ const OSReportUpload1 = () => {
                     {reportType === 'type1' ? (
                       <>
                         <td>{row.invoiceNo}</td>
-                        <td>${row.supplierExpectation}</td>
-                        <td>${row.invoiceAmount}</td>
-                        <td>${row.serviceCharges}</td>
-                        <td>${row.tds}</td>
-                        <td>${row.alreadyPaid}</td>
-                        <td>${row.payoutFinal}</td>
+                        <td>{row.supplierExpectation?.toLocaleString()}</td>
+                        <td>{row.invoiceAmount?.toLocaleString()}</td>
+                        <td>{row.serviceCharges?.toLocaleString()}</td>
+                        <td>{row.tds?.toLocaleString()}</td>
+                        <td>{row.alreadyPaid?.toLocaleString()}</td>
+                        <td>{row.payoutFinal?.toLocaleString()}</td>
                         <td>{row.remarks}</td>
                       </>
                     ) : (
@@ -443,12 +578,13 @@ const OSReportUpload1 = () => {
                         <td>{row.invoiceNumber}</td>
                         <td>{row.customerPO}</td>
                         <td>{row.customerName}</td>
-                        <td>${row.amountUSD}</td>
+                        <td>{row.amountUSD?.toLocaleString()}</td>
                         <td>{row.comment}</td>
                         <td>{row.promisedDate}</td>
-                        <td>${row.amountPaid}</td>
-                        <td>${row.finalDue}</td>
-                        <td>${row.mmtAmount}</td>
+                        <td>{row.amountPaid?.toLocaleString()}</td>
+                        <td>{row.finalDue?.toLocaleString()}</td>
+                        <td>{row.mmtAmount?.toLocaleString()}</td>
+                        <td>{row.remarks}</td>
                       </>
                     )}
                   </tr>
@@ -461,41 +597,66 @@ const OSReportUpload1 = () => {
           <Button variant="secondary" onClick={() => setShowPreview(false)}>
             Close
           </Button>
+          <Button variant="primary" onClick={handleUpload} disabled={uploading}>
+            {uploading ? (
+              <>
+                <Spinner animation="border" size="sm" className="me-2" />
+                Uploading...
+              </>
+            ) : (
+              'Upload Now'
+            )}
+          </Button>
         </Modal.Footer>
       </Modal>
 
       {/* Link Invoice Modal */}
-      <Modal show={showLinkModal} onHide={() => setShowLinkModal(false)}>
+      <Modal show={showLinkModal} onHide={() => {
+        setShowLinkModal(false);
+        setSelectedRecord(null);
+        setInvoiceNumber('');
+      }}>
         <Modal.Header closeButton>
           <Modal.Title>Link to Invoice</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {selectedRecord && (
             <div>
-              <p>
-                <strong>Account Receivable:</strong> {selectedRecord.invoice_number}
+              <Alert variant="info">
+                <strong>Account Receivable Details:</strong>
                 <br />
-                <strong>Customer:</strong> {selectedRecord.customer_name}
+                Invoice: <strong>{selectedRecord.invoice_number}</strong>
                 <br />
-                <strong>Amount:</strong> ${selectedRecord.invoice_amount}
-              </p>
+                Customer: {selectedRecord.customer_name}
+                <br />
+                Amount: <strong>${parseFloat(selectedRecord.invoice_amount).toLocaleString()}</strong>
+              </Alert>
               <Form.Group>
                 <Form.Label>Invoice Number to Link</Form.Label>
                 <Form.Control
                   type="text"
                   value={invoiceNumber}
                   onChange={(e) => setInvoiceNumber(e.target.value)}
-                  placeholder="Enter invoice number..."
+                  placeholder="Enter exact invoice number..."
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      handleLinkToInvoice(selectedRecord);
+                    }
+                  }}
                 />
                 <Form.Text className="text-muted">
-                  Enter the exact invoice number from the system
+                  Enter the exact invoice number from the system to link this account receivable.
                 </Form.Text>
               </Form.Group>
             </div>
           )}
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowLinkModal(false)}>
+          <Button variant="secondary" onClick={() => {
+            setShowLinkModal(false);
+            setSelectedRecord(null);
+            setInvoiceNumber('');
+          }}>
             Cancel
           </Button>
           <Button 

@@ -5,9 +5,6 @@ import { menuList } from "@/utils/fackData/menuList";
 import getIcon from "@/utils/getIcon";
 import { CompanyContext } from "../../../contentApi/CompanyProvider";
 
-
-// import "./Menu.css";
-
 const Menus = () => {
   const [openDropdown, setOpenDropdown] = useState(null);
   const [openSubDropdown, setOpenSubDropdown] = useState(null);
@@ -35,7 +32,7 @@ const Menus = () => {
     }
   };
 
-   useEffect(() => {
+  useEffect(() => {
     const companyMap = {
       appleholidays: 2,
       aahaas: 3,
@@ -50,7 +47,7 @@ const Menus = () => {
       ...menuItem,
       dropdownMenu:
         currentCompanyNo === 3
-          ? menuItem.dropdownMenu.filter((item) => item.name !== "Create Invoice")
+          ? menuItem.dropdownMenu.filter((item) => item.name !== "Create Invoice" || item.name !== "PnL Report")
           : menuItem.dropdownMenu,
     }));
 
@@ -71,104 +68,115 @@ const Menus = () => {
   }, [pathName]);
 
   return (
-    <>
-      {/* {menuList.map(({ dropdownMenu, id, name, path, icon, mainName }) => { */}
-      {filteredMenu.map(({ dropdownMenu, id, name, path, icon, mainName }) => {
-        return (
-          <li
-            key={id}
-            onClick={(e) => handleMainMenu(e, name)}
-            className={`nxl-item nxl-hasmenu ${
-              activeParent === name ? "active nxl-trigger" : ""
-            }`}
-          >
-            <Link to={path} className="nxl-link text-capitalize">
-              <span className="nxl-micon"> {getIcon(icon)} </span>
-              <span className="nxl-mtext" style={{ paddingLeft: "2.5px" }}>
-                {mainName || name}
-              </span>
-              <span className="nxl-arrow fs-16">
-                <FiChevronRight />
-              </span>
-            </Link>
-            <ul
-              className={`nxl-submenu ${
-                openDropdown === name ? "nxl-menu-visible" : "nxl-menu-hidden"
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      {/* Menu Items - This will scroll if content overflows */}
+      <ul style={{ flex: 1, overflowY: 'auto', paddingBottom: '10px' }}>
+        {filteredMenu.map(({ dropdownMenu, id, name, path, icon, mainName }) => {
+          return (
+            <li
+              key={id}
+              onClick={(e) => handleMainMenu(e, name)}
+              className={`nxl-item nxl-hasmenu ${
+                activeParent === name ? "active nxl-trigger" : ""
               }`}
             >
-              {dropdownMenu.map(({ id, name, path, subdropdownMenu }) => {
-                const x = name;
-                return (
-                  <Fragment key={id}>
-                    {subdropdownMenu.length ? (
-                      <li
-                        className={`nxl-item nxl-hasmenu ${
-                          activeChild === name ? "active" : ""
-                        }`}
-                        onClick={(e) => handleDropdownMenu(e, x)}
-                      >
-                        <Link to={path} className={`nxl-link text-capitalize`}>
-                          <span className="nxl-mtext">{name}</span>
-                          <span className="nxl-arrow">
-                            <i>
-                              {" "}
-                              <FiChevronRight />
-                            </i>
-                          </span>
-                        </Link>
-                        {subdropdownMenu.map(({ id, name, path }) => {
-                          return (
-                            <ul
-                              key={id}
-                              className={`nxl-submenu ${
-                                openSubDropdown === x
-                                  ? "nxl-menu-visible"
-                                  : "nxl-menu-hidden "
-                              }`}
-                            >
-                              <li
-                                className={`nxl-item ${
-                                  pathName === path ? "active" : ""
+              <Link to={path} className="nxl-link text-capitalize">
+                <span className="nxl-micon"> {getIcon(icon)} </span>
+                <span className="nxl-mtext" style={{ paddingLeft: "2.5px" }}>
+                  {mainName || name}
+                </span>
+                <span className="nxl-arrow fs-16">
+                  <FiChevronRight />
+                </span>
+              </Link>
+              <ul
+                className={`nxl-submenu ${
+                  openDropdown === name ? "nxl-menu-visible" : "nxl-menu-hidden"
+                }`}
+              >
+                {dropdownMenu.map(({ id, name, path, subdropdownMenu }) => {
+                  const x = name;
+                  return (
+                    <Fragment key={id}>
+                      {subdropdownMenu.length ? (
+                        <li
+                          className={`nxl-item nxl-hasmenu ${
+                            activeChild === name ? "active" : ""
+                          }`}
+                          onClick={(e) => handleDropdownMenu(e, x)}
+                        >
+                          <Link to={path} className={`nxl-link text-capitalize`}>
+                            <span className="nxl-mtext">{name}</span>
+                            <span className="nxl-arrow">
+                              <i>
+                                {" "}
+                                <FiChevronRight />
+                              </i>
+                            </span>
+                          </Link>
+                          {subdropdownMenu.map(({ id, name, path }) => {
+                            return (
+                              <ul
+                                key={id}
+                                className={`nxl-submenu ${
+                                  openSubDropdown === x
+                                    ? "nxl-menu-visible"
+                                    : "nxl-menu-hidden "
                                 }`}
                               >
-                                <Link
-                                  className="nxl-link text-capitalize"
-                                  to={path}
+                                <li
+                                  className={`nxl-item ${
+                                    pathName === path ? "active" : ""
+                                  }`}
                                 >
-                                  {name}
-                                </Link>
-                              </li>
-                            </ul>
-                          );
-                        })}
-                      </li>
-                    ) : (
-                      <li
-                        className={`nxl-item ${
-                          pathName === path ? "active" : ""
-                        }`}
-                      >
-                        <Link className="nxl-link" to={path}>
-                          {name}
-                        </Link>
-                      </li>
-                    )}
-                  </Fragment>
-                );
-              })}
-            </ul>
-          </li>
-        );
-      })}
+                                  <Link
+                                    className="nxl-link text-capitalize"
+                                    to={path}
+                                  >
+                                    {name}
+                                  </Link>
+                                </li>
+                              </ul>
+                            );
+                          })}
+                        </li>
+                      ) : (
+                        <li
+                          className={`nxl-item ${
+                            pathName === path ? "active" : ""
+                          }`}
+                        >
+                          <Link className="nxl-link" to={path}>
+                            {name}
+                          </Link>
+                        </li>
+                      )}
+                    </Fragment>
+                  );
+                })}
+              </ul>
+            </li>
+          );
+        })}
+      </ul>
 
-      {/* Version Number */}
-      <li className="">
-        <div className="nxl-version-text">
-          {/* v{process.env.REACT_APP_VERSION || "1.0.0"} */}
+      {/* Version Number - Always at bottom */}
+      <div style={{
+        padding: '15px',
+        textAlign: 'center',
+        borderTop: '1px solid rgba(255,255,255,0.1)',
+        marginTop: 'auto',
+        backgroundColor: 'inherit'
+      }}>
+        <div style={{
+          fontSize: '12px',
+          color: 'rgba(255,255,255,0.6)',
+          fontWeight: '500'
+        }}>
           v{"1.0.0"}
         </div>
-      </li>
-    </>
+      </div>
+    </div>
   );
 };
 

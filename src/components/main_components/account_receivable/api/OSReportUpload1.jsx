@@ -20,6 +20,13 @@ const OSReportUpload1 = () => {
   const [allRecords, setAllRecords] = useState([]);
   const [loadingAll, setLoadingAll] = useState(false);
   const [activeTab, setActiveTab] = useState('unlinked'); // 'unlinked' or 'all'
+  const [showUpdateModal, setShowUpdateModal] = useState(false);
+const [selectedRecordForUpdate, setSelectedRecordForUpdate] = useState(null);
+const [updateSummary, setUpdateSummary] = useState(null);
+const [updating, setUpdating] = useState(false);
+const [bulkUpdateMode, setBulkUpdateMode] = useState(false);
+const [selectedRecords, setSelectedRecords] = useState([]);
+
 
   const token = localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
 
@@ -205,6 +212,112 @@ const OSReportUpload1 = () => {
     refreshData();
   }, [activeTab, searchTerm]);
 
+  const fetchUpdateSummary = async (record) => {
+  try {
+    const response = await axios.get(
+      `/api/account-receivables/${record.id}/invoice-summary`,
+      { headers: { 'Authorization': `Bearer ${token}` } }
+    );
+    
+    if (response.data.success) {
+      setUpdateSummary(response.data.data);
+      setSelectedRecordForUpdate(record);
+      setShowUpdateModal(true);
+    }
+  } catch (error) {
+    const errorMessage = error.response?.data?.message || 'Failed to fetch update summary';
+    showAlert(errorMessage, 'danger');
+  }
+};
+const handleUpdateInvoiceAmounts = async (record) => {
+  setUpdating(true);
+  try {
+    const response = await axios.post(
+      `/api/account-receivables/${record.id}/update-invoice-amounts`,
+      {
+        amount_paid: record.amount_paid,
+        final_due_amount_usd: record.final_due_amount_usd,
+        create_payment_record: true
+      },
+      { headers: { 'Authorization': `Bearer ${token}` } }
+    );
+
+    if (response.data.success) {
+      showAlert('Invoice amounts updated successfully', 'success');
+      setShowUpdateModal(false);
+      setSelectedRecordForUpdate(null);
+      setUpdateSummary(null);
+      refreshData();
+    } else {
+      showAlert(response.data.message, 'danger');
+    }
+  } catch (error) {
+    const errorMessage = error.response?.data?.message || 'Update failed';
+    showAlert(errorMessage, 'danger');
+  } finally {
+    setUpdating(false);
+  }
+};
+
+const handleBulkUpdateInvoices = async () => {
+  if (selectedRecords.length === 0) {
+    showAlert('Please select records to update', 'warning');
+    return;
+  }
+
+  setUpdating(true);
+  try {
+    const response = await axios.post(
+      '/api/account-receivables/bulk-update-invoice-amounts',
+      {
+        ar_ids: selectedRecords.map(r => r.id),
+        create_payment_records: true
+      },
+      { headers: { 'Authorization': `Bearer ${token}` } }
+    );
+
+    if (response.data.success) {
+      showAlert(response.data.message, 'success');
+      setBulkUpdateMode(false);
+      setSelectedRecords([]);
+      refreshData();
+    } else {
+      showAlert(response.data.message, 'danger');
+    }
+  } catch (error) {
+    const errorMessage = error.response?.data?.message || 'Bulk update failed';
+    showAlert(errorMessage, 'danger');
+  } finally {
+    setUpdating(false);
+  }
+};
+
+const handleSyncAllInvoices = async () => {
+  if (!window.confirm('This will sync all linked account receivables with their invoices. Continue?')) {
+    return;
+  }
+
+  setUpdating(true);
+  try {
+    const response = await axios.post(
+      '/api/account-receivables/sync-all-invoices',
+      {},
+      { headers: { 'Authorization': `Bearer ${token}` } }
+    );
+
+    if (response.data.success) {
+      showAlert(response.data.message, 'success');
+      refreshData();
+    } else {
+      showAlert(response.data.message, 'danger');
+    }
+  } catch (error) {
+    const errorMessage = error.response?.data?.message || 'Sync failed';
+    showAlert(errorMessage, 'danger');
+  } finally {
+    setUpdating(false);
+  }
+};
   const templateHeaders = {
     type1: ['Invoice No', 'Supplier expectation', 'Invoice Amount', 'Service charges', 'TDS2%', 'Already paid', 'Payout final payment', 'Remarks'],
     type2: ['Invoice #', 'Customer PO #', 'Customer Name', 'Amount (USD)', 'Comment', 'Promised Date', 'Amount Paid', 'Final Due Amount in USD', 'Remark', 'MMT Amount - final amount', 'Remarks']
@@ -241,6 +354,7 @@ const OSReportUpload1 = () => {
               <th>Status</th>
               <th>Linked</th>
               <th>Created</th>
+              <th>Action</th>
               {/* {showLinkButton && <th>Actions</th>} */}
             </tr>
           </thead>
@@ -276,6 +390,16 @@ const OSReportUpload1 = () => {
                   )}
                 </td>
                 <td>{new Date(record.created_at).toLocaleDateString()}</td>
+                <td>{record.invoice_id && (
+  <Button
+    variant="outline-success"
+    size="sm"
+    onClick={() => fetchUpdateSummary(record)}
+    title="Update Invoice Amounts"
+  >
+    <FaSync />
+  </Button>
+)}</td>
                 {/* {showLinkButton && (
                   <td>
                     {!record.invoice_id && (
@@ -493,6 +617,30 @@ const OSReportUpload1 = () => {
               >
                 All Records
               </Button>
+
+              <Button
+  variant="outline-success"
+  size="sm"
+  onClick={() => setBulkUpdateMode(!bulkUpdateMode)}
+  className="me-2"
+>
+  <FaSync className="me-1" />
+  {bulkUpdateMode ? 'Cancel Bulk Update' : 'Bulk Update Invoices'}
+</Button>
+
+<Button
+  variant="outline-info"
+  size="sm"
+  onClick={handleSyncAllInvoices}
+  disabled={updating}
+>
+  {updating ? (
+    <Spinner animation="border" size="sm" className="me-2" />
+  ) : (
+    <FaSync className="me-1" />
+  )}
+  Sync All
+</Button>
             </div>
             <div className="d-flex gap-2">
               <InputGroup size="sm" style={{ width: '300px' }}>
@@ -678,6 +826,76 @@ const OSReportUpload1 = () => {
           </Button>
         </Modal.Footer>
       </Modal>
+
+      // Add the Update Modal
+<Modal show={showUpdateModal} onHide={() => setShowUpdateModal(false)}>
+  <Modal.Header closeButton>
+    <Modal.Title>Update Invoice Amounts</Modal.Title>
+  </Modal.Header>
+  <Modal.Body>
+    {updateSummary && selectedRecordForUpdate && (
+      <div>
+        <Alert variant="info">
+          <strong>Account Receivable:</strong> {selectedRecordForUpdate.invoice_number}
+          <br />
+          <strong>Customer:</strong> {selectedRecordForUpdate.customer_name}
+        </Alert>
+        
+        <Table bordered size="sm">
+          <thead>
+            <tr>
+              <th>Field</th>
+              <th>Account Receivable</th>
+              <th>Invoice</th>
+              <th>Difference</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Amount Paid/Received</td>
+              <td>${parseFloat(updateSummary.account_receivable.amount_paid).toLocaleString()}</td>
+              <td>${parseFloat(updateSummary.invoice.amount_received).toLocaleString()}</td>
+              <td className={updateSummary.update_required ? 'text-warning fw-bold' : ''}>
+                {updateSummary.update_required ? 'Update Required' : 'Synced'}
+              </td>
+            </tr>
+            <tr>
+              <td>Final Due/Balance</td>
+              <td>${parseFloat(updateSummary.account_receivable.final_due_amount_usd).toLocaleString()}</td>
+              <td>${parseFloat(updateSummary.invoice.balance).toLocaleString()}</td>
+              <td>-</td>
+            </tr>
+          </tbody>
+        </Table>
+        
+        {updateSummary.payment_difference > 0 && (
+          <Alert variant="warning">
+            <strong>Payment to be created:</strong> ${parseFloat(updateSummary.payment_difference).toLocaleString()}
+          </Alert>
+        )}
+      </div>
+    )}
+  </Modal.Body>
+  <Modal.Footer>
+    <Button variant="secondary" onClick={() => setShowUpdateModal(false)}>
+      Cancel
+    </Button>
+    <Button 
+      variant="primary" 
+      onClick={() => handleUpdateInvoiceAmounts(selectedRecordForUpdate)}
+      disabled={updating || !updateSummary?.update_required}
+    >
+      {updating ? (
+        <>
+          <Spinner animation="border" size="sm" className="me-2" />
+          Updating...
+        </>
+      ) : (
+        'Update Invoice'
+      )}
+    </Button>
+  </Modal.Footer>
+</Modal>
     </div>
   );
 };

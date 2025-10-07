@@ -34,6 +34,7 @@ import Summary_report from '../summary/Summary_report';
 import Cheque_print_list from './cheque_print/Cheque_print_list';
 import Cheque_print_create from './cheque_print/Cheque_print_create';
 import Upload_Cost_Sheet from './upload_cost_sheet/Upload_Cost_Sheet';
+import Invoice_actual_pnl from './pnl/Invoice_actual_pnl';
 
 const Invoice_preview = ({ target }) => {
     const { selectedCompany } = useContext(CompanyContext);
@@ -107,11 +108,23 @@ const Invoice_preview = ({ target }) => {
       case "appleholidays":
         return <Invoice_pnl company={'appleholidays'}/>;
       case "shirmila":
-        return <Invoice_pnl company={'shirmila'} />;
+        // return <Invoice_pnl company={'shirmila'} />;
       case "aahaas":
-        return <Invoice_pnl company={'aahaas'}/>;
+        // return <Invoice_pnl company={'aahaas'}/>;
       default:
-        return <Invoice_pnl company={'aahaas'}/>;
+        // return <Invoice_pnl company={'aahaas'}/>;
+    }
+  }
+  if (target === "invoice_pnl_actual") {
+   switch (selectedCompany) {
+      case "appleholidays":
+        return <Invoice_actual_pnl company={'appleholidays'}/>;
+      case "shirmila":
+        // return <Invoice_actual_pnl company={'shirmila'} />;
+      case "aahaas":
+        // return <Invoice_actual_pnl company={'aahaas'}/>;
+      default:
+        // return <Invoice_actual_pnl company={'aahaas'}/>;
     }
   }
 

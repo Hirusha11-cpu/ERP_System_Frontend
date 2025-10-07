@@ -418,7 +418,7 @@ const Invoice_pnl = () => {
                   <th className="text-end">Revenue</th>
                   <th className="text-end">Cost</th>
                   <th className="text-end">Profit</th>
-                  <th className="text-end">Margin %</th>
+                  {/* <th className="text-end">Margin %</th> */}
                   <th>Currency</th>
                 </tr>
               </thead>
@@ -426,7 +426,8 @@ const Invoice_pnl = () => {
                 {invoices.map((invoice) => {
                   const revenue = parseFloat(invoice.total_amount) || 0;
                   const cost = parseFloat(invoice.cost_of_invoices?.[0]?.total_tour_cost || invoice.cost_of_invoices?.[0]?.net_cost_amount || 0);
-                  const profit = parseFloat(invoice.profit?.profit || revenue - cost);
+                  // const profit = parseFloat(invoice.profit?.profit || revenue - cost);
+                  const profit = parseFloat(revenue - cost);
                   const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
 
                   return (
@@ -456,11 +457,11 @@ const Invoice_pnl = () => {
                           {profit.toFixed(2)}
                         </span>
                       </td>
-                      <td className="text-end">
+                      {/* <td className="text-end">
                         <span className={margin >= 0 ? 'text-success' : 'text-danger'}>
                           {margin.toFixed(1)}%
                         </span>
-                      </td>
+                      </td> */}
                       <td>{invoice.currency}</td>
                     </tr>
                   );

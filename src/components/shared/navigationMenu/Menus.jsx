@@ -14,7 +14,7 @@ const Menus = () => {
   const [companyNo, setCompanyNo] = useState(null);
   const [filteredMenu, setFilteredMenu] = useState([]);
   const pathName = useLocation().pathname;
-  
+
   const handleMainMenu = (e, name) => {
     if (openDropdown === name) {
       setOpenDropdown(null);
@@ -38,18 +38,56 @@ const Menus = () => {
       aahaas: 3,
       shirmila: 1,
     };
-    const currentCompanyNo =
-      companyMap[selectedCompany?.toLowerCase()] || null;
+    const currentCompanyNo = companyMap[selectedCompany?.toLowerCase()] || null;
     setCompanyNo(currentCompanyNo);
+    console.log(menuList);
 
     // Filter menu dynamically
-    const menu = menuList.map((menuItem) => ({
-      ...menuItem,
-      dropdownMenu:
-        currentCompanyNo === 3
-          ? menuItem.dropdownMenu.filter((item) => item.name !== "Create Invoice" || item.name !== "PnL Report")
-          : menuItem.dropdownMenu,
-    }));
+    // const menu = menuList.map((menuItem) => ({
+    //   ...menuItem,
+    //   dropdownMenu:
+    //     currentCompanyNo === 3
+    //       ? (menuItem.dropdownMenu.filter((item) => item.name !== "Create Invoice" || item.name !== "PnL Report") || menuItem.mainName === "Accounts Receivable")
+    //       : menuItem.dropdownMenu,
+    // }));
+    const menu = menuList
+      // 1️⃣ Filter out "receivables" menu entirely if companyNo === 3
+      .filter(
+        (menuItem) =>
+          !(currentCompanyNo === 3 && menuItem.name === "receivables")
+      )
+      // 2️⃣ Then adjust dropdown items for remaining menus
+      .map((menuItem) => {
+        let updatedDropdown = menuItem.dropdownMenu;
+
+        // If company 3 → remove Create Invoice + PnL Report
+        if (currentCompanyNo === 3) {
+          updatedDropdown = updatedDropdown.filter(
+            (item) =>
+              item.name !== "Create Invoice" && item.name !== "P&L Reports"
+          );
+        }
+
+        // If company 2 → remove Budget P&L from inside subdropdownMenu of P&L Reports
+        if (currentCompanyNo === 2) {
+          updatedDropdown = updatedDropdown.map((item) => {
+            if (
+              item.name === "P&L Reports" &&
+              Array.isArray(item.subdropdownMenu)
+            ) {
+              return {
+                ...item,
+                subdropdownMenu: item.subdropdownMenu.filter(
+                  (subItem) => subItem.name !== "Budget P&L"
+                ),
+              };
+            }
+            return item;
+          });
+        }
+
+        return { ...menuItem, dropdownMenu: updatedDropdown };
+      });
 
     setFilteredMenu(menu);
   }, [selectedCompany]);
@@ -68,111 +106,122 @@ const Menus = () => {
   }, [pathName]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
       {/* Menu Items - This will scroll if content overflows */}
-      <ul style={{ flex: 1, overflowY: 'auto', paddingBottom: '10px' }}>
-        {filteredMenu.map(({ dropdownMenu, id, name, path, icon, mainName }) => {
-          return (
-            <li
-              key={id}
-              onClick={(e) => handleMainMenu(e, name)}
-              className={`nxl-item nxl-hasmenu ${
-                activeParent === name ? "active nxl-trigger" : ""
-              }`}
-            >
-              <Link to={path} className="nxl-link text-capitalize">
-                <span className="nxl-micon"> {getIcon(icon)} </span>
-                <span className="nxl-mtext" style={{ paddingLeft: "2.5px" }}>
-                  {mainName || name}
-                </span>
-                <span className="nxl-arrow fs-16">
-                  <FiChevronRight />
-                </span>
-              </Link>
-              <ul
-                className={`nxl-submenu ${
-                  openDropdown === name ? "nxl-menu-visible" : "nxl-menu-hidden"
+      <ul style={{ flex: 1, overflowY: "auto", paddingBottom: "10px" }}>
+        {filteredMenu.map(
+          ({ dropdownMenu, id, name, path, icon, mainName }) => {
+            return (
+              <li
+                key={id}
+                onClick={(e) => handleMainMenu(e, name)}
+                className={`nxl-item nxl-hasmenu ${
+                  activeParent === name ? "active nxl-trigger" : ""
                 }`}
               >
-                {dropdownMenu.map(({ id, name, path, subdropdownMenu }) => {
-                  const x = name;
-                  return (
-                    <Fragment key={id}>
-                      {subdropdownMenu.length ? (
-                        <li
-                          className={`nxl-item nxl-hasmenu ${
-                            activeChild === name ? "active" : ""
-                          }`}
-                          onClick={(e) => handleDropdownMenu(e, x)}
-                        >
-                          <Link to={path} className={`nxl-link text-capitalize`}>
-                            <span className="nxl-mtext">{name}</span>
-                            <span className="nxl-arrow">
-                              <i>
-                                {" "}
-                                <FiChevronRight />
-                              </i>
-                            </span>
-                          </Link>
-                          {subdropdownMenu.map(({ id, name, path }) => {
-                            return (
-                              <ul
-                                key={id}
-                                className={`nxl-submenu ${
-                                  openSubDropdown === x
-                                    ? "nxl-menu-visible"
-                                    : "nxl-menu-hidden "
-                                }`}
-                              >
-                                <li
-                                  className={`nxl-item ${
-                                    pathName === path ? "active" : ""
+                <Link to={path} className="nxl-link text-capitalize">
+                  <span className="nxl-micon"> {getIcon(icon)} </span>
+                  <span className="nxl-mtext" style={{ paddingLeft: "2.5px" }}>
+                    {mainName || name}
+                  </span>
+                  <span className="nxl-arrow fs-16">
+                    <FiChevronRight />
+                  </span>
+                </Link>
+                <ul
+                  className={`nxl-submenu ${
+                    openDropdown === name
+                      ? "nxl-menu-visible"
+                      : "nxl-menu-hidden"
+                  }`}
+                >
+                  {dropdownMenu.map(({ id, name, path, subdropdownMenu }) => {
+                    const x = name;
+                    return (
+                      <Fragment key={id}>
+                        {subdropdownMenu.length ? (
+                          <li
+                            className={`nxl-item nxl-hasmenu ${
+                              activeChild === name ? "active" : ""
+                            }`}
+                            onClick={(e) => handleDropdownMenu(e, x)}
+                          >
+                            <Link
+                              to={path}
+                              className={`nxl-link text-capitalize`}
+                            >
+                              <span className="nxl-mtext">{name}</span>
+                              <span className="nxl-arrow">
+                                <i>
+                                  {" "}
+                                  <FiChevronRight />
+                                </i>
+                              </span>
+                            </Link>
+                            {subdropdownMenu.map(({ id, name, path }) => {
+                              return (
+                                <ul
+                                  key={id}
+                                  className={`nxl-submenu ${
+                                    openSubDropdown === x
+                                      ? "nxl-menu-visible"
+                                      : "nxl-menu-hidden "
                                   }`}
                                 >
-                                  <Link
-                                    className="nxl-link text-capitalize"
-                                    to={path}
+                                  <li
+                                    className={`nxl-item ${
+                                      pathName === path ? "active" : ""
+                                    }`}
                                   >
-                                    {name}
-                                  </Link>
-                                </li>
-                              </ul>
-                            );
-                          })}
-                        </li>
-                      ) : (
-                        <li
-                          className={`nxl-item ${
-                            pathName === path ? "active" : ""
-                          }`}
-                        >
-                          <Link className="nxl-link" to={path}>
-                            {name}
-                          </Link>
-                        </li>
-                      )}
-                    </Fragment>
-                  );
-                })}
-              </ul>
-            </li>
-          );
-        })}
+                                    <Link
+                                      className="nxl-link text-capitalize"
+                                      to={path}
+                                    >
+                                      {name}
+                                    </Link>
+                                  </li>
+                                </ul>
+                              );
+                            })}
+                          </li>
+                        ) : (
+                          <li
+                            className={`nxl-item ${
+                              pathName === path ? "active" : ""
+                            }`}
+                          >
+                            <Link className="nxl-link" to={path}>
+                              {name}
+                            </Link>
+                          </li>
+                        )}
+                      </Fragment>
+                    );
+                  })}
+                </ul>
+              </li>
+            );
+          }
+        )}
       </ul>
 
       {/* Version Number - Always at bottom */}
-      <div style={{
-        padding: '15px',
-        textAlign: 'center',
-        borderTop: '1px solid rgba(255,255,255,0.1)',
-        marginTop: 'auto',
-        backgroundColor: 'inherit'
-      }}>
-        <div style={{
-          fontSize: '12px',
-          color: 'rgba(255,255,255,0.6)',
-          fontWeight: '500'
-        }}>
+      <div
+        style={{
+          padding: "15px",
+          textAlign: "center",
+          borderTop: "1px solid rgba(255,255,255,0.1)",
+          marginTop: "auto",
+          backgroundColor: "inherit",
+        }}
+      >
+        <div
+          style={{
+            fontSize: "12px",
+            color: "rgba(255,255,255,0.6)",
+            fontWeight: "500",
+          }}
+        >
           v{"1.0.0"}
         </div>
       </div>

@@ -92,12 +92,12 @@ export const menuList = [
         path: "/invoice/create",
         subdropdownMenu: true,
       },
-      {
-        id: 3,
-        name: "PnL Report",
-        path: "/invoice/pnl",
-        subdropdownMenu: false,
-      },
+      // {
+      //   id: 3,
+      //   name: "PnL Report",
+      //   path: "/invoice/pnl",
+      //   subdropdownMenu: false,
+      // },
 
       // {
       //   id: 3,
@@ -111,24 +111,24 @@ export const menuList = [
       //   path: "/invoice/refund",
       //   subdropdownMenu: false,
       // },
-      // {
-      //   id: 4,
-      //   name: "P&L Reports",
-      //   path: "/invoice/pnl",
-      //   // subdropdownMenu: false,
-      //      subdropdownMenu: [
-      //     {
-      //       id: 1,
-      //       name: "Budget P&L",
-      //       path: "/invoice/pnl",
-      //     },
-      //     {
-      //       id: 2,
-      //       name: "Actual P&L",
-      //       path: "/invoice/pnl/actual",
-      //     }
-      //   ],
-      // },
+      {
+        id: 4,
+        name: "P&L Reports",
+        path: "/invoice/pnl",
+        // subdropdownMenu: false,
+           subdropdownMenu: [
+          {
+            id: 1,
+            name: "Budget P&L",
+            path: "/invoice/pnl",
+          },
+          {
+            id: 2,
+            name: "Actual P&L",
+            path: "/invoice/pnl/actual",
+          }
+        ],
+      },
       // {
       //   id: 5,
       //   name: "Summary invoice",

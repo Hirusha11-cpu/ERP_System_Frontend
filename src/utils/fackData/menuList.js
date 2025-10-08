@@ -279,27 +279,27 @@ export const menuList = [
   //     },
   //   ],
   // },
-  // {
-  //   id: 6,
-  //   name: "Summary Reports",
-  //   path: "/summary_reports",
-  //   icon: "feather-framer",
-  //   dropdownMenu: [
-  //     {
-  //       id: 1,
-  //       name: "summary reports",
-  //       path: "/summary_reports",
-  //       subdropdownMenu: false,
-  //     },
-  //     // {
-  //     //   id: 2,
-  //     //   name: "Edit Invoice",
-  //     //   path: "/payment/view",
-  //     //   subdropdownMenu: false,
-  //     // },
+  {
+    id: 6,
+    name: "Summary Reports",
+    path: "/summary_reports",
+    icon: "feather-framer",
+    dropdownMenu: [
+      {
+        id: 1,
+        name: "summary reports",
+        path: "/summary_reports",
+        subdropdownMenu: false,
+      },
+      // {
+      //   id: 2,
+      //   name: "Edit Invoice",
+      //   path: "/payment/view",
+      //   subdropdownMenu: false,
+      // },
      
-  //   ],
-  // },
+    ],
+  },
   // {
   //   id: 7,
   //   name: "Cheque Print",

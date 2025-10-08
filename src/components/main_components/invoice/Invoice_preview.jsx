@@ -35,6 +35,7 @@ import Cheque_print_list from './cheque_print/Cheque_print_list';
 import Cheque_print_create from './cheque_print/Cheque_print_create';
 import Upload_Cost_Sheet from './upload_cost_sheet/Upload_Cost_Sheet';
 import Invoice_actual_pnl from './pnl/Invoice_actual_pnl';
+import Summery_report_all from '../account_receivable/summary_report/Summery_report_all';
 
 const Invoice_preview = ({ target }) => {
     const { selectedCompany } = useContext(CompanyContext);
@@ -299,13 +300,13 @@ const Invoice_preview = ({ target }) => {
   if (target === "summary_reports") {
    switch (selectedCompany) {
       case "appleholidays":
-        return <Summary_report company={'appleholidays'}/>;
+        return <Summery_report_all company={'appleholidays'}/>;
       case "shirmila":
-        return <Summary_report company={'shirmila'} />;
+        return <Summery_report_all company={'shirmila'} />;
       case "aahaas":
-        return <Summary_report company={'aahaas'}/>;
+        return <Summery_report_all company={'aahaas'}/>;
       default:
-        return <Summary_report company={'aahaas'}/>;
+        return <Summery_report_all company={'aahaas'}/>;
     }
   }
   if (target === "cheque_print_list") {

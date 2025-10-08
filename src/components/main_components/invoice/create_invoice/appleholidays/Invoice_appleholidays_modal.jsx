@@ -12,18 +12,20 @@ const Invoice_appleholidays_modal = ({
   currencySymbols,
   printInvoice,
   xeRate,
-  showExchangedOpen
+  showExchangedOpen,
 }) => {
   console.log("Invoice Data Apple:", formData);
   console.log(formData.currencyDetails?.exchangeRate);
   console.log(formData.currencyDetails?.increment);
-  console.log(Number(formData.currencyDetails?.exchangeRate || 0).toFixed(2) + formData.currencyDetails?.increment);
   console.log(
-  Number(
-    Number(formData.currencyDetails?.exchangeRate || 0).toFixed(2)
-  ) + Number(formData.currencyDetails?.increment || 0)
-);
-  
+    Number(formData.currencyDetails?.exchangeRate || 0).toFixed(2) +
+      formData.currencyDetails?.increment
+  );
+  console.log(
+    Number(Number(formData.currencyDetails?.exchangeRate || 0).toFixed(2)) +
+      Number(formData.currencyDetails?.increment || 0)
+  );
+
   const calculateTravelDays = (start, end) => {
     const startDate = new Date(start);
     const endDate = new Date(end);
@@ -84,16 +86,16 @@ const Invoice_appleholidays_modal = ({
             {/* <div>Apple Holidays, 148, Aluthmawatha Road, Colombo 15</div>
             <div>Tel: +94 11 2342400 | Web: www.appleholidaysds.com</div>
             <div>Email: accounts5@appleholidaysds.com</div> */}
-            <div>
-                  One Galle Face Tower, 2208, 1A Centre Road, Colombo 002
-                </div>
-                <div>Tel: 011 2352 400 | Web: www.aahaas.com</div>
-                <div>Email: accounts5@appleholidaysds.com</div>
+            <div>One Galle Face Tower, 2208, 1A Centre Road, Colombo 002</div>
+            <div>Tel: 011 2352 400 | Web: www.aahaas.com</div>
+            <div>Email: accounts5@appleholidaysds.com</div>
           </div>
 
           {/* Invoice Title */}
           <div className="text-center mb-3">
-            <h5 className="fw-bold">INVOICE - {formData.invoice?.id ?? "3456"} </h5>
+            <h5 className="fw-bold">
+              INVOICE - {formData.invoice?.id ?? "3456"}{" "}
+            </h5>
           </div>
 
           {/* Invoice Meta and Customer Info */}
@@ -128,7 +130,7 @@ const Invoice_appleholidays_modal = ({
             <div>
               <div>
                 <strong>To:</strong>{" "}
-               <strong>{formData.customer?.name || ""}</strong> 
+                <strong>{formData.customer?.name || ""}</strong>
               </div>
               {/* <div>
                 <strong>Address:</strong>{" "}
@@ -139,31 +141,29 @@ const Invoice_appleholidays_modal = ({
                   <strong>Address:</strong> {formData.customer.address}
                 </div>
               )}
-                <div>
+              <div>
                 <strong>Date:</strong> {formatDate(formData.invoice?.issueDate)}
               </div>
-               {formData.customer?.gst_no && (
+              {formData.customer?.gst_no && (
                 <div>
                   <strong>GST:</strong> {formData.customer.gst_no}
                 </div>
               )}
               {/* <div> */}
-                {/* <strong>Customer Info</strong>{" "} */}
-                {/* {formData.customer.name || "PICK YOUR TRAIL"} */}
+              {/* <strong>Customer Info</strong>{" "} */}
+              {/* {formData.customer.name || "PICK YOUR TRAIL"} */}
               {/* </div> */}
               {/* <div>
                 <strong>Customer:</strong>{" "}
                 {formData.customer?.customer || "PICK YOUR TRAIL"}
               </div> */}
-               {formData.customer?.customer && (
+              {formData.customer?.customer && (
                 <div>
                   <strong>Customer:</strong> {formData.customer.customer}
                 </div>
               )}
-            
-              <div>
-                {/* <strong>GST:</strong> {"7895"} */}
-              </div>
+
+              <div>{/* <strong>GST:</strong> {"7895"} */}</div>
             </div>
             <div className="text-start">
               <div>
@@ -214,7 +214,7 @@ const Invoice_appleholidays_modal = ({
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
                     })} */}
-                       {/* {(
+                    {/* {(
                       // (item?.price || 0)
                       (item?.price * Number(
     Number(formData.currencyDetails?.exchangeRate || 0).toFixed(2)
@@ -225,22 +225,34 @@ const Invoice_appleholidays_modal = ({
                       maximumFractionDigits: 2,
                     })} */}
 
-                   {/* {( (item?.price*xeRate || 0) -
+                    {/* {( (item?.price*xeRate || 0) -
                       (formData.totals?.handlingFee / (item?.qty) || 0)).toLocaleString("en-US", {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
                     })} */}
-                     {showExchangedOpen ? (((item?.price * xeRate || 0) -
-                      (formData.totals?.handlingFee / (item?.qty) || 0))).toLocaleString("en-US", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    }) : (((item?.price || 0) * (Number(
-    Number(formData.currencyDetails?.exchangeRate || 0).toFixed(2)
-  ) + Number(formData.currencyDetails?.increment || 0)) -
-                      (formData.totals?.handlingFee / (item?.qty) || 0))).toLocaleString("en-US", {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}
+                    {showExchangedOpen
+                      ? (
+                          (item?.price * xeRate || 0) -
+                          (formData.totals?.handlingFee / item?.qty || 0)
+                        ).toLocaleString("en-US", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })
+                      : (
+                          (item?.price || 0) *
+                            (Number(
+                              Number(
+                                formData.currencyDetails?.exchangeRate || 0
+                              ).toFixed(2)
+                            ) +
+                              Number(
+                                formData.currencyDetails?.increment || 0
+                              )) -
+                          (formData.totals?.handlingFee / item?.qty || 0)
+                        ).toLocaleString("en-US", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
                   </td>
                   <td>{item.discount}%</td>
                   <td>{item.qty}</td>
@@ -250,7 +262,7 @@ const Invoice_appleholidays_modal = ({
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
                     })} */}
-                    {showExchangedOpen ? (((item?.price * xeRate || 0) -
+                    {/* {showExchangedOpen ? (((item?.price * xeRate || 0) -
                       (formData.totals?.handlingFee / (item?.qty) || 0)) * item?.qty).toLocaleString("en-US", {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
@@ -260,7 +272,42 @@ const Invoice_appleholidays_modal = ({
                       (formData.totals?.handlingFee / (item?.qty) || 0)) * item?.qty).toLocaleString("en-US", {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
-                    })}
+                    })} */}
+
+                    {showExchangedOpen
+                      ? (formData.currencyDetails?.currency === "INR"
+                          ? (item?.price * xeRate || 0) -
+                            (formData.totals?.handlingFee / item?.qty || 0)
+                          : (item?.price * xeRate || 0) * item?.qty
+                        ).toLocaleString("en-US", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })
+                      : (formData.currencyDetails?.currency === "INR"
+                          ? (item?.price || 0) *
+                              (Number(
+                                Number(
+                                  formData.currencyDetails?.exchangeRate || 0
+                                ).toFixed(2)
+                              ) +
+                                Number(
+                                  formData.currencyDetails?.increment || 0
+                                )) -
+                            (formData.totals?.handlingFee / item?.qty || 0)
+                          : (item?.price || 0) *
+                            (Number(
+                              Number(
+                                formData.currencyDetails?.exchangeRate || 0
+                              ).toFixed(2)
+                            ) +
+                              Number(
+                                formData.currencyDetails?.increment || 0
+                              )) *
+                            item?.qty
+                        ).toLocaleString("en-US", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
                   </td>
                 </tr>
               ))}
@@ -323,8 +370,9 @@ const Invoice_appleholidays_modal = ({
                           <strong>GST:</strong>
                         </td>
                         <td style={{ textAlign: "right" }}>
-                          {currencySymbols[formData.currencyDetails?.currency] ||
-                            "$"}
+                          {currencySymbols[
+                            formData.currencyDetails?.currency
+                          ] || "$"}
                           {/* {formData.totals.gst.toFixed(2)} */}
                           {formData.totals?.gst.toLocaleString("en-US", {
                             minimumFractionDigits: 2,
@@ -505,16 +553,21 @@ const Invoice_appleholidays_modal = ({
               <div className="remark">
                 <strong>Remark:</strong> Invoice amount is{" "}
                 {/* {formData.currencyDetails.currency !== "USD" ?? "USD"} {formData.totals.total}. */}
-                {formData?.currencyDetails?.currency}  {formData.totals?.total.toLocaleString("en-US", {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}{" "}
+                {formData?.currencyDetails?.currency}{" "}
+                {formData.totals?.total.toLocaleString("en-US", {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}{" "}
                 Payments made more than two (2) days after the invoice date will
                 be subject to the applicable Xe.com{" "}
                 {formData.currencyDetails?.currency !== "USD"
-                  ? `${Number(
-    Number(formData.currencyDetails?.exchangeRate || 0).toFixed(2)
-  ) + Number(formData.currencyDetails?.increment || 0)}`
+                  ? `${
+                      Number(
+                        Number(
+                          formData.currencyDetails?.exchangeRate || 0
+                        ).toFixed(2)
+                      ) + Number(formData.currencyDetails?.increment || 0)
+                    }`
                   : ""}{" "}
                 exchange rate. The payment deadline shall be in accordance with
                 the booking confirmation or{" "}
@@ -527,7 +580,7 @@ const Invoice_appleholidays_modal = ({
                       .toISOString()
                       .split("T")[0]
                   : "15 days"}{" "}
-                 prior to arrival, whichever occurs earlier.
+                prior to arrival, whichever occurs earlier.
               </div>
             </div>
           </div>

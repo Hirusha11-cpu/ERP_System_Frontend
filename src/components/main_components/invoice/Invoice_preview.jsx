@@ -110,7 +110,7 @@ const Invoice_preview = ({ target }) => {
       case "shirmila":
         // return <Invoice_pnl company={'shirmila'} />;
       case "aahaas":
-        // return <Invoice_pnl company={'aahaas'}/>;
+        return <Invoice_pnl company={'aahaas'}/>;
       default:
         // return <Invoice_pnl company={'aahaas'}/>;
     }
@@ -120,9 +120,9 @@ const Invoice_preview = ({ target }) => {
       case "appleholidays":
         return <Invoice_actual_pnl company={'appleholidays'}/>;
       case "shirmila":
-        // return <Invoice_actual_pnl company={'shirmila'} />;
+        return <Invoice_actual_pnl company={'shirmila'} />;
       case "aahaas":
-        // return <Invoice_actual_pnl company={'aahaas'}/>;
+        return <Invoice_pnl company={'aahaas'}/>;
       default:
         // return <Invoice_actual_pnl company={'aahaas'}/>;
     }

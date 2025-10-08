@@ -54,7 +54,7 @@ const Menus = () => {
       // 1️⃣ Filter out "receivables" menu entirely if companyNo === 3
       .filter(
         (menuItem) =>
-          !(currentCompanyNo === 3 && menuItem.name === "receivables")
+          !(currentCompanyNo === 3 && (menuItem.name === "receivables" || menuItem.name === "payment"))
       )
       // 2️⃣ Then adjust dropdown items for remaining menus
       .map((menuItem) => {
@@ -64,12 +64,32 @@ const Menus = () => {
         if (currentCompanyNo === 3) {
           updatedDropdown = updatedDropdown.filter(
             (item) =>
-              item.name !== "Create Invoice" && item.name !== "P&L Reports"
+              item.name !== "Create Invoice"
           );
+        }
+
+        if (currentCompanyNo === 3) {
+         
         }
 
         // If company 2 → remove Budget P&L from inside subdropdownMenu of P&L Reports
         if (currentCompanyNo === 2) {
+          updatedDropdown = updatedDropdown.map((item) => {
+            if (
+              item.name === "P&L Reports" &&
+              Array.isArray(item.subdropdownMenu)
+            ) {
+              return {
+                ...item,
+                subdropdownMenu: item.subdropdownMenu.filter(
+                  (subItem) => subItem.name !== "Budget P&L"
+                ),
+              };
+            }
+            return item;
+          });
+        }
+        if (currentCompanyNo === 3) {
           updatedDropdown = updatedDropdown.map((item) => {
             if (
               item.name === "P&L Reports" &&

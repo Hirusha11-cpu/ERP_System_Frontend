@@ -35,18 +35,18 @@ export const menuList = [
         path: "/invoice",
         subdropdownMenu: false,
       },
-      // {
-      //   id: 3,
-      //   name: "Account Receivable",
-      //   path: "/receivables/api_list",
-      //   subdropdownMenu: false,
-      // },
-      // {
-      //   id: 4,
-      //   name: "Account Payable",
-      //   path: "/dashboards/analytics",
-      //   subdropdownMenu: false,
-      // },
+      {
+        id: 3,
+        name: "Account Receivable",
+        path: "/receivables/api_list2",
+        subdropdownMenu: false,
+      },
+      {
+        id: 4,
+        name: "Account Payable",
+        path: "/payment/list",
+        subdropdownMenu: false,
+      },
       // {
       //   id: 5,
       //   name: "Office Expense",
@@ -205,21 +205,21 @@ export const menuList = [
       // },
     ],
   },
-  // {
-  //   id: 3,
-  //   name: "payment",
-  //   mainName:"Accounts Payable",
-  //   path: "/payment/list",
-  //   icon: "feather-award",
-  //   dropdownMenu: [
-  //     {
-  //       id: 1,
-  //       name: "Payable List",
-  //       path: "/payment/list",
-  //       subdropdownMenu: false,
-  //     },
-  //   ],
-  // },
+  {
+    id: 3,
+    name: "payment",
+    mainName:"Accounts Payable",
+    path: "/payment/list",
+    icon: "feather-award",
+    dropdownMenu: [
+      {
+        id: 1,
+        name: "Payable List",
+        path: "/payment/list",
+        subdropdownMenu: false,
+      },
+    ],
+  },
 
   // {
   //   id: 4,

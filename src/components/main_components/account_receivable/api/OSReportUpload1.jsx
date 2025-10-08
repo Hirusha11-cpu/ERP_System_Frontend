@@ -180,6 +180,13 @@ const OSReportUpload1 = () => {
       "MMT Amount - final amount",
       "Remarks",
     ],
+    type3: [
+      "Invoice",
+      "Invoice Amount",
+      "Agent Name",
+      "Amount Paid",
+      "Remark"
+    ],
   };
 
   const downloadTemplate = () => {
@@ -216,6 +223,7 @@ const OSReportUpload1 = () => {
                 <Form.Select value={reportType} onChange={(e) => setReportType(e.target.value)}>
                   <option value="type1">Type 1 (PICK) </option>
                   <option value="type2">Type 2 (MMT)</option>
+                  <option value="type3">Type 3 (OTHER AGENT)</option>
                 </Form.Select>
               </Form.Group>
             </Col>
@@ -270,7 +278,8 @@ const OSReportUpload1 = () => {
                         <td>{rec.customer_name}</td>
                         <td>{rec.invoice_amount}</td>
                         <td>{rec.amount_paid}</td>
-                        <td>{rec.payout_final_payment}</td>
+                        {/* <td>{rec.payout_final_payment}</td> */}
+                        <td>{Number(rec.invoice_amount) - Number(rec.amount_paid)}</td>
                         <td>
                           <Badge bg={
                             rec.status === "paid"

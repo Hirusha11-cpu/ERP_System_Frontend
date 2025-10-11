@@ -61,7 +61,7 @@ const NavigationManu = () => {
                     <PerfectScrollbar>
                         <ul className="nxl-navbar">
                             <li className="nxl-item nxl-caption">
-                                <label>Navigation</label>
+                                {/* <label>Navigation</label> */}
                             </li>
                             <Menus />
                         </ul>
@@ -73,7 +73,7 @@ const NavigationManu = () => {
                                 <Link to="#" className="btn btn-primary text-dark w-100">Download Now</Link>
                             </div>
                         </div> */}
-                        <div style={{ height: "18px" }}></div>
+                        <div style={{ height: "18px" }}>v 1.0.2</div>
                     </PerfectScrollbar>
                 </div>
             </div>

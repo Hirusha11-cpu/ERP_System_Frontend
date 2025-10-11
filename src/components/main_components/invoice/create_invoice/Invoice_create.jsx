@@ -269,7 +269,7 @@ const Invoice_create = () => {
       .map(([key]) => key);
 
     const dataToSend = {
-      invoice_number: formData.invoice.number,
+      invoice_number: (formData.invoice.country != "IN" ? formData.invoice.country : "") + (formData.invoice.number),
       customer_id: formData.customer.id,
       increment: increaseAmount,
       country_code: formData.invoice.country,
@@ -286,6 +286,8 @@ const Invoice_create = () => {
       company_id: companyNo,
       account_id: formData.selectedAccountId || 1,
       booking_no: formData.invoice.bookingId,
+      your_ref: formData.invoice.yourRef,
+      printed_by: formData.invoice.printedBy,
       start_date: formData.invoice.startDate,
       sales_id: formData.invoice.salesId,
       end_date: formData.invoice.endDate,
@@ -346,13 +348,18 @@ const Invoice_create = () => {
     } catch (error) {
       console.error("Error creating invoice:", error);
 
+        const errorMessage = error.response?.data?.errors?.invoice_number
+    ? error.response.data.errors.invoice_number[0] // Get the first error message for invoice_number
+    : "An unexpected error occurred while creating the invoice.";
+
       // ✅ SweetAlert error
       Swal.fire({
         icon: "error",
         title: "Error!",
-        text:
-          "Error creating invoice: " +
-          (error.response?.data?.message || error.message),
+        // text:
+        //   "Error creating invoice: " +
+        //   (error.response?.data?.message || error.message),
+        text: errorMessage,
         confirmButtonText: "OK",
       });
     } finally {
@@ -407,7 +414,7 @@ const Invoice_create = () => {
       branch: "",
       ifsc: "",
       address: "",
-    },
+    }, 
     payment: {
       type: "non-credit",
       collectionDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
@@ -2801,6 +2808,7 @@ const Invoice_create = () => {
                         <>
                           <option value="Cost per Adult">Cost per Adult</option>
                           <option value="Cost per Child">Cost per Child</option>
+                          <option value="Total Tour cost">Total Tour cost</option>
                           <option value="Cost per Person">
                             Cost per Person
                           </option>

@@ -100,32 +100,7 @@ const Invoice_appleholidays_modal = ({
 
           {/* Invoice Meta and Customer Info */}
           <div className="d-flex justify-content-between mb-4">
-            {/* <div>
-              <div>
-                <strong>To:</strong>{" "}
-               <strong>{ "PICK YOUR TRAVEL"}</strong> 
-              </div>
-              <div>
-                <strong>Date</strong> {formatDate(formData.invoice?.issueDate)}
-              </div>
-              <div>
-                <strong>Customer Info</strong>{" "}
-              </div>
-              <div>
-                <strong>Name:</strong>{" "}
-                {formData.customer?.name || "PICK YOUR TRAVEL"}
-              </div>
-              <div>
-                <strong>Address: </strong>
-                {formData.customer?.address || "Madurai"}
-              </div>
-
-              <div>
-                {formData.currencyDetails?.currency === "INR"
-                  ? "GST - 4500"
-                  : ""}
-              </div>
-            </div> */}
+        
 
             <div>
               <div>
@@ -138,7 +113,12 @@ const Invoice_appleholidays_modal = ({
               </div> */}
               {formData.customer?.address && (
                 <div>
-                  <strong>Address:</strong> {formData.customer.address}
+                  {/* <strong>Address:</strong> {formData.customer.address} */}
+                   {formData.customer.address
+    ?.split(" ")
+    .map((word, index, arr) =>
+      index === 4 ? <><br />{word} </> : word + " "
+    )}
                 </div>
               )}
               <div>
@@ -168,27 +148,27 @@ const Invoice_appleholidays_modal = ({
             <div className="text-start">
               <div>
                 <strong>Tour No :</strong>{" "}
-                {formData.invoice?.number || "IS44641"}
+                {formData.invoice?.country != "IN" ? formData.invoice?.country : ""}{formData.invoice?.number || "IS44641"}
               </div>
               {/* <div>
                 <strong>Order No :</strong> {formData.id || "IS44641"}
               </div> */}
-              <div>
+             {formData.invoice?.salesId && <div>
                 <strong>Sales ID :</strong>{" "}
-                {formData.invoice?.salesId || "ARAVEND"}
-              </div>
-              <div>
+                {formData.invoice?.salesId}
+              </div>}
+              {formData.invoice?.printedBy && <div>
                 <strong>Accounts ID :</strong>{" "}
-                {formData.invoice?.printedBy || "KAVIYA"}
-              </div>
-              <div>
+                {formData.invoice?.printedBy }
+              </div>}
+              {formData.invoice?.bookingId && <div>
                 <strong>Booked ID :</strong>{" "}
-                {formData.invoice?.bookingId || "24567"}
-              </div>
-              <div>
+                {formData.invoice?.bookingId }
+              </div>}
+              {formData.invoice?.yourRef && <div>
                 <strong>Other Ref :</strong>{" "}
-                {formData.invoice?.yourRef || "399648 CNTL"}
-              </div>
+                {formData.invoice?.yourRef }
+              </div>}
             </div>
           </div>
 

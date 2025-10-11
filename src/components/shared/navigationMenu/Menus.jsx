@@ -61,12 +61,12 @@ const Menus = () => {
         let updatedDropdown = menuItem.dropdownMenu;
 
         // If company 3 → remove Create Invoice + PnL Report
-        if (currentCompanyNo === 3) {
-          updatedDropdown = updatedDropdown.filter(
-            (item) =>
-              item.name !== "Create Invoice"
-          );
-        }
+        // if (currentCompanyNo === 3) {
+        //   updatedDropdown = updatedDropdown.filter(
+        //     (item) =>
+        //       item.name !== "Create Invoice"
+        //   );
+        // }
 
         if (currentCompanyNo === 3) {
          

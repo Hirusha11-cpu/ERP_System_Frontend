@@ -1232,7 +1232,7 @@ const handleCloseModal = () => {
             <FaFileInvoiceDollar className="me-2" />
             Invoice Management
           </h5>
-          {companyNo !== 3 && (
+          {companyNo !== 4 && (
             <Button
               variant="light"
               onClick={() => navigate("/invoice/create")}
@@ -1530,7 +1530,7 @@ const handleCloseModal = () => {
                     <th>Total</th>
                     <th>Type</th>
                     <th>Status</th>
-                    {/* <th>Payments</th> */}
+                    {companyNo != 3 && <th>Payments</th>}
                     {companyNo != 3 && <th>Exchange-Rates</th>}
                     {/* <th>Costs</th> */}
                     <th className="text-end">Actions</th>
@@ -1607,7 +1607,7 @@ const handleCloseModal = () => {
                             invoice.status === "draft" ? "open" : invoice.status
                           )}
                         </td>
-                        {/* <td>
+                       {companyNo != 3 && ( <td>
                           <ActionButton
                             icon={<FaMoneyBillWave />}
                             label="View Payments"
@@ -1615,7 +1615,7 @@ const handleCloseModal = () => {
                             disabled = {invoice.status === "cancelled"}
                             onClick={() => handleViewPayments(invoice)}
                           />
-                        </td> */}
+                        </td>)}
                         {companyNo != 3 && (
                           <td>
                             <ActionButton

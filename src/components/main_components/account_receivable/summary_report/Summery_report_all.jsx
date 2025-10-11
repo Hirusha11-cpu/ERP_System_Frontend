@@ -660,7 +660,7 @@ const Summary_report_all = () => {
                   <th>Amount Paid</th>
                   <th>Final Due</th>
                   <th>Status</th>
-                  <th>Linked</th>
+                  {/* <th>Linked</th> */}
                   <th>Currency</th>
                   <th>Created Date</th>
                 </tr>
@@ -679,18 +679,22 @@ const Summary_report_all = () => {
                       {formatCurrency(ar.amount_paid, ar.currency)}
                     </td>
                     <td className={ar.final_due_amount_usd > 0 ? 'text-warning' : ''}>
-                      {formatCurrency(ar.final_due_amount_usd, ar.currency)}
+                      {/* {formatCurrency(ar.final_due_amount_usd, ar.currency)} */}
+                      {formatCurrency(
+  (Number(ar.invoice_amount) || 0) - (Number(ar.amount_paid) || 0),
+  ar.currency
+)}
                     </td>
                     <td>
                       {getStatusBadge(ar.status)}
                     </td>
-                    <td>
+                    {/* <td>
                       <Badge bg={ar.invoice_id ? 'success' : 'secondary'}>
                         {ar.invoice_id ? 'Linked' : 'Unlinked'}
                       </Badge>
-                    </td>
+                    </td> */}
                     <td>
-                      <Badge bg="outline-dark">{ar.currency}</Badge>
+                      <Badge bg="dark">{ar.currency}</Badge>
                     </td>
                     <td>
                       {new Date(ar.created_at).toLocaleDateString()}

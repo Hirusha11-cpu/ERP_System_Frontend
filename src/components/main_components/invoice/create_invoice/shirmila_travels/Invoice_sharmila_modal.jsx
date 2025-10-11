@@ -149,22 +149,22 @@ const Invoice_sharmila_modal = ({
                 {formData.invoice.number || "IS44641"}
               </div> */}
 
-              <div>
+              {formData.invoice?.salesId && <div>
                 <strong>Sales ID</strong>{" "}
-                {formData.invoice?.salesId || "ARAVIND"}
-              </div>
-              <div>
+                {formData.invoice?.salesId }
+              </div>}
+              {formData.invoice?.printedBy && <div>
                 <strong>Account ID</strong>{" "}
-                {formData.invoice?.printedBy || "KAVIYA"}
-              </div>
-              <div>
+                {formData.invoice?.printedBy}
+              </div>}
+              {formData.invoice?.bookingId && <div>
                 <strong>Booking ID</strong>{" "}
-                {formData.invoice?.bookingId || "399648 CNTL"}
-              </div>
-              <div>
+                {formData.invoice?.bookingId}
+              </div>}
+              {formData.invoice?.yourRef && <div>
                 <strong>Other Ref.</strong>{" "}
-                {formData.invoice?.yourRef || "399648 CNTL"}
-              </div>
+                {formData.invoice?.yourRef}
+              </div>}
             </div>
           </div>
 
